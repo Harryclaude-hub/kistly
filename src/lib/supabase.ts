@@ -31,12 +31,40 @@ export const SUPABASE_URL = url ?? ''
 export function errText(err: unknown): string {
   if (!err) return 'Unbekannter Fehler'
   if (typeof err === 'string') return err
-  const e = err as { message?: string; error_description?: string; details?: string; code?: string }
+  const e = err as {
+    message?: string
+    error_description?: string
+    details?: string
+    code?: string
+    error_code?: string
+  }
   const raw = e.error_description || e.message || e.details || ''
+  const code = e.error_code || e.code || ''
+
+  /* Supabase verschickt beim Registrieren eine Bestaetigungsmail, solange in
+   * der Projektverwaltung "Confirm email" aktiv ist. Der eingebaute
+   * Mailversand ist dabei auf wenige Mails pro Stunde begrenzt. Die
+   * englische Originalmeldung sagt niemandem, was zu tun ist. */
+  if (code === 'over_email_send_rate_limit' || raw.toLowerCase().includes('email rate limit')) {
+    return (
+      'Supabase wollte eine Bestaetigungsmail verschicken und hat das Stundenlimit erreicht. ' +
+      'Abhilfe: in der Projektverwaltung unter Authentication, Sign In, Email die Option ' +
+      '"Confirm email" ausschalten. Dann wird gar keine Mail mehr verschickt und die ' +
+      'Registrierung geht sofort durch.'
+    )
+  }
+  if (code === 'over_request_rate_limit' || raw.includes('For security purposes')) {
+    return 'Zu viele Versuche kurz hintereinander. Warte einen Moment und probier es noch einmal.'
+  }
+  if (code === 'signup_disabled' || raw.includes('Signups not allowed')) {
+    return 'Registrierung ist in diesem Projekt abgeschaltet.'
+  }
+
   const map: Record<string, string> = {
     'Invalid login credentials': 'E-Mail oder Passwort stimmt nicht.',
     'User already registered': 'Diese E-Mail ist schon registriert.',
-    'Email not confirmed': 'Die E-Mail ist noch nicht bestaetigt.',
+    'Email not confirmed':
+      'Das Konto wartet noch auf eine Bestaetigung. Sag Bescheid, dann wird es freigeschaltet.',
     'Password should be at least 6 characters':
       'Das Passwort braucht mindestens 6 Zeichen.',
     'New password should be different from the old password':

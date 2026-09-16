@@ -92,6 +92,7 @@ supabase/migrations/0005_storage.sql
 supabase/migrations/0006_hardening.sql
 supabase/migrations/0007_config_access.sql
 supabase/migrations/0008_fix_project_delete.sql
+supabase/migrations/0009_keine_email_bestaetigung.sql
 ```
 
 Mit der Supabase CLI geht es in einem Rutsch:
@@ -104,13 +105,26 @@ supabase db push
 ### 3. E-Mail-Bestaetigung abschalten
 
 **Das ist der einzige Schritt, der von Hand im Dashboard passieren muss.**
-Ohne ihn kann sich niemand ohne Postfach anmelden.
 
 **Authentication → Sign In / Providers → Email → "Confirm email" ausschalten.**
 
-Bleibt die Option an, meldet die Registrierung das ehrlich zurueck
-("Dieses Supabase-Projekt verlangt noch eine Bestaetigung per E-Mail"),
-statt so zu tun, als sei alles fertig.
+Dieser Schalter liegt in der Projektverwaltung, nicht in der Datenbank. Er
+laesst sich weder per SQL noch per Migration umlegen.
+
+Bleibt er an, versucht Supabase bei jeder Registrierung eine Mail zu
+verschicken. Der eingebaute Mailversand ist auf wenige Mails pro Stunde
+begrenzt, und dann kommt:
+
+
+
+Die Absage kommt, bevor ueberhaupt ein Konto entsteht. Kein Trigger und kein
+Kniff in der Datenbank hilft dagegen, nur der Schalter.
+
+ setzt die Vorgabe zusaetzlich auf
+Datenbankebene um: jedes neue Konto wird sofort selbst bestaetigt. Damit
+haengt nie ein Konto im Zustand "angelegt, aber nicht bestaetigt", auch
+wenn der Schalter spaeter wieder angeht. Bewusste Folge: eine Adresse wird
+nicht geprueft.
 
 ### 4. Umgebung setzen
 
