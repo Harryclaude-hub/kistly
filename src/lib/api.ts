@@ -269,6 +269,16 @@ export async function listTagStats(projectId: string): Promise<Map<string, TagSt
   return map
 }
 
+/** Zwei Bereiche zusammenfuehren. Alles vom ersten haengt danach am
+ *  zweiten, der erste ist weg. Die Codes vergibt die Datenbank neu, die
+ *  alten bleiben ueber item_code_history scannbar.
+ *  Gibt zurueck, wie viele Eintraege umgehaengt wurden. */
+export async function mergeTags(von: string, nach: string): Promise<number> {
+  const res = await supabase.rpc('merge_tags', { p_von: von, p_nach: nach })
+  if (res.error) throw new Error(tg('fehler.bereiche_zusammenfuehren', { grund: errText(res.error) }))
+  return Number(res.data ?? 0)
+}
+
 /* ================================================================ Kisten */
 
 export interface ItemFilter {
@@ -276,6 +286,10 @@ export interface ItemFilter {
   status?: ItemStatus | 'all'
   roomId?: string | 'all'
   personId?: string | 'all'
+  /** Kisten oder Moebel. Moebel sind Eintraege mit kind 'furniture'. */
+  kind?: Item['kind'] | 'all'
+  /** Moebel aus der Kistenliste heraushalten und umgekehrt. */
+  kindNot?: Item['kind']
   limit?: number
   offset?: number
   sort?: 'code' | 'newest' | 'size'
@@ -297,6 +311,8 @@ export async function listItems(projectId: string, f: ItemFilter = {}): Promise<
     .range(offset, offset + limit - 1)
 
   if (f.status && f.status !== 'all') q = q.eq('status', f.status)
+  if (f.kind && f.kind !== 'all') q = q.eq('kind', f.kind)
+  if (f.kindNot) q = q.neq('kind', f.kindNot)
   if (f.roomId && f.roomId !== 'all') q = q.eq('room_id', f.roomId)
   if (f.personId && f.personId !== 'all') q = q.eq('person_id', f.personId)
   if (f.search?.trim()) {
@@ -435,6 +451,43 @@ export async function addContent(
   return unwrap(res, 'fehler.eintrag_anlegen') as ItemContent
 }
 
+/** Einen Inhalt in eine andere Kiste umhaengen. Das project_id setzt der
+ *  Trigger nicht bei einem Update, darum wird es hier mitgeschickt, damit
+ *  die Zeile stimmig bleibt. Beide Kisten muessen im selben Umzug liegen,
+ *  sonst laesst die RLS das Schreiben ohnehin nicht zu. */
+export async function moveContent(
+  contentId: string,
+  zielItemId: string,
+  projectId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('item_contents')
+    .update({ item_id: zielItemId, project_id: projectId })
+    .eq('id', contentId)
+  if (error) throw new Error(tg('fehler.inhalt_verschieben', { grund: errText(error) }))
+}
+
+/** Mehrere Kisten auf einmal in ein anderes Zimmer oder zu einer anderen
+ *  Person haengen. Einzeln, damit der Trigger je Zeile einen sauberen
+ *  neuen Code vergeben kann. Fehlschlaege werden gesammelt gemeldet,
+ *  nicht verschluckt. */
+export async function moveItems(
+  ids: string[],
+  patch: { room_id?: string | null; person_id?: string | null; code_source?: Item['code_source'] },
+): Promise<{ ok: number; fehler: string[] }> {
+  let okZahl = 0
+  const fehler: string[] = []
+  for (const id of ids) {
+    try {
+      await updateItem(id, patch)
+      okZahl++
+    } catch (err) {
+      fehler.push(err instanceof Error ? err.message : String(err))
+    }
+  }
+  return { ok: okZahl, fehler }
+}
+
 export async function updateContent(id: string, patch: Partial<ItemContent>): Promise<void> {
   const { error } = await supabase.from('item_contents').update(patch).eq('id', id)
   if (error) throw new Error(tg('fehler.eintrag_speichern', { grund: errText(error) }))
@@ -461,6 +514,8 @@ export async function addPhotoRecord(
   itemId: string,
   path: string,
   caption?: string,
+  art: ItemPhoto['art'] = 'foto',
+  seite?: string,
 ): Promise<ItemPhoto> {
   const { data: auth } = await supabase.auth.getUser()
   const res = await supabase
@@ -469,6 +524,8 @@ export async function addPhotoRecord(
       item_id: itemId,
       project_id: projectId,
       path,
+      art,
+      seite: seite ?? null,
       caption: caption ?? null,
       created_by: auth.user?.id ?? null,
     })

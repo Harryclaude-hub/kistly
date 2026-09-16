@@ -68,7 +68,7 @@ export const einstellungen: Woerterbuch = {
   'einstellungen.anrufe': { de: 'Anrufe', ar: 'المكالمات' },
   'einstellungen.anrufe_hinweis': {
     de: 'Wiederholt sich, solange es klingelt.',
-    ar: 'يتكرر ما دام الجرس يرن.',
+    ar: 'يتكرر ما دام الرنين مستمراً.',
   },
   'einstellungen.kisten': { de: 'Kisten und Status', ar: 'الصناديق والحالة' },
   'einstellungen.kisten_hinweis': {

@@ -314,8 +314,138 @@ async function main() {
   })
   check('fremder Zaehler ist gesperrt', !fremdCounter.ok, `Status ${fremdCounter.status}`)
 
+  // ------------------------------------------------- Moebel und Markieren
+  console.log('\n10. Moebel, Markierungen und Zusammenfuehren')
+
+  const moebel = await mk({
+    project_id: pid,
+    room_id: wohn.id,
+    kind: 'furniture',
+    size: 9,
+    title: 'Esstisch',
+    hersteller: 'IKEA',
+    modell: 'NORDEN',
+    masse: '180 x 90 x 75 cm',
+    zerlegt: true,
+  })
+  check('Moebel angelegt', Boolean(moebel), JSON.stringify(moebel).slice(0, 140))
+  check('Moebel ist ein Eintrag mit kind furniture', moebel?.kind === 'furniture')
+  check('Moebel bekommt denselben Codeaufbau', /^W-9-\d{3}$/.test(moebel?.code ?? ''), moebel?.code)
+  check('Herstellerangaben gespeichert', moebel?.hersteller === 'IKEA' && moebel?.modell === 'NORDEN')
+  check('Masse und zerlegt gespeichert', moebel?.masse === '180 x 90 x 75 cm' && moebel?.zerlegt === true)
+
+  // Teilekatalog zum Nachzaehlen ist die vorhandene Inhaltsliste
+  const teile = await rest('/item_contents', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: [
+      { item_id: moebel.id, project_id: pid, text: 'Tischbein', qty: 4 },
+      { item_id: moebel.id, project_id: pid, text: 'Schraube M6', qty: 16 },
+    ],
+  })
+  check('Teilekatalog angelegt', teile.ok && (teile.data ?? []).length === 2,
+    JSON.stringify(teile.data).slice(0, 140))
+
+  // Aufbauanleitung als eigener Eintrag, getrennt von den Fotos
+  const anleitung = await rest('/item_photos', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: { item_id: moebel.id, project_id: pid, path: `${pid}/${moebel.id}/anleitung.pdf`, art: 'anleitung' },
+  })
+  check('Anleitung als eigener Eintrag', anleitung.ok && anleitung.data?.[0]?.art === 'anleitung',
+    JSON.stringify(anleitung.data).slice(0, 140))
+
+  const foto = await rest('/item_photos', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: { item_id: moebel.id, project_id: pid, path: `${pid}/${moebel.id}/vorne.jpg`, seite: 'vorne' },
+  })
+  check('Foto mit Seitenangabe, art faellt auf foto zurueck',
+    foto.data?.[0]?.seite === 'vorne' && foto.data?.[0]?.art === 'foto',
+    JSON.stringify(foto.data).slice(0, 140))
+
+  const falscheArt = await rest('/item_photos', {
+    method: 'POST',
+    body: { item_id: moebel.id, project_id: pid, path: 'x.jpg', art: 'unfug' },
+  })
+  check('Unbekannte Fotoart wird abgelehnt', !falscheArt.ok, `Status ${falscheArt.status}`)
+
+  const nurAnleitung = await rest(`/item_photos?item_id=eq.${moebel.id}&art=eq.anleitung&select=id`)
+  check('Anleitungen getrennt abrufbar', (nurAnleitung.data ?? []).length === 1)
+
+  // Markieren wie in Excel. Die Markierung gehoert der Zeile, nicht dem Zimmer.
+  const markiert = await rest(`/items?id=eq.${moebel.id}`, {
+    method: 'PATCH',
+    prefer: 'return=representation',
+    body: { mark_color: '#F59E0B', mark_symbol: 'stern' },
+  })
+  check('Markierung gespeichert',
+    markiert.data?.[0]?.mark_color === '#F59E0B' && markiert.data?.[0]?.mark_symbol === 'stern',
+    JSON.stringify(markiert.data).slice(0, 140))
+  const farbeDanach = await rest(`/tags?id=eq.${wohn.id}&select=color`)
+  check('Zimmerfarbe bleibt unberuehrt', farbeDanach.data?.[0]?.color === wohn.color)
+
+  const tagSymbol = await rest(`/tags?id=eq.${wohn.id}`, {
+    method: 'PATCH',
+    prefer: 'return=representation',
+    body: { symbol: 'sofa' },
+  })
+  check('Symbol am Bereich gespeichert', tagSymbol.data?.[0]?.symbol === 'sofa')
+
+  // Moebel und Kisten sauber auseinanderhalten
+  const nurKisten = await rest(`/items?project_id=eq.${pid}&kind=neq.furniture&select=id`)
+  const nurMoebel = await rest(`/items?project_id=eq.${pid}&kind=eq.furniture&select=id`)
+  check('Kisten und Moebel getrennt abrufbar',
+    (nurMoebel.data ?? []).length === 1 && (nurKisten.data ?? []).length === 6,
+    `${(nurKisten.data ?? []).length} Kisten, ${(nurMoebel.data ?? []).length} Moebel`)
+
+  // ------------------------------------------------- Zimmer zusammenfuehren
+  const vorher = await rest(`/items?project_id=eq.${pid}&room_id=eq.${kinder.id}&select=id`)
+  const anzahlKinder = (vorher.data ?? []).length
+  const wohnVorher = (await rest(`/items?project_id=eq.${pid}&room_id=eq.${wohn.id}&select=id`)).data ?? []
+  check('Vorher stehen zwei Kisten im Kinderzimmer', anzahlKinder === 2, String(anzahlKinder))
+
+  const selbst = await rpc('merge_tags', { p_von: wohn.id, p_nach: wohn.id })
+  check('Bereich mit sich selbst zusammenfuehren wird abgelehnt', !selbst.ok, `Status ${selbst.status}`)
+  const gemischt = await rpc('merge_tags', { p_von: personId, p_nach: wohn.id })
+  check('Person und Zimmer lassen sich nicht mischen', !gemischt.ok, `Status ${gemischt.status}`)
+
+  const verschmolzen = await rpc('merge_tags', { p_von: kinder.id, p_nach: wohn.id })
+  check('merge_tags lief durch', verschmolzen.ok, JSON.stringify(verschmolzen.data).slice(0, 160))
+  check('Anzahl umgehaengter Eintraege stimmt', Number(verschmolzen.data) === anzahlKinder,
+    `${verschmolzen.data} statt ${anzahlKinder}`)
+
+  const wegGeraeumt = await rest(`/tags?id=eq.${kinder.id}&select=id`)
+  check('Zusammengefuehrter Bereich ist weg', (wegGeraeumt.data ?? []).length === 0)
+
+  const wohnNachher =
+    (await rest(`/items?project_id=eq.${pid}&room_id=eq.${wohn.id}&select=id,code,code_source`)).data ?? []
+  check('Nichts ist verloren gegangen',
+    wohnNachher.length === wohnVorher.length + anzahlKinder,
+    `${wohnNachher.length} statt ${wohnVorher.length + anzahlKinder}`)
+  check('Codes tragen jetzt das Kuerzel des Zielzimmers',
+    wohnNachher.filter((i) => i.code_source === 'room').every((i) => i.code.startsWith('W-')),
+    wohnNachher.map((i) => i.code).join(' '))
+
+  const altFindbar = await rpc('resolve_code', { p_project: pid, p_code: 'KZ-5-001' })
+  check('Etikett aus dem alten Zimmer bleibt scannbar',
+    (altFindbar.data ?? []).some((r) => r.is_old === true),
+    JSON.stringify(altFindbar.data).slice(0, 160))
+
+  // ------------------------------------------- Inhalt in eine andere Kiste
+  const inhalte = await rest(`/item_contents?item_id=eq.${moebel.id}&text=eq.Tischbein&select=id`)
+  const umgehaengt = await rest(`/item_contents?id=eq.${inhalte.data?.[0]?.id}`, {
+    method: 'PATCH',
+    prefer: 'return=representation',
+    body: { item_id: i3.id, project_id: pid },
+  })
+  check('Inhalt in andere Kiste umgehaengt', umgehaengt.data?.[0]?.item_id === i3.id,
+    JSON.stringify(umgehaengt.data).slice(0, 140))
+  const restKatalog = await rest(`/item_contents?item_id=eq.${moebel.id}&select=id`)
+  check('Im Katalog bleibt genau ein Teil zurueck', (restKatalog.data ?? []).length === 1)
+
   // ------------------------------------------------------------- Aufraeumen
-  console.log('\n10. Aufraeumen')
+  console.log('\n11. Aufraeumen')
   const del = await rest(`/projects?id=eq.${pid}`, { method: 'DELETE' })
   check('Umzug geloescht', del.ok, `Status ${del.status}`)
   const rest_items = await rest(`/items?project_id=eq.${pid}&select=id`)

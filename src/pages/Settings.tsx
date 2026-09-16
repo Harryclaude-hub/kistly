@@ -343,7 +343,9 @@ export default function Settings() {
             nav('/')
           }}
         >
-          <LogOut size={18} /> {t('einstellungen.abmelden')}
+          {/* Der Pfeil zeigt aus der Tuer heraus, also dreht er im
+              Arabischen mit. Gleich gehandhabt wie in Team.tsx. */}
+          <LogOut size={18} className="spiegeln" /> {t('einstellungen.abmelden')}
         </Button>
 
         <p className="mt-8 text-center text-sm text-muted">{t('einstellungen.fusszeile')}</p>

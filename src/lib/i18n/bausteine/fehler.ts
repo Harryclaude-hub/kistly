@@ -262,6 +262,14 @@ export const fehler: Woerterbuch = {
     de: 'Dafuer fehlt dir die Berechtigung in diesem Umzug.',
     ar: 'لا تملك الصلاحية لذلك في هذه النقلة.',
   },
+  'fehler.bereiche_zusammenfuehren': {
+    de: 'Bereiche zusammenfuehren: {grund}',
+    ar: 'تعذّر دمج المناطق: {grund}',
+  },
+  'fehler.inhalt_verschieben': {
+    de: 'Inhalt verschieben: {grund}',
+    ar: 'تعذّر نقل المحتوى: {grund}',
+  },
   'fehler.keine_verbindung': {
     de: 'Keine Verbindung zum Server. Internet pruefen.',
     ar: 'لا يوجد اتصال بالخادم. تحقق من الإنترنت.',

@@ -42,7 +42,7 @@ export const kisten: Woerterbuch = {
   'kisten.erste': { de: 'Erste Kiste', ar: 'أول صندوق' },
   'kisten.nach_ziel': { de: 'nach {ziel}', ar: 'إلى {ziel}' },
   'kisten.geladen_von': { de: '{a} von {b} geladen', ar: 'تم تحميل {a} من {b}' },
-  'kisten.alle_geladen': { de: 'Alle {n} Kisten geladen', ar: 'تم تحميل الصناديق كلها، {n}' },
+  'kisten.alle_geladen': { de: 'Alle {n} Kisten geladen', ar: 'تم تحميل كل الصناديق، {n}' },
 
   // ------------------------------------------------------------ Groesse
   'kisten.groesse_knopf': { de: 'Groesse {n}, {wort}', ar: 'الحجم {n}، {wort}' },
@@ -115,7 +115,7 @@ export const kisten: Woerterbuch = {
     de: '{art}, Groesse {n} von 10, {wort}',
     ar: '{art}، الحجم {n} من 10، {wort}',
   },
-  'kisten.ohne_zuordnung': { de: 'Ohne Zimmer und Person', ar: 'بدون غرفة وبدون شخص' },
+  'kisten.ohne_zuordnung': { de: 'Ohne Zimmer und Person', ar: 'بدون غرفة أو شخص' },
   'kisten.ohne_zuordnung_hinweis': {
     de: 'Beides laesst sich beim Bearbeiten setzen.',
     ar: 'يمكن تحديدهما عند التعديل.',

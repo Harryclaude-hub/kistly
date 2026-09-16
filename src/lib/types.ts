@@ -62,6 +62,8 @@ export interface Tag {
   name: string
   short: string
   color: string
+  /* Ein Zeichen, das neben dem Kuerzel steht. Freiwillig. */
+  symbol: string | null
   note: string | null
   sort: number
   created_at: string
@@ -83,6 +85,16 @@ export interface Item {
   note: string | null
   fragile: boolean
   target_room: string | null
+  /* Angaben, die nur Moebel brauchen. Moebel sind Eintraege mit
+   * kind = 'furniture', keine eigene Tabelle. Siehe Migration 0010. */
+  hersteller: string | null
+  modell: string | null
+  masse: string | null
+  zerlegt: boolean
+  /* Markieren wie in Excel. Gehoert der einzelnen Zeile, nicht dem
+   * Zimmer. Die Zimmerfarbe bleibt davon unberuehrt. */
+  mark_color: string | null
+  mark_symbol: string | null
   arrived_at: string | null
   created_by: string | null
   created_at: string
@@ -100,11 +112,17 @@ export interface ItemContent {
   created_at: string
 }
 
+export type PhotoArt = 'foto' | 'anleitung'
+
 export interface ItemPhoto {
   id: string
   item_id: string
   project_id: string
   path: string
+  /** Gewoehnliches Foto oder Aufbauanleitung (Bild oder PDF). */
+  art: PhotoArt
+  /** Welche Seite zu sehen ist, etwa vorne, hinten, Unterseite. */
+  seite: string | null
   caption: string | null
   created_by: string | null
   created_at: string

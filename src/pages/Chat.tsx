@@ -761,7 +761,9 @@ export default function Chat() {
 
   function insertRef(kind: 'item' | 'tag', id: string, label: string) {
     pendingLinks.current.push({ target_type: kind, target_id: id, label })
-    setText((t) => `${t}${t && !t.endsWith(' ') ? ' ' : ''}[[${kind}:${id}|${label}]] `)
+    setText(
+      (vorher) => `${vorher}${vorher && !vorher.endsWith(' ') ? ' ' : ''}[[${kind}:${id}|${label}]] `,
+    )
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -1028,8 +1030,8 @@ export default function Chat() {
                         .slice(0, 3)
                         .map((l) => {
                           const it = linkedItems.get(l.target_id)!
-                          const room = tags.find((t) => t.id === it.room_id)
-                          const person = tags.find((t) => t.id === it.person_id)
+                          const room = tags.find((tag) => tag.id === it.room_id)
+                          const person = tags.find((tag) => tag.id === it.person_id)
                           return (
                             <LinkPreview
                               key={l.id}
