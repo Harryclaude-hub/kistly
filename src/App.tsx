@@ -1,0 +1,110 @@
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { AuthProvider, useAuth } from './lib/auth'
+import { ToastProvider, Loading, Wordmark } from './components/ui'
+import { configError } from './lib/supabase'
+
+import Landing from './pages/Landing'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import ResetRequest from './pages/ResetRequest'
+import ResetConfirm from './pages/ResetConfirm'
+import Dashboard from './pages/Dashboard'
+import Settings from './pages/Settings'
+import ProjectLayout from './pages/ProjectLayout'
+import ProjectHome from './pages/ProjectHome'
+import Areas from './pages/Areas'
+import Items from './pages/Items'
+import ItemDetail from './pages/ItemDetail'
+import Labels from './pages/Labels'
+import ScanPage from './pages/ScanPage'
+import Chat from './pages/Chat'
+import Team from './pages/Team'
+import ProjectSettings from './pages/ProjectSettings'
+import ScanResolve from './pages/ScanResolve'
+import NotFound from './pages/NotFound'
+
+function Gate({ children }: { children: ReactNode }) {
+  const { session, ready } = useAuth()
+  const loc = useLocation()
+  if (!ready) return <Loading label="Moment" />
+  if (!session) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />
+  return <>{children}</>
+}
+
+function SetupHint() {
+  return (
+    <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 p-6 text-center">
+      <Wordmark size={40} />
+      <h1 className="text-xl font-bold">Konfiguration fehlt</h1>
+      <p className="text-sm text-muted">{configError}</p>
+      <pre className="w-full overflow-x-auto rounded-xl bg-raised p-4 text-left text-xs">
+        {`VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_...
+VITE_VAPID_PUBLIC_KEY=B...`}
+      </pre>
+    </div>
+  )
+}
+
+export default function App() {
+  if (configError) return <SetupHint />
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <ToastProvider>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/registrieren" element={<Register />} />
+            <Route path="/passwort-vergessen" element={<ResetRequest />} />
+            <Route path="/passwort-neu" element={<ResetConfirm />} />
+            <Route
+              path="/s/:itemId"
+              element={
+                <Gate>
+                  <ScanResolve />
+                </Gate>
+              }
+            />
+            <Route
+              path="/app"
+              element={
+                <Gate>
+                  <Dashboard />
+                </Gate>
+              }
+            />
+            <Route
+              path="/app/einstellungen"
+              element={
+                <Gate>
+                  <Settings />
+                </Gate>
+              }
+            />
+            <Route
+              path="/app/p/:pid"
+              element={
+                <Gate>
+                  <ProjectLayout />
+                </Gate>
+              }
+            >
+              <Route index element={<ProjectHome />} />
+              <Route path="bereiche" element={<Areas />} />
+              <Route path="kisten" element={<Items />} />
+              <Route path="kisten/:iid" element={<ItemDetail />} />
+              <Route path="etiketten" element={<Labels />} />
+              <Route path="scan" element={<ScanPage />} />
+              <Route path="chat" element={<Chat />} />
+              <Route path="team" element={<Team />} />
+              <Route path="einstellungen" element={<ProjectSettings />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ToastProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}

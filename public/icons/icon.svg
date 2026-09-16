@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Kistly">
+  <rect width="512" height="512" rx="116" fill="#0A0A0A"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="30" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="118" y="148" width="276" height="244" rx="22"/>
+    <path d="M118 226 H394"/>
+    <path d="M256 148 V226"/>
+  </g>
+  <circle cx="378" cy="378" r="76" fill="#0A0A0A"/>
+  <circle cx="378" cy="378" r="54" fill="#EF4444"/>
+</svg>

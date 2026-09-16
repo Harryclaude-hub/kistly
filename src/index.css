@@ -1,0 +1,157 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantische Farben liegen als CSS-Variablen vor, damit hell und dunkel
+   dieselben Utility-Namen benutzen. Nur hier wird Farbe definiert. */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-danger: #ef4444;
+  --color-warn: #f59e0b;
+  --color-ok: #16a34a;
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+:root {
+  --paper: #ffffff;
+  --surface: #ffffff;
+  --raised: #f6f6f7;
+  --ink: #0a0a0a;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --accent: #0a0a0a;
+  --zebra: rgba(0, 0, 0, 0.035);
+  color-scheme: light;
+}
+
+.dark {
+  --paper: #0b0b0c;
+  --surface: #141416;
+  --raised: #1c1c20;
+  --ink: #f4f4f5;
+  --muted: #9ca3af;
+  --line: #2a2a2f;
+  --accent: #ffffff;
+  --zebra: rgba(255, 255, 255, 0.04);
+  color-scheme: dark;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* Abwechselnde Zeilenfarbe. Bei langen Listen ist das der Unterschied
+   zwischen lesbar und nicht lesbar. */
+.zebra > *:nth-child(even) {
+  background: var(--zebra);
+}
+
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+input[type='color'] {
+  padding: 0;
+  border: none;
+  background: none;
+}
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type='color']::-webkit-color-swatch {
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+}
+
+@keyframes kistly-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-in {
+  animation: kistly-in 0.18s ease-out both;
+}
+
+@keyframes kistly-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.animate-pulse-soft {
+  animation: kistly-pulse 1.4s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------- Drucken */
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .label-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+.print-only {
+  display: none;
+}
