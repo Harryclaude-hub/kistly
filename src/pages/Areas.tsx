@@ -14,7 +14,7 @@ import {
   useToast,
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
-import { countItemsForTag, createTag, deleteTag, updateTag } from '../lib/api'
+import { createTag, deleteTag, listTagStats, updateTag } from '../lib/api'
 import { TAG_COLORS, type Tag, type TagKind } from '../lib/types'
 import { contrastOn, suggestShort } from '../lib/util'
 
@@ -127,22 +127,22 @@ export default function Areas() {
 
   useEffect(() => {
     let alive = true
-    void (async () => {
-      const m = new Map<string, number>()
-      for (const t of tags) {
-        try {
-          m.set(t.id, await countItemsForTag(t.id))
-        } catch {
-          // Zaehlen ist nur Anzeige. Wenn es scheitert, bleibt das Feld leer,
-          // die Liste funktioniert trotzdem.
-        }
-      }
-      if (alive) setCounts(m)
-    })()
+    void listTagStats(project.id)
+      .then((stats) => {
+        if (!alive) return
+        const m = new Map<string, number>()
+        for (const [id, s] of stats) m.set(id, s.total)
+        setCounts(m)
+      })
+      .catch((err) => {
+        // Zaehlen ist nur Anzeige. Scheitert es, bleibt das Feld leer und
+        // die Liste funktioniert trotzdem, aber es steht in der Konsole.
+        console.warn('[bereiche] Zaehlwerte nicht geladen:', err)
+      })
     return () => {
       alive = false
     }
-  }, [tags])
+  }, [project.id, tags])
 
   function openNew(kind: TagKind) {
     const used = tags.length

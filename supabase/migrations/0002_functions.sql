@@ -355,6 +355,22 @@ language sql stable security definer set search_path = public as $fn$
   limit 5;
 $fn$;
 
+-- Zaehlwerte je Bereich in einer Abfrage. Vorher lief pro Zimmer eine
+-- eigene Abfrage, das waechst mit der Zahl der Zimmer.
+create or replace function public.tag_stats(p_project uuid)
+returns table (tag_id uuid, total bigint, arrived bigint)
+language sql stable as $fn$
+  select t.id,
+         count(i.id),
+         count(i.id) filter (where i.status = 'arrived')
+  from public.tags t
+  left join public.items i
+    on i.project_id = t.project_id
+   and (i.room_id = t.id or i.person_id = t.id)
+  where t.project_id = p_project
+  group by t.id;
+$fn$;
+
 -- Zaehlwerte je Projekt. security_invoker, damit RLS greift.
 create or replace view public.project_stats
 with (security_invoker = true) as

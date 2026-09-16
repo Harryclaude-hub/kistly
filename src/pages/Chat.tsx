@@ -36,6 +36,7 @@ import {
 import { useProject } from './ProjectLayout'
 import {
   deleteMessage,
+  getItemsByIds,
   listItems,
   listMessages,
   loadMessageExtras,
@@ -45,9 +46,10 @@ import {
   type ChatMessage,
 } from '../lib/api'
 import { supabase } from '../lib/supabase'
+import { notifyProject } from '../lib/push'
 import { displayNameOf, useAuth } from '../lib/auth'
 import { compressImage, extOf, signedUrls, uploadTo, VoiceRecorder } from '../lib/media'
-import type { Item, Message, MessageReaction, Tag } from '../lib/types'
+import { STATUS_COLOR, STATUS_LABEL, type Item, type Message, type MessageReaction, type Tag } from '../lib/types'
 import { chatDayLabel, contrastOn, cx, fmtDuration, fmtTime, uid } from '../lib/util'
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '🙏', '✅']
@@ -96,6 +98,39 @@ function MessageText({
         ),
       )}
     </span>
+  )
+}
+
+/** Kompakte Karte unter der Nachricht: ein Tipp fuehrt direkt zur Kiste. */
+function LinkPreview({
+  item,
+  projectId,
+  color,
+  roomName,
+}: {
+  item: Item
+  projectId: string
+  color: string
+  roomName?: string
+}) {
+  return (
+    <Link
+      to={`/app/p/${projectId}/kisten/${item.id}`}
+      className="mt-1 flex items-stretch overflow-hidden rounded-xl border border-line bg-surface text-ink transition hover:bg-raised"
+    >
+      <span className="w-1.5 shrink-0" style={{ background: color }} />
+      <span className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2">
+        <CodeChip code={item.code} size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-xs font-semibold">
+            {item.title || roomName || 'Kiste'}
+          </span>
+          <span className="block text-[10px]" style={{ color: STATUS_COLOR[item.status] }}>
+            {STATUS_LABEL[item.status]}
+          </span>
+        </span>
+      </span>
+    </Link>
   )
 }
 
@@ -217,6 +252,7 @@ export default function Chat() {
   const [recording, setRecording] = useState(false)
   const [recSeconds, setRecSeconds] = useState(0)
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map())
+  const [linkedItems, setLinkedItems] = useState<Map<string, Item>>(new Map())
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [menuFor, setMenuFor] = useState<string | null>(null)
 
@@ -236,6 +272,13 @@ export default function Chat() {
     requestAnimationFrame(() => {
       el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
     })
+  }, [])
+
+  const loadLinked = useCallback(async (list: ChatMessage[]) => {
+    const ids = list.flatMap((m) => m.links.filter((l) => l.target_type === 'item').map((l) => l.target_id))
+    if (ids.length === 0) return
+    const found = await getItemsByIds(ids)
+    if (found.size) setLinkedItems((prev) => new Map([...prev, ...found]))
   }, [])
 
   const loadImages = useCallback(async (list: ChatMessage[]) => {
@@ -258,6 +301,7 @@ export default function Chat() {
         setMessages(list)
         setHasMore(list.length >= 40)
         await loadImages(list)
+        await loadLinked(list)
         scrollDown()
       })
       .catch((err: unknown) => {
@@ -269,7 +313,7 @@ export default function Chat() {
     return () => {
       alive = false
     }
-  }, [project.id, loadImages, scrollDown])
+  }, [project.id, loadImages, loadLinked, scrollDown])
 
   useEffect(() => {
     if (!uidSelf) return
@@ -295,6 +339,7 @@ export default function Chat() {
             setMessages((prev) =>
               prev.map((x) => (x.id === m.id ? { ...x, links: extras.links } : x)),
             )
+            await loadLinked([{ ...m, reactions: [], links: extras.links }])
           }
           scrollDown(true)
         },
@@ -335,11 +380,10 @@ export default function Chat() {
     return () => {
       void supabase.removeChannel(ch)
     }
-  }, [project.id, loadImages, scrollDown])
+  }, [project.id, loadImages, loadLinked, scrollDown])
 
   /* ---------------------------------------------------------- senden */
   async function pushNotice(body: string) {
-    const { notifyProject } = await import('../lib/push')
     await notifyProject(
       project.id,
       {
@@ -475,6 +519,7 @@ export default function Chat() {
       }
       setMessages((prev) => [...older, ...prev])
       await loadImages(older)
+      await loadLinked(older)
       setHasMore(older.length >= 40)
     } catch (err) {
       toast(err instanceof Error ? err.message : String(err), 'error')
@@ -681,6 +726,25 @@ export default function Chat() {
                           {fmtTime(m.created_at)}
                         </div>
                       </div>
+
+                      {/* Verlinkte Kisten als antippbare Karte */}
+                      {m.links
+                        .filter((l) => l.target_type === 'item' && linkedItems.has(l.target_id))
+                        .slice(0, 3)
+                        .map((l) => {
+                          const it = linkedItems.get(l.target_id)!
+                          const room = tags.find((t) => t.id === it.room_id)
+                          const person = tags.find((t) => t.id === it.person_id)
+                          return (
+                            <LinkPreview
+                              key={l.id}
+                              item={it}
+                              projectId={project.id}
+                              color={room?.color ?? person?.color ?? '#94a3b8'}
+                              roomName={room?.name ?? person?.name}
+                            />
+                          )
+                        })}
 
                       {/* Reaktionen */}
                       {Object.keys(grouping).length > 0 ? (

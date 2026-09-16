@@ -239,13 +239,20 @@ export async function deleteTag(id: string): Promise<void> {
   if (error) throw new Error(`Bereich loeschen: ${errText(error)}`)
 }
 
-export async function countItemsForTag(tagId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from('items')
-    .select('id', { count: 'exact', head: true })
-    .or(`room_id.eq.${tagId},person_id.eq.${tagId}`)
-  if (error) throw new Error(`Kisten zaehlen: ${errText(error)}`)
-  return count ?? 0
+export interface TagStat {
+  total: number
+  arrived: number
+}
+
+/** Zaehlwerte fuer alle Bereiche eines Projekts in einer Abfrage. */
+export async function listTagStats(projectId: string): Promise<Map<string, TagStat>> {
+  const res = await supabase.rpc('tag_stats', { p_project: projectId })
+  if (res.error) throw new Error(`Zaehlwerte je Bereich: ${errText(res.error)}`)
+  const map = new Map<string, TagStat>()
+  for (const row of (res.data ?? []) as Array<{ tag_id: string; total: number; arrived: number }>) {
+    map.set(row.tag_id, { total: Number(row.total), arrived: Number(row.arrived) })
+  }
+  return map
 }
 
 /* ================================================================ Kisten */
@@ -341,6 +348,19 @@ export async function setItemStatus(id: string, status: ItemStatus): Promise<Ite
 export async function deleteItem(id: string): Promise<void> {
   const { error } = await supabase.from('items').delete().eq('id', id)
   if (error) throw new Error(`Kiste loeschen: ${errText(error)}`)
+}
+
+export async function getItemsByIds(ids: string[]): Promise<Map<string, Item>> {
+  const map = new Map<string, Item>()
+  const unique = [...new Set(ids.filter(Boolean))]
+  if (unique.length === 0) return map
+  const res = await supabase.from('items').select('*').in('id', unique)
+  if (res.error) {
+    console.warn('[items] Vorschau nicht geladen:', res.error.message)
+    return map
+  }
+  for (const i of (res.data ?? []) as Item[]) map.set(i.id, i)
+  return map
 }
 
 export async function resolveCode(

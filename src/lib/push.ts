@@ -130,3 +130,25 @@ export async function notifyProject(
     return null
   }
 }
+
+/* Statusmeldungen zu Kisten. Beim Ausladen werden viele Kisten kurz
+ * hintereinander gescannt. Darum hoechstens alle 20 Sekunden eine Meldung,
+ * und immer mit demselben Kennzeichen, damit sie die vorige ersetzt statt
+ * sich zu stapeln. */
+let lastItemPush = 0
+
+export async function notifyItemStatus(
+  projectId: string,
+  projectName: string,
+  text: string,
+): Promise<void> {
+  if (Date.now() - lastItemPush < 20_000) return
+  lastItemPush = Date.now()
+  await notifyProject(projectId, {
+    title: projectName,
+    body: text,
+    type: 'item',
+    tag: `items-${projectId}`,
+    url: `/app/p/${projectId}/kisten`,
+  })
+}

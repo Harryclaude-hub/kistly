@@ -141,6 +141,11 @@ export function CallProvider({
   const [busy, setBusy] = useState(false)
   const [seconds, setSeconds] = useState(0)
   const ringTimer = useRef<number | null>(null)
+  // Der Klingel-Timer laeuft ausserhalb des Renderzyklus. Wuerde er auf den
+  // Zustand zugreifen, haette er eine veraltete Fassung und wuerde die
+  // Verbindung nie schliessen. Darum zusaetzlich ein Ref.
+  const sessionRef = useRef<CallSession | null>(null)
+  const secondsRef = useRef(0)
 
   useRingtone(Boolean(incoming))
 
@@ -198,10 +203,14 @@ export function CallProvider({
   /* ----------------------------------------------------------- Laufzeit */
   useEffect(() => {
     if (!active) {
+      secondsRef.current = 0
       setSeconds(0)
       return
     }
-    const t = window.setInterval(() => setSeconds((s) => s + 1), 1000)
+    const t = window.setInterval(() => {
+      secondsRef.current += 1
+      setSeconds(secondsRef.current)
+    }, 1000)
     return () => clearInterval(t)
   }, [active])
 
@@ -211,7 +220,8 @@ export function CallProvider({
         clearInterval(ringTimer.current)
         ringTimer.current = null
       }
-      session?.hangup()
+      sessionRef.current?.hangup()
+      sessionRef.current = null
       setSession(null)
       setPeers([])
       setLocalStream(null)
@@ -233,7 +243,7 @@ export function CallProvider({
             call_id: call.id,
             body:
               reason === 'ended'
-                ? `Anruf beendet, ${fmtDuration(seconds)}`
+                ? `Anruf beendet, ${fmtDuration(secondsRef.current)}`
                 : reason === 'declined'
                   ? 'Anruf abgelehnt'
                   : 'Anruf nicht angenommen',
@@ -243,16 +253,19 @@ export function CallProvider({
         console.warn('[call] Aufraeumen unvollstaendig:', err)
       }
     },
-    [session, uid, projectId, seconds],
+    [uid, projectId],
   )
 
-  const attach = useCallback((s: CallSession) => {
-    s.on('peers', setPeers)
-      .on('localStream', setLocalStream)
-      .on('error', (m) => toast(m, 'error'))
-    setSession(s)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const attach = useCallback(
+    (s: CallSession) => {
+      s.on('peers', setPeers)
+        .on('localStream', setLocalStream)
+        .on('error', (m) => toast(m, 'error'))
+      sessionRef.current = s
+      setSession(s)
+    },
+    [toast],
+  )
 
   /* ------------------------------------------------------ Anruf starten */
   const start = useCallback(
@@ -311,14 +324,15 @@ export function CallProvider({
         }, 5000)
       } catch (err) {
         toast(err instanceof Error ? err.message : String(err), 'error')
-        session?.hangup()
+        sessionRef.current?.hangup()
+        sessionRef.current = null
         setSession(null)
         setActive(null)
       } finally {
         setBusy(false)
       }
     },
-    [uid, members, projectId, projectName, profile, attach, toast, teardown, session],
+    [uid, members, projectId, projectName, profile, attach, toast, teardown],
   )
 
   const accept = useCallback(async () => {
@@ -354,10 +368,11 @@ export function CallProvider({
 
   useEffect(
     () => () => {
-      session?.hangup()
+      sessionRef.current?.hangup()
+      sessionRef.current = null
       if (ringTimer.current) clearInterval(ringTimer.current)
     },
-    [session],
+    [],
   )
 
   const value = useMemo<CallCtxValue>(

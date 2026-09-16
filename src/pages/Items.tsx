@@ -21,6 +21,8 @@ import {
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
 import { createItem, listItems, setItemStatus, listAllItems } from '../lib/api'
+import { notifyItemStatus } from '../lib/push'
+import { supabase } from '../lib/supabase'
 import {
   KIND_LABEL,
   SIZE_LABEL,
@@ -135,6 +137,25 @@ export default function Items() {
     void load(0, false)
   }, [load])
 
+  // Aendert jemand anders etwas, soll die Liste das sofort zeigen, statt
+  // einen veralteten Stand anzuzeigen bis jemand neu laedt.
+  useEffect(() => {
+    const ch = supabase
+      .channel(`items-${project.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'items', filter: `project_id=eq.${project.id}` },
+        (payload) => {
+          const next = payload.new as Item
+          setRows((prev) => prev.map((r) => (r.id === next.id ? next : r)))
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(ch)
+    }
+  }, [project.id])
+
   /* -------------------------------------------------------- neue Kiste */
   const [open, setOpen] = useState(params.get('neu') === '1')
   const [busy, setBusy] = useState(false)
@@ -207,6 +228,9 @@ export default function Items() {
     setRows((prev) => prev.map((r) => (r.id === item.id ? { ...r, status: next } : r)))
     try {
       await setItemStatus(item.id, next)
+      if (next === 'arrived') {
+        void notifyItemStatus(project.id, project.name, `${item.code} ist angekommen`)
+      }
     } catch (err) {
       setRows((prev) => prev.map((r) => (r.id === item.id ? { ...r, status: item.status } : r)))
       toast(err instanceof Error ? err.message : String(err), 'error')

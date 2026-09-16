@@ -16,6 +16,7 @@ import {
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
 import { getItem, logScan, resolveCode, setItemStatus } from '../lib/api'
+import { notifyItemStatus } from '../lib/push'
 import { STATUS_LABEL, type Item, type ItemStatus } from '../lib/types'
 import { contrastOn, fmtTime, normalizeCodeInput, useLocalState } from '../lib/util'
 
@@ -51,6 +52,9 @@ export default function ScanPage() {
         if (canEdit && autoStatus !== 'off' && item.status !== autoStatus) {
           item = await setItemStatus(item.id, autoStatus)
           toast(`${item.code} auf ${STATUS_LABEL[autoStatus]} gesetzt`, 'ok')
+          if (autoStatus === 'arrived') {
+            void notifyItemStatus(project.id, project.name, `${item.code} ist angekommen`)
+          }
         } else {
           toast(`${item.code} gefunden`, 'ok')
         }
@@ -63,7 +67,7 @@ export default function ScanPage() {
         setTimeout(() => setPaused(false), 900)
       }
     },
-    [project.id, autoStatus, canEdit, toast],
+    [project.id, project.name, autoStatus, canEdit, toast],
   )
 
   /** Ein Scan kann eine Kistly-Adresse sein oder ein getippter Code. */

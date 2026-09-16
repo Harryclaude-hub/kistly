@@ -12,7 +12,7 @@ import {
 import { AppHeader, Page } from '../components/AppShell'
 import { Button, Card, Empty, Loading, SectionTitle } from '../components/ui'
 import { useProject } from './ProjectLayout'
-import { getStats, listItems, listProjectEvents } from '../lib/api'
+import { getStats, listProjectEvents, listTagStats } from '../lib/api'
 import { STATUS_LABEL, type ItemEvent, type ItemStatus } from '../lib/types'
 import { relTime, useAsync, withAlpha } from '../lib/util'
 import { displayNameOf } from '../lib/auth'
@@ -71,17 +71,7 @@ export default function ProjectHome() {
 
   const stats = useAsync(() => getStats(project.id), [project.id])
   const events = useAsync(() => listProjectEvents(project.id, 12), [project.id])
-  const roomCounts = useAsync(async () => {
-    const out = new Map<string, { total: number; arrived: number }>()
-    for (const r of rooms) {
-      const [all, arrived] = await Promise.all([
-        listItems(project.id, { roomId: r.id, limit: 1 }),
-        listItems(project.id, { roomId: r.id, status: 'arrived', limit: 1 }),
-      ])
-      out.set(r.id, { total: all.total, arrived: arrived.total })
-    }
-    return out
-  }, [project.id, rooms.map((r) => r.id).join(',')])
+  const roomCounts = useAsync(() => listTagStats(project.id), [project.id])
 
   const nameOf = (id: string | null) =>
     displayNameOf(members.find((m) => m.user_id === id)?.profile, 'Jemand')

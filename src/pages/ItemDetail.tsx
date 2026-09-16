@@ -44,6 +44,7 @@ import {
   updateItem,
 } from '../lib/api'
 import { compressImage, signedUrls, uploadTo } from '../lib/media'
+import { notifyItemStatus } from '../lib/push'
 import {
   KIND_LABEL,
   SIZE_LABEL,
@@ -112,6 +113,9 @@ export default function ItemDetail() {
       const next = await updateItem(item.id, p)
       setItem(next)
       events.reload()
+      if (p.status === 'arrived' && before.status !== 'arrived') {
+        void notifyItemStatus(project.id, project.name, `${next.code} ist angekommen`)
+      }
     } catch (err) {
       setItem(before)
       toast(err instanceof Error ? err.message : String(err), 'error')

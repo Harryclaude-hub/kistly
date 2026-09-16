@@ -81,11 +81,11 @@ export default function Landing() {
         {/* Hero */}
         <section className="mx-auto max-w-6xl px-5 pb-16 pt-14 sm:pt-24">
           <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
+            <div className="min-w-0">
               <span className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs font-bold uppercase tracking-wide text-muted">
                 Umzugsplanung
               </span>
-              <h1 className="mt-5 text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
+              <h1 className="mt-5 text-[2rem] font-black leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
                 Jede Kiste hat
                 <br />
                 eine Nummer.
@@ -113,21 +113,21 @@ export default function Landing() {
             </div>
 
             {/* Etikettvorschau */}
-            <div className="relative">
-              <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-raised" />
+            <div className="relative min-w-0">
+              <div className="absolute -inset-3 -z-10 rounded-[2.5rem] bg-raised sm:-inset-6" />
               <div className="rounded-3xl border border-line bg-surface p-6 shadow-xl">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="text-[11px] font-bold uppercase tracking-wider text-muted">
                       Kinderzimmer
                     </div>
-                    <div className="mt-1 font-mono text-5xl font-black tracking-tighter">
+                    <div className="mt-1 font-mono text-[2.5rem] font-black tracking-tighter sm:text-5xl">
                       KZ<span className="text-muted/40">-</span>
                       <span className="text-danger">7</span>
                       <span className="text-muted/40">-</span>012
                     </div>
                   </div>
-                  <QrCode value="https://kistly.app/s/demo" size={104} className="rounded-lg" />
+                  <QrCode value="https://kistly.app/s/demo" size={88} className="shrink-0 rounded-lg sm:w-[104px]" />
                 </div>
                 <div className="mt-4 h-1.5 w-full rounded-full" style={{ background: '#0EA5E9' }} />
                 <ul className="mt-4 space-y-1 text-sm">
@@ -235,7 +235,7 @@ export default function Landing() {
 
         {/* Abschluss */}
         <section className="mx-auto max-w-3xl px-5 py-20 text-center">
-          <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
+          <h2 className="text-[1.75rem] font-black tracking-tight sm:text-4xl">
             Der naechste Umzug wird langweilig.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted">
