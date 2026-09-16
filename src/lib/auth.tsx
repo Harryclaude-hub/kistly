@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, errText } from './supabase'
+import { appUrl } from './util'
 import type { Profile } from './types'
 
 interface AuthValue {
@@ -90,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           password,
           options: {
             data: displayName?.trim() ? { display_name: displayName.trim() } : undefined,
-            emailRedirectTo: `${location.origin}/login`,
+            emailRedirectTo: appUrl('login'),
           },
         })
         if (error) throw new Error(errText(error))
@@ -103,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async sendReset(email) {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: `${location.origin}/passwort-neu`,
+          redirectTo: appUrl('passwort-neu'),
         })
         if (error) throw new Error(errText(error))
       },

@@ -25,7 +25,7 @@ import {
 } from '../lib/api'
 import { displayNameOf, useAuth } from '../lib/auth'
 import { ROLE_LABEL, type MemberRole } from '../lib/types'
-import { fmtDate, useAsync } from '../lib/util'
+import { appUrl, fmtDate, useAsync } from '../lib/util'
 
 export default function Team() {
   const { project, members, role, isOwner, canEdit, reloadMembers } = useProject()
@@ -74,7 +74,7 @@ export default function Team() {
   }
 
   async function share(code: string) {
-    const text = `Komm zu meinem Umzug "${project.name}" bei Kistly. Code: ${code}\n${location.origin}/app`
+    const text = `Komm zu meinem Umzug "${project.name}" bei Kistly. Code: ${code}\n${appUrl('app')}`
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Kistly Einladung', text })

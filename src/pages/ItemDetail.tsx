@@ -61,11 +61,11 @@ import {
   type Tag,
   type TagKind,
 } from '../lib/types'
-import { contrastOn, cx, fmtDateTime, relTime, uid, useAsync } from '../lib/util'
+import { appUrl, contrastOn, cx, fmtDateTime, relTime, uid, useAsync } from '../lib/util'
 import { displayNameOf } from '../lib/auth'
 
 function labelUrl(itemId: string): string {
-  return `${location.origin}/s/${itemId}`
+  return appUrl(`s/${itemId}`)
 }
 
 /** Die Nummer ist das groesste Element der Seite, muss aber auf ein schmales

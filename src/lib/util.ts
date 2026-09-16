@@ -129,6 +129,16 @@ export function suggestShort(name: string, taken: string[]): string {
   return ''
 }
 
+/** Vollstaendige Adresse innerhalb der App.
+ *  Kistly kann unter einem Unterpfad liegen (GitHub Pages liefert unter
+ *  /kistly/ aus). Ohne diese Stelle wuerden QR-Codes auf /s/... zeigen,
+ *  und das waere dort eine leere Seite. BASE_URL endet immer auf einem
+ *  Schraegstrich. */
+export function appUrl(path: string): string {
+  const base = import.meta.env.BASE_URL || '/'
+  return `${location.origin}${base}${path.replace(/^\//, '')}`
+}
+
 export function uid(): string {
   return crypto.randomUUID()
 }

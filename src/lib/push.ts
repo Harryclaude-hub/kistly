@@ -27,7 +27,8 @@ export function pushSupported(): boolean {
 async function registration(): Promise<ServiceWorkerRegistration> {
   const reg = await navigator.serviceWorker.getRegistration()
   if (reg) return reg
-  return navigator.serviceWorker.register('/sw.js', { scope: '/' })
+  const base = import.meta.env.BASE_URL || '/'
+  return navigator.serviceWorker.register(`${base}sw.js`, { scope: base })
 }
 
 export async function pushState(): Promise<PushState> {

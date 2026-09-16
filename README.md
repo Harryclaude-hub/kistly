@@ -1,5 +1,7 @@
 # Kistly
 
+**Live: https://harryclaude-hub.github.io/kistly/**
+
 Umzugsverwaltung fuer Kisten, Zimmer und Personen. Jede Kiste bekommt eine
 Nummer, einen QR-Code und ein druckfertiges Etikett. Beim Einzug wird
 gescannt, und jeder im Umzug sieht sofort, was schon da ist und was fehlt.
@@ -200,17 +202,32 @@ node scripts/make-icons.mjs
 
 ## Veroeffentlichen
 
-Statische Seite mit Client-Routing. Wichtig ist nur, dass alle Pfade auf
-`index.html` zeigen und `/sw.js` nicht dauerhaft zwischengespeichert wird.
-Fuer Vercel liegt `vercel.json` bei, fuer Netlify `netlify.toml`.
+Bei jedem Push auf `main` baut
+[.github/workflows/pages.yml](.github/workflows/pages.yml) die App und legt
+sie auf GitHub Pages: **https://harryclaude-hub.github.io/kistly/**
+
+Die Adressen stehen als Repository-Variablen unter
+**Settings → Secrets and variables → Actions → Variables**:
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`.
+Fehlt eine davon, bricht der Bau mit einer Meldung ab, statt eine tote Seite
+zu veroeffentlichen.
+
+Weil Pages unter einem Unterordner ausliefert, setzt der Bau `VITE_BASE`.
+Alles, was eine vollstaendige Adresse braucht (QR-Codes, Einladungslink,
+Passwort-Link, Service Worker), laeuft ueber `appUrl` in
+[src/lib/util.ts](src/lib/util.ts) und ueber den Geltungsbereich des Service
+Workers. Lokal und bei Vercel bleibt es die Wurzel.
+
+Fuer Vercel liegt `vercel.json` bei, fuer Netlify `netlify.toml`. Dort
+entfaellt der Unterordner, `VITE_BASE` bleibt einfach ungesetzt.
 
 ```bash
 npm run build     # erzeugt dist/
 ```
 
 Nach dem Deployen die URL in Supabase unter
-**Authentication → URL Configuration** als Site URL eintragen, sonst
-funktioniert der Link zum Zuruecksetzen des Passworts nicht.
+**Authentication → URL Configuration** als Site URL eintragen, sonst zeigt
+der Link zum Zuruecksetzen des Passworts auf localhost.
 
 ---
 

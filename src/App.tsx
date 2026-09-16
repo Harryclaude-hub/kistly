@@ -55,7 +55,7 @@ VITE_VAPID_PUBLIC_KEY=B...`}
 export default function App() {
   if (configError) return <SetupHint />
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <ToastProvider>
           <Routes>

@@ -17,7 +17,7 @@ import {
 import { useProject } from './ProjectLayout'
 import { listAllItems, listContentsForItems } from '../lib/api'
 import { STATUS_LABEL, type Item, type ItemContent, type ItemStatus } from '../lib/types'
-import { useLocalState } from '../lib/util'
+import { appUrl, useLocalState } from '../lib/util'
 
 /* ------------------------------------------------------- Papier und Raster */
 
@@ -365,7 +365,7 @@ function Label({
               <Serial item={item} sizeMm={serialMm} />
               {title}
             </div>
-            <QrFrame value={`${window.location.origin}/s/${item.id}`} code={code} sizeMm={qrMm} />
+            <QrFrame value={appUrl(`s/${item.id}`)} code={code} sizeMm={qrMm} />
           </div>
         )}
 

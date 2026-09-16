@@ -3,15 +3,20 @@
  * Anrufe so lange erneut melden, wie es klingelt.
  * Bewusst ohne Build-Schritt, damit hier nichts still auseinanderlaeuft.
  */
-const VERSION = 'kistly-v1'
+const VERSION = 'kistly-v2'
 const SHELL = `${VERSION}-shell`
+
+/* Die App kann unter einem Unterordner liegen (GitHub Pages liefert unter
+ * /kistly/ aus). Der eigene Geltungsbereich verraet den Pfad, damit steht
+ * er an genau einer Stelle und muss nirgends fest eingetragen werden. */
+const BASE = new URL(self.registration.scope).pathname
 const SHELL_FILES = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/icons/icon.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  BASE,
+  `${BASE}index.html`,
+  `${BASE}manifest.webmanifest`,
+  `${BASE}icons/icon.svg`,
+  `${BASE}icons/icon-192.png`,
+  `${BASE}icons/icon-512.png`,
 ]
 
 self.addEventListener('install', (event) => {
@@ -48,13 +53,15 @@ self.addEventListener('fetch', (event) => {
   // Navigation: erst Netz, sonst die gecachte Huelle.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(() => caches.match('/index.html').then((r) => r || Response.error())),
+      fetch(req).catch(() =>
+        caches.match(`${BASE}index.html`).then((r) => r || Response.error()),
+      ),
     )
     return
   }
 
   // Statische Dateien: erst Cache, dann Netz und nachlegen.
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
+  if (url.pathname.startsWith(`${BASE}assets/`) || url.pathname.startsWith(`${BASE}icons/`)) {
     event.respondWith(
       caches.match(req).then(
         (hit) =>
@@ -94,8 +101,8 @@ async function showCall(payload) {
       requireInteraction: true,
       silent: false,
       vibrate: [400, 200, 400, 200, 400],
-      icon: '/icons/icon-192.png',
-      badge: '/icons/favicon-32.png',
+      icon: `${BASE}icons/icon-192.png`,
+      badge: `${BASE}icons/favicon-32.png`,
       data: payload.data || {},
       actions: [
         { action: 'accept', title: 'Annehmen' },
@@ -125,8 +132,8 @@ self.addEventListener('push', (event) => {
       body: payload.body || '',
       tag: payload.tag,
       renotify: Boolean(payload.tag),
-      icon: payload.icon || '/icons/icon-192.png',
-      badge: '/icons/favicon-32.png',
+      icon: payload.icon || `${BASE}icons/icon-192.png`,
+      badge: `${BASE}icons/favicon-32.png`,
       image: payload.image,
       vibrate: [120, 60, 120],
       data: payload.data || {},
@@ -139,9 +146,13 @@ self.addEventListener('notificationclick', (event) => {
   const action = event.action
   event.notification.close()
 
-  let target = data.url || '/app'
-  if (action === 'accept' && data.callUrl) target = data.callUrl
-  if (action === 'decline') target = `${data.url || '/app'}?call=decline&id=${data.callId || ''}`
+  /* Die Adressen im Push sind relativ zur App gedacht, darum kommt der
+   * Basispfad hier davor. Sonst landet ein Tipp auf die Meldung unter
+   * /app statt unter /kistly/app. */
+  const inApp = (u) => (u ? `${BASE}${String(u).replace(/^\//, '')}` : `${BASE}app`)
+  let target = inApp(data.url)
+  if (action === 'accept' && data.callUrl) target = inApp(data.callUrl)
+  if (action === 'decline') target = `${inApp(data.url)}?call=decline&id=${data.callId || ''}`
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
