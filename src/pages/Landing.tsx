@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import {
+  ArrowRight,
   Boxes,
   MessageSquare,
   Printer,
@@ -12,6 +13,8 @@ import {
 import { Button, CodeChip, QrCode, Wordmark } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { Buehne } from '../design/Buehne'
+import { MotionToggle } from '../design/motion'
 
 const STEPS = [
   {
@@ -38,7 +41,7 @@ const STEPS = [
 
 const FEATURES = [
   { icon: QrIcon, title: 'QR-Code je Kiste', text: 'Jede Kiste hat ihren eigenen Code und ihre eigene Seite.' },
-  { icon: Printer, title: 'Druckfertige Etiketten', text: 'A4-Bogen, frei konfigurierbar, mit oder ohne Inhaltsliste.' },
+  { icon: Printer, title: 'Druckfertige Etiketten', text: 'A5, A4 oder A3, frei konfigurierbar, mit oder ohne Inhaltsliste.' },
   { icon: ScanLine, title: 'Scanner eingebaut', text: 'Mit der Handykamera scannen, Status in einem Tipp aendern.' },
   { icon: Boxes, title: 'Inhalt, Fotos, Notizen', text: 'Was drin ist, sieht man ohne die Kiste zu oeffnen.' },
   { icon: Users, title: 'Gruppen teilen', text: 'Familie und Helfer einladen, jeder sieht denselben Stand.' },
@@ -72,25 +75,36 @@ export default function Landing() {
   const { session } = useAuth()
 
   return (
-    <div className="min-h-screen bg-paper">
-      <header className="safe-top sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
+    <div className="relative min-h-screen">
+      {/* Reine Optik. Diese Zeile und src/design/ duerfen weg, dann sieht die
+          Seite schlicht aus und funktioniert unveraendert weiter. */}
+      <Buehne />
+
+      <header className="band safe-top sticky top-0 z-30">
         <div className="mx-auto flex h-[4.5rem] max-w-6xl items-center justify-between gap-3 px-4 sm:px-5">
-          <Wordmark />
-          <div className="flex items-center gap-2">
+          <Wordmark size={26} />
+          {/* Auf dem Handy ist die Zeile eng. Darum mittlere Groesse und
+              kein Umbruch, sonst faellt der Knopf auseinander. */}
+          <div className="flex min-w-0 items-center gap-1">
+            <MotionToggle />
             <ThemeToggle />
             {session ? (
-              <Link to="/app">
-                <Button size="lg">Zur App</Button>
+              <Link to="/app" className="shrink-0">
+                <Button size="md" className="kn-glanz whitespace-nowrap">
+                  Zur App
+                </Button>
               </Link>
             ) : (
               <>
-                <Link to="/login" className="hidden sm:block">
-                  <Button size="lg" variant="ghost">
+                <Link to="/login" className="hidden shrink-0 sm:block">
+                  <Button size="md" variant="outline" className="whitespace-nowrap">
                     Anmelden
                   </Button>
                 </Link>
-                <Link to="/registrieren">
-                  <Button size="lg">Loslegen</Button>
+                <Link to="/registrieren" className="shrink-0">
+                  <Button size="md" className="kn-glanz whitespace-nowrap">
+                    Loslegen
+                  </Button>
                 </Link>
               </>
             )}
@@ -99,38 +113,46 @@ export default function Landing() {
       </header>
 
       <main>
-        {/* Hero */}
-        <section className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-5 sm:pt-24">
+        {/* Hero, steht ueber der Buehne */}
+        <section className="mx-auto max-w-6xl px-4 pb-20 pt-12 sm:px-5 sm:pt-24">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="min-w-0">
-              <span className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-sm font-bold uppercase tracking-wide text-muted">
+              <span className="inline-flex items-center gap-2 rounded-full border-2 border-ink/15 bg-surface/70 px-4 py-1.5 text-sm font-black uppercase tracking-widest text-ink backdrop-blur">
+                <span className="h-2 w-2 rounded-full bg-danger" />
                 Umzugsplanung
               </span>
-              <h1 className="mt-5 text-[2.25rem] font-black leading-[1.06] tracking-tight sm:text-6xl lg:text-7xl">
+
+              <h1 className="mt-6 text-[2.5rem] font-black leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
                 Jede Kiste hat
                 <br />
                 eine Nummer.
                 <br />
                 <span className="text-muted">Und du weisst, wo sie ist.</span>
               </h1>
-              <p className="mt-6 max-w-lg text-xl leading-relaxed text-muted">
+
+              <div className="mt-6 h-1.5 w-24 rounded-full bg-danger" />
+
+              <p className="mt-6 max-w-lg text-xl font-medium leading-relaxed text-muted">
                 Kistly vergibt fuer jedes Zimmer und jede Person ein Kuerzel, nummeriert
                 jede Kiste automatisch, druckt die Etiketten mit QR-Code und zeigt dir
                 beim Einzug in Sekunden, was schon da ist und was noch fehlt.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link to={session ? '/app' : '/registrieren'} className="block">
-                  <Button size="lg" full className="sm:w-auto">
+                  <Button size="lg" full className="kn-glanz kn-gross kn-pfeil sm:w-auto">
                     {session ? 'Zur App' : 'Kostenlos starten'}
+                    <ArrowRight size={21} />
                   </Button>
                 </Link>
                 <Link to="/login" className="block">
-                  <Button size="lg" variant="outline" full className="sm:w-auto">
+                  <Button size="lg" variant="outline" full className="kn-gross sm:w-auto">
                     Ich habe schon ein Konto
                   </Button>
                 </Link>
               </div>
-              <p className="mt-4 text-sm text-muted">
+
+              <p className="mt-5 text-base font-semibold text-muted">
                 E-Mail und Passwort genuegen. Kein Bestaetigungslink noetig.
               </p>
             </div>
@@ -139,38 +161,47 @@ export default function Landing() {
             <div className="relative min-w-0">
               {/* Der Schatten darf hoechstens so weit rausragen wie der
                *  Seitenrand breit ist, sonst scrollt die Seite waagerecht. */}
-              <div className="absolute -inset-3 -z-10 rounded-[2.5rem] bg-raised sm:-inset-5" />
-              <div className="rounded-3xl border border-line bg-surface p-5 shadow-xl sm:p-6">
+              <div
+                className="absolute -inset-3 -z-10 rounded-[2.75rem] sm:-inset-5"
+                style={{ background: 'var(--glas)' }}
+              />
+              <div className="karte-glas-stark rounded-3xl p-5 shadow-2xl sm:p-7">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     {/* Zimmername, darum t-name und nicht kleiner. */}
-                    <div className="t-name truncate uppercase tracking-wide text-muted">
+                    <div className="t-name truncate uppercase tracking-widest text-muted">
                       Kinderzimmer
                     </div>
-                    <div className="t-serial mt-1 text-[2.125rem] sm:text-5xl">
-                      KZ<span className="text-muted/40">-</span>
+                    {/* Auf dem Handy bleiben neben dem QR-Code nur rund 180px. Bei
+                        groesserer Schrift bricht KZ-7-012 um. */}
+                    <div className="t-serial mt-1 whitespace-nowrap text-[1.875rem] leading-none sm:text-5xl">
+                      KZ<span className="text-muted/45">-</span>
                       <span className="text-danger">7</span>
-                      <span className="text-muted/40">-</span>012
+                      <span className="text-muted/45">-</span>012
                     </div>
                   </div>
-                  <QrCode
-                    value="https://kistly.app/s/demo"
-                    size={88}
-                    className="shrink-0 rounded-lg sm:h-[104px] sm:w-[104px]"
-                  />
+                  <div className="shrink-0 rounded-xl border-4 border-ink bg-white p-1.5">
+                    <QrCode
+                      value="https://kistly.app/s/demo"
+                      size={80}
+                      className="sm:h-[96px] sm:w-[96px]"
+                    />
+                  </div>
                 </div>
-                <div className="mt-4 h-1.5 w-full rounded-full" style={{ background: '#0EA5E9' }} />
-                <ul className="zebra mt-4 space-y-1 text-base">
+                <div className="mt-5 h-2 w-full rounded-full" style={{ background: '#0EA5E9' }} />
+                <ul className="zebra mt-5 space-y-1 text-base">
                   {['Buecher Regal links', 'Lego Kiste', 'Bettwaesche', 'Nachtlicht'].map((t) => (
-                    <li key={t} className="flex min-w-0 items-center gap-2 rounded px-2 py-1">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted" />
-                      <span className="truncate">{t}</span>
+                    <li key={t} className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5">
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-muted" />
+                      <span className="truncate font-medium">{t}</span>
                     </li>
                   ))}
                 </ul>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-sm text-muted">
-                  <span>Groesse 7 von 10</span>
-                  <span className="font-bold text-danger">noch alte Wohnung</span>
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t-2 border-line pt-4 text-base">
+                  <span className="font-semibold text-muted">Groesse 7 von 10</span>
+                  <span className="rounded-full bg-danger/12 px-3 py-1 font-black text-danger">
+                    noch alte Wohnung
+                  </span>
                 </div>
               </div>
             </div>
@@ -178,18 +209,18 @@ export default function Landing() {
         </section>
 
         {/* Das Nummernsystem */}
-        <section className="border-y border-line bg-raised/40">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
+        <section className="band">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-5">
+            <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
               So liest sich eine Nummer
             </h2>
-            <p className="mt-3 max-w-2xl text-lg text-muted">
+            <p className="mt-4 max-w-2xl text-lg font-medium text-muted">
               Der Code steht auf jedem Etikett und ist ueberall gleich aufgebaut. Man
               versteht ihn ohne Erklaerung, auch wenn man nur beim Tragen hilft.
             </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-10 grid gap-4 sm:grid-cols-3">
               {CODE_TEILE.map((x) => (
-                <div key={x.t} className="min-w-0 rounded-2xl border border-line bg-surface p-5">
+                <div key={x.t} className="karte-glas min-w-0 rounded-2xl p-6">
                   <div
                     className={`t-serial text-6xl leading-none sm:text-7xl ${
                       x.red ? 'text-danger' : 'text-ink'
@@ -197,13 +228,15 @@ export default function Landing() {
                   >
                     {x.k}
                   </div>
-                  <div className="t-name mt-4">{x.t}</div>
-                  <p className="mt-1.5 text-base text-muted">{x.d}</p>
+                  <div className="t-name mt-5">{x.t}</div>
+                  <p className="mt-2 text-base text-muted">{x.d}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <span className="text-base font-bold text-muted">Beispiele:</span>
+            <div className="mt-10 flex flex-wrap items-center gap-3">
+              <span className="text-base font-black uppercase tracking-wide text-muted">
+                Beispiele
+              </span>
               <CodeChip code="W-3-007" size="lg" />
               <CodeChip code="KZ-7-012" size="lg" />
               <CodeChip code="S-1-003" size="lg" />
@@ -211,13 +244,13 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Ablauf */}
-        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
-          <h2 className="text-3xl font-black tracking-tight sm:text-4xl">In vier Schritten</h2>
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Ablauf, hier scheint die Buehne durch */}
+        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-5">
+          <h2 className="text-3xl font-black tracking-tight sm:text-5xl">In vier Schritten</h2>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((s) => (
-              <div key={s.n} className="min-w-0 border-t-2 border-ink pt-4">
-                <div className="t-serial text-base text-muted">{s.n}</div>
+              <div key={s.n} className="min-w-0 border-t-4 border-ink pt-5">
+                <div className="t-serial text-lg text-danger">{s.n}</div>
                 <h3 className="t-name mt-2">{s.title}</h3>
                 <p className="mt-2 text-base text-muted">{s.text}</p>
               </div>
@@ -226,15 +259,17 @@ export default function Landing() {
         </section>
 
         {/* Funktionen */}
-        <section className="border-t border-line bg-raised/40">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Alles drin</h2>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="band">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-5">
+            <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Alles drin</h2>
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {FEATURES.map((f) => (
-                <div key={f.title} className="min-w-0 rounded-2xl border border-line bg-surface p-5">
-                  <f.icon size={24} />
-                  <h3 className="t-name mt-3">{f.title}</h3>
-                  <p className="mt-1.5 text-base text-muted">{f.text}</p>
+                <div key={f.title} className="karte-glas min-w-0 rounded-2xl p-6">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-ink text-paper">
+                    <f.icon size={24} />
+                  </span>
+                  <h3 className="t-name mt-4">{f.title}</h3>
+                  <p className="mt-2 text-base text-muted">{f.text}</p>
                 </div>
               ))}
             </div>
@@ -242,23 +277,24 @@ export default function Landing() {
         </section>
 
         {/* Abschluss */}
-        <section className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-5">
-          <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
+        <section className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-5">
+          <h2 className="text-[2rem] font-black leading-tight tracking-tight sm:text-5xl">
             Der naechste Umzug wird langweilig.
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-muted">
+          <p className="mx-auto mt-5 max-w-xl text-lg font-medium text-muted">
             Genau so soll er sein. Anlegen, drucken, kleben, scannen.
           </p>
-          <Link to={session ? '/app' : '/registrieren'} className="mt-8 block sm:inline-block">
-            <Button size="lg" full className="sm:w-auto">
+          <Link to={session ? '/app' : '/registrieren'} className="mt-10 block sm:inline-block">
+            <Button size="lg" full className="kn-glanz kn-gross kn-pfeil sm:w-auto">
               {session ? 'Zur App' : 'Konto anlegen'}
+              <ArrowRight size={21} />
             </Button>
           </Link>
         </section>
       </main>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-base text-muted sm:flex-row sm:px-5">
+      <footer className="band">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-10 text-base text-muted sm:flex-row sm:px-5">
           <Wordmark size={22} />
           <p className="text-center sm:text-right">
             Gebaut fuer genau einen Umzug. Und fuer jeden danach.

@@ -16,6 +16,7 @@ import {
   Switch,
   useToast,
 } from '../components/ui'
+import { STUFEN, STUFE_SYMBOL, STUFE_TEXT, useMotion } from '../design/motion'
 import { displayNameOf, useAuth } from '../lib/auth'
 import { getPrefs, setPrefs } from '../lib/api'
 import { disablePush, enablePush, pushState, type PushState } from '../lib/push'
@@ -40,6 +41,7 @@ function Abschnitt({ children }: { children: ReactNode }) {
 export default function Settings() {
   const { user, profile, updateProfile, updatePassword, signOut } = useAuth()
   const { mode, setMode } = useTheme()
+  const { stufe, setStufe } = useMotion()
   const toast = useToast()
   const nav = useNavigate()
 
@@ -264,6 +266,31 @@ export default function Settings() {
                 {m === 'system' ? 'System' : m === 'light' ? 'Hell' : 'Dunkel'}
               </button>
             ))}
+          </div>
+
+          {/* Bewegung. Reine Optik, kostet aber Akku, darum abschaltbar. */}
+          <div className="mt-5 border-t-2 border-line pt-4">
+            <p className="t-name">Bewegung</p>
+            <p className="t-sub mt-1">{STUFE_TEXT[stufe].hinweis}</p>
+            <div className="mt-3 flex gap-2">
+              {STUFEN.map((s) => {
+                const Symbol = STUFE_SYMBOL[s]
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setStufe(s)}
+                    aria-pressed={stufe === s}
+                    className={`flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl border-2 px-2 py-3 text-base font-bold transition ${
+                      stufe === s ? 'border-ink bg-ink text-paper' : 'border-line hover:bg-raised'
+                    }`}
+                  >
+                    <Symbol size={20} />
+                    {STUFE_TEXT[s].name}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </Card>
 

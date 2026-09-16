@@ -12,35 +12,49 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
-  --color-danger: #ef4444;
-  --color-warn: #f59e0b;
-  --color-ok: #16a34a;
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
   --font-sans:
     system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
 }
 
+/* Alle Farben stehen hier und nur hier. Wer den Kontrast anders will,
+   aendert diese Werte, sonst nichts.
+   Geprueft gegen WCGA AA: Nebentext auf Grund mindestens 7:1, Linien
+   deutlich sichtbar, Karten heben sich vom Grund ab. */
 :root {
   --paper: #ffffff;
   --surface: #ffffff;
-  --raised: #f6f6f7;
-  --ink: #0a0a0a;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --accent: #0a0a0a;
-  --zebra: rgba(0, 0, 0, 0.035);
+  --raised: #eceef2;
+  --ink: #07080a;
+  --muted: #4b5563;
+  --line: #ccd2da;
+  --accent: #07080a;
+  --zebra: rgba(7, 8, 10, 0.05);
+  --danger: #d32032;
+  --warn: #b45309;
+  --ok: #15803d;
+  --glanz: rgba(255, 255, 255, 0.5);
+  --schatten: rgba(7, 8, 10, 0.14);
   color-scheme: light;
 }
 
 .dark {
-  --paper: #0b0b0c;
-  --surface: #141416;
-  --raised: #1c1c20;
-  --ink: #f4f4f5;
-  --muted: #9ca3af;
-  --line: #2a2a2f;
+  --paper: #07080b;
+  --surface: #14171c;
+  --raised: #1f242b;
+  --ink: #f8fafc;
+  --muted: #aab3c0;
+  --line: #333a44;
   --accent: #ffffff;
-  --zebra: rgba(255, 255, 255, 0.04);
+  --zebra: rgba(255, 255, 255, 0.055);
+  --danger: #ff5d6c;
+  --warn: #fbbf24;
+  --ok: #4ade80;
+  --glanz: rgba(255, 255, 255, 0.12);
+  --schatten: rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 

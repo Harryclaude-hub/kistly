@@ -15,6 +15,18 @@ try {
   /* kein Zugriff auf localStorage, dann eben helles Theme */
 }
 
+/* Bewegungsstufe genauso frueh setzen wie das Theme, sonst blitzt beim
+   Start kurz die falsche Stufe auf.
+   Die Stufen und der Schluessel stehen in src/design/motion.tsx. Hier steht
+   absichtlich nur das Setzen des Attributs, damit der ganze Ordner
+   src/design geloescht werden kann, ohne dass diese Datei bricht. */
+try {
+  const m = localStorage.getItem('kistly.motion')
+  document.documentElement.dataset.motion = m === 'ruhig' || m === 'voll' ? m : 'normal'
+} catch {
+  document.documentElement.dataset.motion = 'normal'
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

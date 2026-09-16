@@ -68,13 +68,24 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   full?: boolean
 }
 
+/* Nur Optik. Tiefe kommt aus zwei Schatten: ein heller Streifen oben innen,
+ * damit der Knopf gewoelbt wirkt, und ein weicher Schatten darunter. Beim
+ * Zeigen hebt er sich leicht, beim Druecken sinkt er ein. --schatten und
+ * --glanz stehen in index.css. */
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: 'bg-ink text-paper shadow-sm hover:opacity-90 active:scale-[0.98]',
-  soft: 'border border-line bg-raised text-ink hover:bg-line active:scale-[0.98]',
-  ghost: 'border border-transparent text-ink hover:border-line hover:bg-raised',
+  primary:
+    'bg-ink text-paper shadow-[0_1px_0_0_var(--glanz)_inset,0_10px_22px_-14px_var(--schatten)] ' +
+    'hover:-translate-y-px hover:shadow-[0_1px_0_0_var(--glanz)_inset,0_16px_28px_-14px_var(--schatten)] ' +
+    'active:translate-y-0 active:scale-[0.98]',
+  soft:
+    'border-2 border-line bg-raised text-ink hover:border-ink/25 hover:bg-line active:scale-[0.98]',
+  ghost: 'border-2 border-transparent text-ink hover:border-line hover:bg-raised',
   outline:
-    'border-2 border-ink/15 bg-surface text-ink hover:border-ink/40 hover:bg-raised active:scale-[0.98]',
-  danger: 'bg-danger text-white shadow-sm hover:opacity-90 active:scale-[0.98]',
+    'border-2 border-ink/25 bg-surface text-ink shadow-[0_6px_16px_-14px_var(--schatten)] ' +
+    'hover:-translate-y-px hover:border-ink/55 hover:bg-raised active:translate-y-0 active:scale-[0.98]',
+  danger:
+    'bg-danger text-white shadow-[0_1px_0_0_var(--glanz)_inset,0_10px_22px_-14px_var(--schatten)] ' +
+    'hover:-translate-y-px hover:brightness-110 active:translate-y-0 active:scale-[0.98]',
 }
 
 const SIZES = {

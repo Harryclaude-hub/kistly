@@ -1,0 +1,325 @@
+/* =====================================================================
+ * Kistly Buehne
+ *
+ * Reine Optik. Diese Datei darf komplett geloescht werden, danach sieht
+ * die Startseite nackt aus und funktioniert unveraendert weiter.
+ * Hier steht keine Berechnung, keine Abfrage, keine Reihenfolge.
+ *
+ * Bewegung haengt an data-motion auf dem html-Element:
+ *   ruhig   nichts bewegt sich, der Hintergrund steht
+ *   normal  der Hintergrund steht fest, der Vordergrund scrollt darueber
+ *   voll    zusaetzlich driftende Kisten und atmende Lichter
+ * Ohne das Attribut gilt normal.
+ *
+ * --sy ist die Scrollhoehe in Pixeln, gesetzt von Buehne.tsx. Fehlt sie,
+ * rechnet alles mit 0 und die Seite steht einfach still.
+ * ===================================================================== */
+
+:root {
+  --sy: 0;
+  --buehne-blau: 37, 99, 235;
+  --buehne-rot: 239, 68, 68;
+}
+
+/* ------------------------------------------------------------- Grundlage */
+
+.buehne {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  /* Der Grund liegt fest. Genau das erzeugt den Eindruck, dass nur der
+     Vordergrund wandert. */
+  background:
+    radial-gradient(120% 80% at 50% -10%, var(--buehne-oben) 0%, transparent 60%),
+    linear-gradient(180deg, var(--paper) 0%, var(--buehne-tief) 100%);
+}
+
+:root {
+  --buehne-oben: rgba(37, 99, 235, 0.1);
+  --buehne-tief: #e9ecf2;
+  --buehne-raster: rgba(7, 8, 10, 0.07);
+  --buehne-strich: rgba(7, 8, 10, 0.16);
+  --buehne-licht-a: 0.2;
+  --buehne-licht-b: 0.14;
+}
+
+.dark {
+  --buehne-oben: rgba(37, 99, 235, 0.22);
+  --buehne-tief: #04050a;
+  --buehne-raster: rgba(255, 255, 255, 0.07);
+  --buehne-strich: rgba(255, 255, 255, 0.2);
+  --buehne-licht-a: 0.3;
+  --buehne-licht-b: 0.22;
+}
+
+/* ---------------------------------------------------------------- Raster */
+/* Millimeterpapier, passt zum Thema Packen und Ausmessen. Nach unten
+   ausgeblendet, damit der Text darueber ruhig bleibt. */
+.buehne-raster {
+  position: absolute;
+  inset: -10% -10% 0 -10%;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--buehne-raster) 0 1px,
+      transparent 1px 72px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--buehne-raster) 0 1px,
+      transparent 1px 72px
+    );
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 85%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 85%);
+  transform: translate3d(0, calc(var(--sy) * -0.04px), 0);
+}
+
+/* ---------------------------------------------------------------- Lichter */
+
+.buehne-licht {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  will-change: transform;
+}
+
+.buehne-licht-1 {
+  top: -14rem;
+  left: -10rem;
+  width: 40rem;
+  height: 40rem;
+  background: rgba(var(--buehne-blau), var(--buehne-licht-a));
+  transform: translate3d(0, calc(var(--sy) * -0.1px), 0);
+}
+
+.buehne-licht-2 {
+  top: 8rem;
+  right: -14rem;
+  width: 34rem;
+  height: 34rem;
+  background: rgba(var(--buehne-rot), var(--buehne-licht-b));
+  transform: translate3d(0, calc(var(--sy) * -0.16px), 0);
+}
+
+.buehne-licht-3 {
+  bottom: -18rem;
+  left: 30%;
+  width: 36rem;
+  height: 36rem;
+  background: rgba(var(--buehne-blau), var(--buehne-licht-b));
+  transform: translate3d(0, calc(var(--sy) * 0.08px), 0);
+}
+
+/* ---------------------------------------------------------------- Kisten */
+/* Umrisse der Kistenmarke, weit hinten, als Tiefenhinweis. */
+
+.buehne-kiste {
+  position: absolute;
+  border: 2px solid var(--buehne-strich);
+  border-radius: 1rem;
+  opacity: 0.55;
+  will-change: transform;
+}
+
+.buehne-kiste::before {
+  content: '';
+  position: absolute;
+  inset: 26% 0 auto 0;
+  border-top: 2px solid var(--buehne-strich);
+}
+
+.buehne-kiste-1 {
+  top: 18%;
+  left: 6%;
+  width: 7rem;
+  height: 6rem;
+  transform: translate3d(0, calc(var(--sy) * -0.22px), 0) rotate(-9deg);
+}
+
+.buehne-kiste-2 {
+  top: 52%;
+  right: 9%;
+  width: 9rem;
+  height: 7.5rem;
+  transform: translate3d(0, calc(var(--sy) * -0.34px), 0) rotate(7deg);
+}
+
+.buehne-kiste-3 {
+  bottom: 12%;
+  left: 18%;
+  width: 5.5rem;
+  height: 4.5rem;
+  transform: translate3d(0, calc(var(--sy) * -0.15px), 0) rotate(14deg);
+}
+
+@media (max-width: 640px) {
+  /* Auf dem Handy nur eine Kiste, sonst wird es unruhig und kostet
+     unnoetig Rechenzeit. */
+  .buehne-kiste-2,
+  .buehne-kiste-3 {
+    display: none;
+  }
+  .buehne-licht {
+    filter: blur(70px);
+  }
+}
+
+/* ------------------------------------------------------- Stufe: ruhig */
+/* Alles steht. Kein transform, keine Animation, kein will-change. */
+
+[data-motion='ruhig'] .buehne-raster,
+[data-motion='ruhig'] .buehne-licht,
+[data-motion='ruhig'] .buehne-kiste {
+  transform: none;
+  will-change: auto;
+  animation: none !important;
+}
+
+[data-motion='ruhig'] .kn-glanz::after {
+  display: none;
+}
+
+/* -------------------------------------------------------- Stufe: voll */
+
+@keyframes buehne-schweben {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -14px;
+  }
+}
+
+@keyframes buehne-atmen {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+[data-motion='voll'] .buehne-kiste-1 {
+  animation: buehne-schweben 11s ease-in-out infinite;
+}
+[data-motion='voll'] .buehne-kiste-2 {
+  animation: buehne-schweben 14s ease-in-out infinite 1.5s;
+}
+[data-motion='voll'] .buehne-kiste-3 {
+  animation: buehne-schweben 9s ease-in-out infinite 0.8s;
+}
+[data-motion='voll'] .buehne-licht-1 {
+  animation: buehne-atmen 9s ease-in-out infinite;
+}
+[data-motion='voll'] .buehne-licht-2 {
+  animation: buehne-atmen 12s ease-in-out infinite 2s;
+}
+
+/* Wer im Betriebssystem weniger Bewegung eingestellt hat, bekommt sie
+   nicht, egal welche Stufe gewaehlt ist. */
+@media (prefers-reduced-motion: reduce) {
+  .buehne-raster,
+  .buehne-licht,
+  .buehne-kiste {
+    transform: none !important;
+    animation: none !important;
+  }
+}
+
+/* =====================================================================
+ * Knoepfe mit Glanz
+ * Nur Optik. Die Klasse kann von jedem Knopf weggenommen werden, ohne
+ * dass sich am Verhalten etwas aendert.
+ * ===================================================================== */
+
+.kn-glanz {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow:
+    0 1px 0 0 var(--glanz) inset,
+    0 10px 24px -12px var(--schatten);
+}
+
+.kn-glanz::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(115deg, transparent 30%, var(--glanz) 48%, transparent 66%);
+  translate: -120% 0;
+  transition: translate 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.kn-glanz:hover::after,
+.kn-glanz:focus-visible::after {
+  translate: 120% 0;
+}
+
+/* Grosser Handlungsknopf auf der Startseite. */
+.kn-gross {
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+  padding-inline: 2rem;
+  height: 3.75rem;
+}
+
+.kn-pfeil svg:last-child {
+  transition: translate 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.kn-pfeil:hover svg:last-child {
+  translate: 4px 0;
+}
+[data-motion='ruhig'] .kn-pfeil svg:last-child {
+  transition: none;
+}
+
+/* =====================================================================
+ * Karten auf der Startseite
+ * Durchscheinend, damit die Buehne dahinter sichtbar bleibt, aber mit
+ * genug Deckung, dass Text ruhig lesbar ist.
+ * ===================================================================== */
+
+.karte-glas {
+  background: var(--glas);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 40px -28px var(--schatten);
+}
+
+:root {
+  --glas: rgba(255, 255, 255, 0.82);
+}
+.dark {
+  --glas: rgba(20, 23, 28, 0.72);
+}
+
+.karte-glas-stark {
+  background: var(--glas-stark);
+}
+:root {
+  --glas-stark: rgba(255, 255, 255, 0.95);
+}
+.dark {
+  --glas-stark: rgba(20, 23, 28, 0.9);
+}
+
+/* Trennband zwischen den Abschnitten, damit die Buehne nicht durchgehend
+   durchscheint und der Text seine Ruhe bekommt. */
+.band {
+  background: var(--band);
+  border-block: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+:root {
+  --band: rgba(255, 255, 255, 0.72);
+}
+.dark {
+  --band: rgba(7, 8, 11, 0.66);
+}
