@@ -2,45 +2,65 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { cx } from '../lib/util'
+import { Avatar } from './ui'
+import { displayNameOf, useAuth } from '../lib/auth'
 
+/** Kopfzeile. Rechts steht immer das eigene Profil, so wie bei den grossen
+ *  Messengern. Zusaetzliche Knoepfe kommen links daneben. */
 export function AppHeader({
   title,
   subtitle,
   back,
   actions,
   sticky = true,
+  showProfile = true,
 }: {
   title: ReactNode
   subtitle?: ReactNode
   back?: string | true
   actions?: ReactNode
   sticky?: boolean
+  showProfile?: boolean
 }) {
   const nav = useNavigate()
+  const { profile, user } = useAuth()
   return (
     <header
       className={cx(
-        'no-print safe-top z-30 border-b border-line bg-paper/90 backdrop-blur',
+        'no-print safe-top z-30 border-b border-line bg-paper/95 backdrop-blur',
         sticky && 'sticky top-0',
       )}
     >
-      <div className="mx-auto flex min-h-14 max-w-5xl items-center gap-2 px-3 py-2 sm:px-5">
+      <div className="mx-auto flex min-h-16 max-w-5xl items-center gap-2 px-3 py-2 sm:px-5">
         {back ? (
           <button
             onClick={() => (typeof back === 'string' ? nav(back) : nav(-1))}
             aria-label="Zurueck"
-            className="-ml-1 rounded-xl p-2 text-ink hover:bg-raised"
+            title="Zurueck"
+            className="-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-transparent text-ink transition hover:border-line hover:bg-raised active:scale-95"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={22} />
           </button>
         ) : null}
+
         <div className="min-w-0 flex-1">
-          <div className="truncate text-base font-bold leading-tight">{title}</div>
-          {subtitle ? (
-            <div className="truncate text-xs text-muted">{subtitle}</div>
+          <div className="t-name truncate">{title}</div>
+          {subtitle ? <div className="truncate text-sm text-muted">{subtitle}</div> : null}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          {actions}
+          {showProfile ? (
+            <Link
+              to="/app/einstellungen"
+              aria-label="Profil und Einstellungen"
+              title="Profil und Einstellungen"
+              className="ml-0.5 rounded-full ring-2 ring-transparent transition hover:ring-line active:scale-95"
+            >
+              <Avatar name={displayNameOf(profile, user?.email ?? '?')} size={40} />
+            </Link>
           ) : null}
         </div>
-        {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
       </div>
     </header>
   )
@@ -74,25 +94,53 @@ export function NavTab({
   label,
   active,
   badge,
+  raised,
 }: {
   to: string
   icon: ReactNode
   label: string
   active: boolean
   badge?: number
+  raised?: boolean
 }) {
+  if (raised) {
+    return (
+      <Link
+        to={to}
+        aria-label={label}
+        className="relative flex flex-1 flex-col items-center gap-1 py-1.5 text-[0.6875rem] font-bold text-ink"
+      >
+        <span
+          className={cx(
+            'flex h-14 w-14 -translate-y-3 items-center justify-center rounded-2xl shadow-lg transition active:scale-95',
+            active ? 'bg-danger text-white' : 'bg-ink text-paper',
+          )}
+        >
+          {icon}
+        </span>
+        <span className="-mt-2.5">{label}</span>
+      </Link>
+    )
+  }
   return (
     <Link
       to={to}
       className={cx(
-        'relative flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-bold transition',
+        'relative flex flex-1 flex-col items-center gap-0.5 py-1.5 text-[0.6875rem] font-bold transition',
         active ? 'text-ink' : 'text-muted hover:text-ink',
       )}
     >
-      <span className={cx('rounded-lg px-3 py-1', active && 'bg-raised')}>{icon}</span>
+      <span
+        className={cx(
+          'flex h-9 min-w-[3.25rem] items-center justify-center rounded-full transition',
+          active && 'bg-ink text-paper',
+        )}
+      >
+        {icon}
+      </span>
       {label}
       {badge && badge > 0 ? (
-        <span className="absolute right-[18%] top-0.5 min-w-4 rounded-full bg-danger px-1 text-[9px] leading-4 text-white">
+        <span className="absolute right-[20%] top-0 min-w-5 rounded-full bg-danger px-1.5 text-[0.6875rem] font-black leading-5 text-white">
           {badge > 99 ? '99+' : badge}
         </span>
       ) : null}
@@ -102,8 +150,8 @@ export function NavTab({
 
 export function BottomNav({ children }: { children: ReactNode }) {
   return (
-    <nav className="no-print safe-bottom sticky bottom-0 z-30 border-t border-line bg-paper/95 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-stretch px-2 pt-1">{children}</div>
+    <nav className="no-print safe-bottom sticky bottom-0 z-40 border-t-2 border-line bg-paper/98 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl items-end px-2 pt-2">{children}</div>
     </nav>
   )
 }

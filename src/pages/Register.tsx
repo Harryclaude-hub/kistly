@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell'
-import { Button, Field, Input, PasswordInput } from '../components/ui'
+import { Button, ErrorBox, Field, Input, PasswordInput } from '../components/ui'
 import { useAuth } from '../lib/auth'
 
 export default function Register() {
@@ -15,6 +15,7 @@ export default function Register() {
   const [info, setInfo] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  // Wer neu ist, hat noch keinen Umzug. Darum geht es hier immer zur Uebersicht.
   if (ready && session) return <Navigate to="/app" replace />
 
   const weak = password.length > 0 && password.length < 8
@@ -51,14 +52,16 @@ export default function Register() {
       subtitle="Name ist freiwillig. E-Mail und Passwort brauchst du."
       footer={
         <>
-          Schon ein Konto?{' '}
-          <Link to="/login" className="font-semibold text-ink underline">
-            Anmelden
+          <p>Schon ein Konto?</p>
+          <Link to="/login" className="mt-3 inline-block">
+            <Button type="button" variant="outline" size="lg">
+              Anmelden
+            </Button>
           </Link>
         </>
       }
     >
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-5">
         <Field label="Name" hint="Optional. So sehen dich die anderen im Umzug.">
           <Input
             autoComplete="name"
@@ -92,19 +95,28 @@ export default function Register() {
           />
         </Field>
 
-        {error ? (
-          <p className="rounded-xl border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-            {error}
-          </p>
-        ) : null}
+        {error ? <ErrorBox error={error} /> : null}
         {info ? (
-          <p className="rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm">{info}</p>
+          <div className="rounded-2xl border border-warn/40 bg-warn/10 p-4">
+            <p className="font-bold">Fast fertig</p>
+            <p className="mt-1 text-base text-ink/80">{info}</p>
+          </div>
         ) : null}
 
         <Button type="submit" full size="lg" loading={busy}>
           Konto anlegen
         </Button>
       </form>
+
+      {info ? (
+        <div className="mt-3">
+          <Link to="/login" className="block">
+            <Button type="button" variant="outline" size="lg" full>
+              Zur Anmeldung
+            </Button>
+          </Link>
+        </div>
+      ) : null}
     </AuthShell>
   )
 }

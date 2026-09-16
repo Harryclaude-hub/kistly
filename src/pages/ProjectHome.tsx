@@ -1,21 +1,64 @@
+import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   Boxes,
+  ChevronRight,
   ClipboardList,
   Cog,
   LayoutGrid,
   Plus,
   Printer,
   ScanLine,
+  Users,
 } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
-import { Button, Card, Empty, Loading, SectionTitle } from '../components/ui'
+import {
+  Button,
+  Card,
+  Empty,
+  ErrorBox,
+  IconButton,
+  Loading,
+  SectionTitle,
+} from '../components/ui'
 import { useProject } from './ProjectLayout'
 import { getStats, listProjectEvents, listTagStats } from '../lib/api'
 import { STATUS_LABEL, type ItemEvent, type ItemStatus } from '../lib/types'
-import { relTime, useAsync, withAlpha } from '../lib/util'
+import { contrastOn, relTime, useAsync, withAlpha } from '../lib/util'
 import { displayNameOf } from '../lib/auth'
+
+/** Schnellzugriff. Hoehe und Innenabstand stehen als Stil am Knopf, damit
+ *  alle Kacheln gleich hoch bleiben, egal wie lang die Beschriftung ist. */
+function Quick({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: ReactNode
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <Button
+      variant="outline"
+      full
+      onClick={onClick}
+      className="flex-col gap-2 text-center"
+      style={{
+        height: 'auto',
+        minHeight: 92,
+        paddingTop: 14,
+        paddingBottom: 14,
+        paddingLeft: 8,
+        paddingRight: 8,
+      }}
+    >
+      {icon}
+      <span className="text-[0.9375rem] font-bold leading-tight">{label}</span>
+    </Button>
+  )
+}
 
 function StatTile({
   label,
@@ -29,15 +72,15 @@ function StatTile({
   to: string
 }) {
   return (
-    <Link to={to}>
+    <Link to={to} className="block">
       <div
-        className="rounded-2xl border border-line p-3.5 transition hover:border-ink/25"
-        style={{ background: withAlpha(color, 0.07) }}
+        className="flex min-h-[96px] flex-col justify-center rounded-2xl border-2 px-3 py-3 transition hover:brightness-95 active:scale-[0.98]"
+        style={{ background: withAlpha(color, 0.08), borderColor: withAlpha(color, 0.35) }}
       >
-        <div className="text-2xl font-black tabular-nums" style={{ color }}>
+        <span className="text-3xl font-black leading-none tabular-nums" style={{ color }}>
           {value}
-        </div>
-        <div className="mt-0.5 text-xs font-semibold text-muted">{label}</div>
+        </span>
+        <span className="mt-2 break-words text-sm font-bold text-muted">{label}</span>
       </div>
     </Link>
   )
@@ -56,10 +99,12 @@ function EventLine({ ev, nameOf }: { ev: ItemEvent; nameOf: (id: string | null) 
             ? `hat den Code auf ${d.to} geaendert`
             : ev.type
   return (
-    <li className="flex items-baseline gap-2 px-3 py-2 text-sm">
-      <span className="font-semibold">{nameOf(ev.user_id)}</span>
-      <span className="min-w-0 flex-1 truncate text-muted">{text}</span>
-      <span className="shrink-0 text-xs text-muted">{relTime(ev.created_at)}</span>
+    <li className="flex items-baseline gap-2 px-3 py-2.5">
+      <span className="min-w-0 flex-1">
+        <span className="t-name block truncate">{nameOf(ev.user_id)}</span>
+        <span className="t-sub block truncate">{text}</span>
+      </span>
+      <span className="shrink-0 text-sm text-muted">{relTime(ev.created_at)}</span>
     </li>
   )
 }
@@ -79,6 +124,15 @@ export default function ProjectHome() {
   const s = stats.data
   const pct = s && s.items_total > 0 ? Math.round((s.items_arrived / s.items_total) * 100) : 0
 
+  /** Eine Zeile unter dem Namen eines Bereichs. Solange gezaehlt wird, steht
+   *  das da, und wenn das Zaehlen scheitert, steht auch das da. */
+  const countLine = (id: string) => {
+    if (roomCounts.error) return 'Zaehlwerte nicht geladen'
+    const c = roomCounts.data?.get(id)
+    if (!c) return roomCounts.loading ? 'wird gezaehlt' : 'noch keine Kisten'
+    return `${c.arrived} von ${c.total} angekommen`
+  }
+
   return (
     <>
       <AppHeader
@@ -86,80 +140,103 @@ export default function ProjectHome() {
         subtitle={project.note ?? `${members.length} Mitglieder`}
         back="/app"
         actions={
-          <Link to={`${base}/einstellungen`} aria-label="Umzug einstellen" className="rounded-xl p-2 hover:bg-raised">
+          <IconButton
+            label="Umzug einstellen"
+            onClick={() => nav(`${base}/einstellungen`)}
+          >
             <Cog size={20} />
-          </Link>
+          </IconButton>
         }
       />
 
       <Page>
-        {/* Fortschritt */}
-        <Card className="mb-4 p-4">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-sm font-semibold text-muted">Angekommen</p>
-              <p className="text-3xl font-black tabular-nums">
-                {pct}
-                <span className="text-lg text-muted">%</span>
-              </p>
-            </div>
-            <p className="text-sm text-muted">
-              {s?.items_arrived ?? 0} von {s?.items_total ?? 0}
-            </p>
-          </div>
-          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-raised">
-            <div className="h-full rounded-full bg-ok transition-all" style={{ width: `${pct}%` }} />
-          </div>
-        </Card>
+        {/* Fortschritt und Zaehlwerte: laedt, Fehler oder Daten */}
+        {stats.loading ? (
+          <Loading label="Zaehlwerte werden geladen" />
+        ) : stats.error ? (
+          <ErrorBox error={stats.error} onRetry={stats.reload} />
+        ) : (
+          <>
+            <Card className="mb-3 p-5">
+              <div className="flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="t-sub font-bold">Angekommen</p>
+                  <p className="text-4xl font-black leading-none tabular-nums">
+                    {pct}
+                    <span className="text-2xl text-muted">%</span>
+                  </p>
+                </div>
+                <p className="t-sub shrink-0">
+                  {s?.items_arrived ?? 0} von {s?.items_total ?? 0}
+                </p>
+              </div>
+              <div
+                className="mt-4 h-3 w-full overflow-hidden rounded-full bg-raised"
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Angekommen"
+              >
+                <div
+                  className="h-full rounded-full bg-ok transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </Card>
 
-        <div className="mb-5 grid grid-cols-3 gap-2">
-          <StatTile
-            label={STATUS_LABEL.open}
-            value={s?.items_open ?? 0}
-            color="#ef4444"
-            to={`${base}/kisten?status=open`}
-          />
-          <StatTile
-            label={STATUS_LABEL.transit}
-            value={s?.items_transit ?? 0}
-            color="#f59e0b"
-            to={`${base}/kisten?status=transit`}
-          />
-          <StatTile
-            label={STATUS_LABEL.arrived}
-            value={s?.items_arrived ?? 0}
-            color="#16a34a"
-            to={`${base}/kisten?status=arrived`}
-          />
-        </div>
+            <div className="mb-5 grid grid-cols-3 gap-2">
+              <StatTile
+                label={STATUS_LABEL.open}
+                value={s?.items_open ?? 0}
+                color="#ef4444"
+                to={`${base}/kisten?status=open`}
+              />
+              <StatTile
+                label={STATUS_LABEL.transit}
+                value={s?.items_transit ?? 0}
+                color="#f59e0b"
+                to={`${base}/kisten?status=transit`}
+              />
+              <StatTile
+                label={STATUS_LABEL.arrived}
+                value={s?.items_arrived ?? 0}
+                color="#16a34a"
+                to={`${base}/kisten?status=arrived`}
+              />
+            </div>
+          </>
+        )}
 
         {/* Schnellzugriff */}
-        <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {canEdit ? (
-            <Button variant="outline" className="h-auto flex-col py-4" onClick={() => nav(`${base}/kisten?neu=1`)}>
-              <Plus size={20} />
-              Kiste anlegen
-            </Button>
+            <Quick
+              icon={<Plus size={26} />}
+              label="Kiste anlegen"
+              onClick={() => nav(`${base}/kisten?neu=1`)}
+            />
           ) : null}
-          <Button variant="outline" className="h-auto flex-col py-4" onClick={() => nav(`${base}/scan`)}>
-            <ScanLine size={20} />
-            Scannen
-          </Button>
-          <Button variant="outline" className="h-auto flex-col py-4" onClick={() => nav(`${base}/bereiche`)}>
-            <LayoutGrid size={20} />
-            Bereiche
-          </Button>
-          <Button variant="outline" className="h-auto flex-col py-4" onClick={() => nav(`${base}/etiketten`)}>
-            <Printer size={20} />
-            Etiketten
-          </Button>
+          <Quick icon={<ScanLine size={26} />} label="Scannen" onClick={() => nav(`${base}/scan`)} />
+          <Quick
+            icon={<LayoutGrid size={26} />}
+            label="Bereiche"
+            onClick={() => nav(`${base}/bereiche`)}
+          />
+          <Quick
+            icon={<Printer size={26} />}
+            label="Etiketten"
+            onClick={() => nav(`${base}/etiketten`)}
+          />
         </div>
 
         {/* Zimmer */}
         <SectionTitle
           action={
-            <Link to={`${base}/bereiche`} className="text-xs font-semibold underline">
-              verwalten
+            <Link to={`${base}/bereiche`}>
+              <Button variant="outline" size="sm">
+                Verwalten
+              </Button>
             </Link>
           }
         >
@@ -171,67 +248,68 @@ export default function ProjectHome() {
             hint="Lege zuerst die Bereiche an. Jedes Zimmer bekommt ein Kuerzel, damit die Kisten eine Nummer bekommen koennen."
             action={
               <Link to={`${base}/bereiche`}>
-                <Button>
-                  <Plus size={16} /> Bereiche anlegen
+                <Button size="lg">
+                  <Plus size={20} /> Bereiche anlegen
                 </Button>
               </Link>
             }
           />
         ) : (
           <div className="zebra mb-6 overflow-hidden rounded-2xl border border-line">
-            {rooms.map((r) => {
-              const c = roomCounts.data?.get(r.id)
-              const p = c && c.total > 0 ? Math.round((c.arrived / c.total) * 100) : 0
-              return (
-                <Link
-                  key={r.id}
-                  to={`${base}/kisten?room=${r.id}`}
-                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-raised"
+            {rooms.map((r) => (
+              <Link
+                key={r.id}
+                to={`${base}/kisten?room=${r.id}`}
+                className="flex items-center gap-3 px-3 py-3 hover:bg-raised"
+              >
+                <span
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-base font-black"
+                  style={{ background: r.color, color: contrastOn(r.color) }}
                 >
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-black"
-                    style={{ background: r.color, color: '#fff' }}
-                  >
-                    {r.short}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{r.name}</span>
-                    <span className="block text-xs text-muted">
-                      {c ? `${c.arrived} von ${c.total} angekommen` : 'zaehlt'}
-                    </span>
-                  </span>
-                  <span className="w-16 shrink-0">
-                    <span className="block h-1.5 overflow-hidden rounded-full bg-raised">
-                      <span
-                        className="block h-full rounded-full bg-ok"
-                        style={{ width: `${p}%` }}
-                      />
-                    </span>
-                  </span>
-                </Link>
-              )
-            })}
+                  {r.short}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="t-name block truncate">{r.name}</span>
+                  <span className="t-sub block truncate">{countLine(r.id)}</span>
+                </span>
+                <ChevronRight size={20} className="shrink-0 text-muted" />
+              </Link>
+            ))}
           </div>
         )}
 
         {/* Personen */}
         {people.length > 0 ? (
           <>
-            <SectionTitle>Personen</SectionTitle>
-            <div className="mb-6 flex flex-wrap gap-2">
+            <SectionTitle
+              action={
+                <Link to={`${base}/bereiche`}>
+                  <Button variant="outline" size="sm">
+                    Verwalten
+                  </Button>
+                </Link>
+              }
+            >
+              Personen
+            </SectionTitle>
+            <div className="mb-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {people.map((p) => (
-                <Link key={p.id} to={`${base}/kisten?person=${p.id}`}>
+                <Link key={p.id} to={`${base}/kisten?person=${p.id}`} className="block">
                   <span
-                    className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm font-semibold hover:bg-raised"
-                    style={{ borderColor: p.color }}
+                    className="flex min-h-[76px] items-center gap-3 rounded-2xl border-2 bg-surface px-3 py-3 transition hover:bg-raised active:scale-[0.99]"
+                    style={{ borderColor: withAlpha(p.color, 0.45) }}
                   >
                     <span
-                      className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-black"
-                      style={{ background: p.color, color: '#fff' }}
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-base font-black"
+                      style={{ background: p.color, color: contrastOn(p.color) }}
                     >
                       {p.short}
                     </span>
-                    {p.name}
+                    <span className="min-w-0 flex-1">
+                      <span className="t-name block truncate">{p.name}</span>
+                      <span className="t-sub block truncate">{countLine(p.id)}</span>
+                    </span>
+                    <ChevronRight size={20} className="shrink-0 text-muted" />
                   </span>
                 </Link>
               ))}
@@ -243,9 +321,13 @@ export default function ProjectHome() {
         <SectionTitle>Zuletzt passiert</SectionTitle>
         <Card className="overflow-hidden">
           {events.loading ? (
-            <Loading label="Verlauf" />
+            <Loading label="Verlauf wird geladen" />
+          ) : events.error ? (
+            <div className="p-4">
+              <ErrorBox error={events.error} onRetry={events.reload} />
+            </div>
           ) : (events.data ?? []).length === 0 ? (
-            <p className="px-3 py-6 text-center text-sm text-muted">
+            <p className="t-sub px-4 py-8 text-center">
               Noch nichts passiert. Sobald Kisten angelegt oder gescannt werden, steht es hier.
             </p>
           ) : (
@@ -257,23 +339,31 @@ export default function ProjectHome() {
           )}
         </Card>
 
-        <div className="mt-6 flex flex-wrap gap-2 pb-4">
-          <Link to={`${base}/kisten`}>
-            <Button variant="soft">
-              <Boxes size={16} /> Alle Kisten
+        <div className="mt-6 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          <Link to={`${base}/kisten`} className="block">
+            <Button variant="soft" full>
+              <Boxes size={18} /> Alle Kisten
             </Button>
           </Link>
-          <Link to={`${base}/etiketten`}>
-            <Button variant="soft">
-              <ClipboardList size={16} /> Etiketten und Liste
+          <Link to={`${base}/etiketten`} className="block">
+            <Button variant="soft" full>
+              <ClipboardList size={18} /> Etiketten und Liste
             </Button>
           </Link>
-          <Link to="/app">
-            <Button variant="ghost">
-              <ArrowLeft size={16} /> Andere Umzuege
+          <Link to={`${base}/team`} className="block">
+            <Button variant="soft" full>
+              <Users size={18} /> Team
+            </Button>
+          </Link>
+          <Link to="/app" className="block">
+            <Button variant="outline" full>
+              <ArrowLeft size={18} /> Andere Umzuege
             </Button>
           </Link>
         </div>
+
+        {/* Luft fuer die untere Navigationsleiste */}
+        <div className="h-6" />
       </Page>
     </>
   )

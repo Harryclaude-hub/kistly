@@ -7,10 +7,7 @@
  * Die Verschluesselung (RFC 8291, aes128gcm) und der VAPID-Kopf (RFC 8292)
  * sind hier direkt umgesetzt, damit keine Fremdbibliothek dazwischenhaengt.
  *
- * Benoetigte Secrets:
- *   VAPID_PUBLIC_KEY   base64url, 65 Byte unkomprimierter Punkt
- *   VAPID_PRIVATE_KEY  base64url, 32 Byte
- *   VAPID_SUBJECT      z.B. mailto:du@beispiel.de
+ * Schluessel kommen aus den Function Secrets oder aus private.config.
  */
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
@@ -162,6 +159,28 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+/** Erst die Umgebung, dann die Tabelle. Fehlt beides, wird das gemeldet. */
+async function loadConfig(
+  admin: ReturnType<typeof createClient>,
+): Promise<Record<string, string | undefined>> {
+  const out: Record<string, string | undefined> = {
+    VAPID_PUBLIC_KEY: Deno.env.get('VAPID_PUBLIC_KEY') ?? undefined,
+    VAPID_PRIVATE_KEY: Deno.env.get('VAPID_PRIVATE_KEY') ?? undefined,
+    VAPID_SUBJECT: Deno.env.get('VAPID_SUBJECT') ?? undefined,
+  }
+  if (out.VAPID_PUBLIC_KEY && out.VAPID_PRIVATE_KEY) return out
+
+  const { data, error } = await admin.rpc('app_config')
+  if (error) {
+    console.warn('[push-send] app_config nicht lesbar:', error.message)
+    return out
+  }
+  for (const row of (data ?? []) as Array<{ key: string; value: string }>) {
+    out[row.key] = out[row.key] ?? row.value
+  }
+  return out
+}
+
 interface Body {
   project_id: string
   user_ids?: string[]
@@ -187,15 +206,27 @@ Deno.serve(async (req) => {
     })
 
   try {
-    const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY')
-    const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY')
-    const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:kistly@example.com'
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
     const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
+
+    // Schluessel kommen aus den Function Secrets, sonst aus private.config.
+    // Das Schema private haengt nicht an der REST-Schnittstelle, nur der
+    // Dienstschluessel kommt dort hin.
+    const conf = await loadConfig(admin)
+    const VAPID_PUBLIC = conf.VAPID_PUBLIC_KEY
+    const VAPID_PRIVATE = conf.VAPID_PRIVATE_KEY
+    const VAPID_SUBJECT = conf.VAPID_SUBJECT ?? 'mailto:kistly@users.noreply.github.com'
 
     if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
       // Klare Meldung statt stiller Nichtzustellung.
-      return json({ error: 'VAPID_PUBLIC_KEY oder VAPID_PRIVATE_KEY fehlt in den Secrets' }, 500)
+      return json(
+        {
+          error:
+            'VAPID_PUBLIC_KEY oder VAPID_PRIVATE_KEY fehlt. Entweder als Function Secret setzen oder in private.config eintragen.',
+        },
+        500,
+      )
     }
 
     const auth = req.headers.get('Authorization') ?? ''
@@ -223,7 +254,6 @@ Deno.serve(async (req) => {
     if (!membership) return json({ error: 'Kein Mitglied dieses Umzugs' }, 403)
 
     // Empfaenger bestimmen, mit Dienstschluessel.
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
     const { data: members } = await admin
       .from('project_members')
       .select('user_id')
@@ -315,12 +345,10 @@ Deno.serve(async (req) => {
 
     // Fehlschlaege bleiben sichtbar, statt zu verschwinden.
     if (logs.length) {
-      await admin
+      const { error: logErr } = await admin
         .from('push_log')
         .insert(logs.map((l) => ({ ...l, payload: body.payload })))
-        .then(({ error }) => {
-          if (error) console.error('[push-send] Protokoll nicht geschrieben:', error.message)
-        })
+      if (logErr) console.error('[push-send] Protokoll nicht geschrieben:', logErr.message)
     }
 
     return json({ sent, failed })

@@ -1,13 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
-import { Boxes, Home, MessageCircle, ScanLine, Users } from 'lucide-react'
-import { BottomNav, NavTab } from '../components/AppShell'
-import { CallProvider } from '../components/CallLayer'
+import { Link, Outlet, useParams } from 'react-router-dom'
 import { Button, ErrorBox, Loading } from '../components/ui'
-import { countUnread, getProject, listMembers, listTags } from '../lib/api'
-import { supabase } from '../lib/supabase'
+import { CallProvider } from '../components/CallLayer'
+import { getProject, listMembers, listTags } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import type { MemberRole, Project, ProjectMember, Tag } from '../lib/types'
+import { useAppShell } from './AppLayout'
 
 interface ProjectCtxValue {
   project: Project
@@ -37,12 +35,12 @@ export function useProject(): ProjectCtxValue {
 export default function ProjectLayout() {
   const { pid = '' } = useParams()
   const { user } = useAuth()
-  const loc = useLocation()
+  const shell = useAppShell()
+  const remember = shell.rememberProject
 
   const [project, setProject] = useState<Project | null>(null)
   const [tags, setTags] = useState<Tag[]>([])
   const [members, setMembers] = useState<ProjectMember[]>([])
-  const [unread, setUnread] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -65,6 +63,8 @@ export default function ProjectLayout() {
         setTags(t)
         setMembers(m)
         setLoading(false)
+        // Damit die untere Leiste weiss, wohin Kisten und Chat fuehren.
+        remember(p.id)
       })
       .catch((err: unknown) => {
         if (!alive) return
@@ -74,39 +74,12 @@ export default function ProjectLayout() {
     return () => {
       alive = false
     }
-  }, [pid])
+  }, [pid, remember])
 
   const me = members.find((m) => m.user_id === user?.id)
-
-  const refreshUnread = useCallback(async () => {
-    if (!me) return
-    setUnread(await countUnread(pid, me.last_read_at))
-  }, [pid, me])
-
-  useEffect(() => {
-    void refreshUnread()
-  }, [refreshUnread])
-
-  // Neue Nachrichten zaehlen, solange man nicht im Chat ist.
-  useEffect(() => {
-    if (!pid || !user?.id) return
-    const ch = supabase
-      .channel(`unread-${pid}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `project_id=eq.${pid}` },
-        (payload) => {
-          const m = payload.new as { sender_id: string | null }
-          if (m.sender_id === user.id) return
-          if (loc.pathname.endsWith('/chat')) return
-          setUnread((n) => n + 1)
-        },
-      )
-      .subscribe()
-    return () => {
-      void supabase.removeChannel(ch)
-    }
-  }, [pid, user?.id, loc.pathname])
+  // Absichtlich nur rememberProject in den Abhaengigkeiten. Das ganze
+  // shell-Objekt wechselt bei jeder ungelesenen Nachricht, dann wuerde der
+  // Umzug immer wieder neu geladen.
 
   const value = useMemo<ProjectCtxValue | null>(() => {
     if (!project) return null
@@ -124,10 +97,10 @@ export default function ProjectLayout() {
       isOwner: role === 'owner',
       reloadTags,
       reloadMembers,
-      unread,
-      clearUnread: () => setUnread(0),
+      unread: shell.unread,
+      clearUnread: shell.clearUnread,
     }
-  }, [project, tags, members, me, unread, reloadTags, reloadMembers])
+  }, [project, tags, members, me, reloadTags, reloadMembers, shell.unread, shell.clearUnread])
 
   if (loading) return <Loading label="Umzug wird geladen" />
   if (error || !value)
@@ -140,47 +113,10 @@ export default function ProjectLayout() {
       </div>
     )
 
-  const base = `/app/p/${pid}`
-  const path = loc.pathname
-  const isItems = path.startsWith(`${base}/kisten`)
-
   return (
     <Ctx.Provider value={value}>
       <CallProvider projectId={pid} projectName={value.project.name} members={members}>
-        <div className="flex min-h-screen flex-col bg-paper">
-          <div className="flex-1">
-            <Outlet />
-          </div>
-
-          <BottomNav>
-            <NavTab to={base} icon={<Home size={19} />} label="Start" active={path === base} />
-            <NavTab
-              to={`${base}/kisten`}
-              icon={<Boxes size={19} />}
-              label="Kisten"
-              active={isItems}
-            />
-            <NavTab
-              to={`${base}/scan`}
-              icon={<ScanLine size={19} />}
-              label="Scannen"
-              active={path === `${base}/scan`}
-            />
-            <NavTab
-              to={`${base}/chat`}
-              icon={<MessageCircle size={19} />}
-              label="Chat"
-              active={path === `${base}/chat`}
-              badge={unread}
-            />
-            <NavTab
-              to={`${base}/team`}
-              icon={<Users size={19} />}
-              label="Team"
-              active={path === `${base}/team`}
-            />
-          </BottomNav>
-        </div>
+        <Outlet />
       </CallProvider>
     </Ctx.Provider>
   )

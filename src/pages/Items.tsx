@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Boxes, Download, Filter, Plus, Search, X } from 'lucide-react'
+import { Boxes, DoorOpen, Download, Filter, Plus, Search, User, X } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
 import {
   Button,
@@ -10,10 +10,12 @@ import {
   Empty,
   ErrorBox,
   Field,
+  IconButton,
   Input,
   Loading,
   Modal,
   Select,
+  Spinner,
   StatusPill,
   Switch,
   Textarea,
@@ -30,6 +32,7 @@ import {
   type Item,
   type ItemKind,
   type ItemStatus,
+  type Tag,
   type TagKind,
 } from '../lib/types'
 import { contrastOn, download, toCsv, useDebounced } from '../lib/util'
@@ -49,27 +52,42 @@ export function SizePicker({
 }) {
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
           <button
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            aria-label={`Groesse ${n}`}
-            className={`h-10 w-10 rounded-xl border font-mono text-sm font-black transition ${
+            aria-label={`Groesse ${n}, ${SIZE_LABEL[n]}`}
+            aria-pressed={value === n}
+            className={`h-12 w-full min-w-0 rounded-xl border-2 font-mono text-lg font-black transition active:scale-95 ${
               value === n
                 ? 'border-danger bg-danger text-white'
-                : 'border-line bg-surface text-ink hover:bg-raised'
+                : 'border-line bg-surface text-ink hover:border-ink/35 hover:bg-raised'
             }`}
           >
             {n}
           </button>
         ))}
       </div>
-      <p className="mt-2 text-xs text-muted">
-        {value} von 10, also {SIZE_LABEL[value]}. Die Ziffer steht rot mitten in der Nummer.
+      <p className="t-sub mt-2.5">
+        Groesse {value} von 10, also {SIZE_LABEL[value]}. Die Ziffer steht rot mitten in der Nummer.
       </p>
     </div>
+  )
+}
+
+/** Zimmer und Person als farbige Kachel mit vollem Namen. Ein Kuerzel in
+ *  Kleinstschrift sagt beim Tragen niemandem, wem die Kiste gehoert. */
+function TagTile({ tag, icon }: { tag: Tag; icon: ReactNode }) {
+  return (
+    <span
+      className="inline-flex max-w-full items-center gap-1 rounded-lg px-2 py-0.5 text-[0.9375rem] font-bold leading-6"
+      style={{ background: tag.color, color: contrastOn(tag.color) }}
+    >
+      <span className="shrink-0 opacity-80">{icon}</span>
+      <span className="min-w-0 truncate">{tag.name}</span>
+    </span>
   )
 }
 
@@ -104,6 +122,7 @@ export default function Items() {
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
   const [showFilter, setShowFilter] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const PAGE = 60
 
   const filter = useMemo(
@@ -238,6 +257,8 @@ export default function Items() {
   }
 
   async function exportCsv() {
+    if (exporting) return
+    setExporting(true)
     try {
       const all = await listAllItems(project.id)
       const csv = toCsv(
@@ -262,12 +283,19 @@ export default function Items() {
       toast(`${all.length} Kisten exportiert`, 'ok')
     } catch (err) {
       toast(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setExporting(false)
     }
   }
 
   function setParam(key: string, value: string) {
     if (value === 'all' || !value) params.delete(key)
     else params.set(key, value)
+    setParams(params, { replace: true })
+  }
+
+  function resetFilters() {
+    for (const k of ['status', 'room', 'person']) params.delete(k)
     setParams(params, { replace: true })
   }
 
@@ -282,13 +310,14 @@ export default function Items() {
         back={`/app/p/${project.id}`}
         actions={
           <>
-            <button
-              onClick={exportCsv}
-              aria-label="Als CSV exportieren"
-              className="rounded-xl p-2 hover:bg-raised"
+            <IconButton
+              label="Als CSV exportieren"
+              size="sm"
+              disabled={exporting}
+              onClick={() => void exportCsv()}
             >
-              <Download size={19} />
-            </button>
+              {exporting ? <Spinner /> : <Download size={19} />}
+            </IconButton>
             {canEdit ? (
               <Button size="sm" onClick={() => setOpen(true)}>
                 <Plus size={16} /> Neu
@@ -301,36 +330,47 @@ export default function Items() {
       <Page>
         {/* Suche */}
         <div className="mb-3 flex gap-2">
-          <div className="relative flex-1">
-            <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <div className="relative min-w-0 flex-1">
+            <Search size={19} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Code, Titel oder Notiz suchen"
-              className="pl-9"
+              placeholder="Code, Titel oder Notiz"
+              className={search ? 'pl-10 pr-14' : 'pl-10'}
             />
             {search ? (
-              <button
+              <IconButton
+                label="Suche leeren"
+                size="sm"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2"
                 onClick={() => setSearch('')}
-                aria-label="Suche leeren"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted hover:bg-raised"
               >
-                <X size={15} />
-              </button>
+                <X size={17} />
+              </IconButton>
             ) : null}
           </div>
-          <Button
-            variant={activeFilters > 0 ? 'primary' : 'outline'}
-            size="icon"
+          <IconButton
+            label={
+              activeFilters > 0
+                ? `Filter, ${activeFilters} gesetzt`
+                : showFilter
+                  ? 'Filter schliessen'
+                  : 'Filter oeffnen'
+            }
+            className="relative"
             onClick={() => setShowFilter((v) => !v)}
-            aria-label="Filter"
           >
-            <Filter size={18} />
-          </Button>
+            <Filter size={19} />
+            {activeFilters > 0 ? (
+              <span className="absolute -right-2 -top-2 min-w-[1.5rem] rounded-full bg-danger px-1 text-sm font-black leading-6 text-white">
+                {activeFilters}
+              </span>
+            ) : null}
+          </IconButton>
         </div>
 
-        {/* Filter */}
-        <div className="mb-3 -mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
+        {/* Statusleiste. Sie darf waagerecht rollen, die Seite nicht. */}
+        <div className="-mx-3 mb-3 flex flex-nowrap gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
           <Chip active={status === 'all'} onClick={() => setParam('status', 'all')}>
             Alle
           </Chip>
@@ -342,7 +382,7 @@ export default function Items() {
         </div>
 
         {showFilter ? (
-          <Card className="mb-3 space-y-3 p-3">
+          <Card className="animate-in mb-3 space-y-4 p-4">
             <Field label="Zimmer">
               <Select value={roomId} onChange={(e) => setParam('room', e.target.value)}>
                 <option value="all">Alle Zimmer</option>
@@ -371,22 +411,15 @@ export default function Items() {
               </Select>
             </Field>
             {activeFilters > 0 ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  ;['status', 'room', 'person'].forEach((k) => params.delete(k))
-                  setParams(params, { replace: true })
-                }}
-              >
-                <X size={14} /> Filter zuruecksetzen
+              <Button variant="soft" full onClick={resetFilters}>
+                <X size={16} /> Filter zuruecksetzen
               </Button>
             ) : null}
           </Card>
         ) : null}
 
         {/* Liste */}
-        {error ? (
+        {error && rows.length === 0 ? (
           <ErrorBox error={error} onRetry={() => void load(0, false)} />
         ) : loading && rows.length === 0 ? (
           <Loading label="Kisten werden geladen" />
@@ -395,12 +428,22 @@ export default function Items() {
             icon={<Boxes size={28} />}
             title={activeFilters || debounced ? 'Nichts gefunden' : 'Noch keine Kiste'}
             hint={
-              activeFilters || debounced
+              activeFilters
                 ? 'Zu diesem Filter passt gerade nichts. Setz den Filter zurueck.'
-                : 'Lege die erste Kiste an. Die Nummer vergibt Kistly selbst.'
+                : debounced
+                  ? 'Zu dieser Suche passt gerade keine Kiste. Leere die Suche.'
+                  : 'Lege die erste Kiste an. Die Nummer vergibt Kistly selbst.'
             }
             action={
-              canEdit && !activeFilters && !debounced ? (
+              activeFilters ? (
+                <Button variant="outline" onClick={resetFilters}>
+                  <X size={16} /> Filter zuruecksetzen
+                </Button>
+              ) : debounced ? (
+                <Button variant="outline" onClick={() => setSearch('')}>
+                  <X size={16} /> Suche leeren
+                </Button>
+              ) : canEdit ? (
                 <Button onClick={() => setOpen(true)}>
                   <Plus size={16} /> Erste Kiste
                 </Button>
@@ -409,6 +452,14 @@ export default function Items() {
           />
         ) : (
           <>
+            {/* Scheitert das Nachladen, bleibt die bereits geladene Liste
+                stehen. Der Fehler steht darueber, damit niemand denkt, es
+                gebe einfach nichts mehr. */}
+            {error ? (
+              <div className="mb-3">
+                <ErrorBox error={error} onRetry={() => void load(page + 1, true)} />
+              </div>
+            ) : null}
             <Card className="zebra divide-y divide-line overflow-hidden">
               {rows.map((item) => {
                 const room = tagById(item.room_id)
@@ -416,46 +467,39 @@ export default function Items() {
                 const color = room?.color ?? person?.color ?? '#94a3b8'
                 return (
                   <div key={item.id} className="flex items-stretch">
-                    <span className="w-1.5 shrink-0" style={{ background: color }} />
+                    <span
+                      aria-hidden="true"
+                      className="w-2 shrink-0"
+                      style={{ background: color }}
+                    />
                     <Link
                       to={`/app/p/${project.id}/kisten/${item.id}`}
-                      className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 hover:bg-raised"
+                      className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 py-3.5 transition hover:bg-raised"
                     >
-                      <CodeChip code={item.code} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">
-                          {item.title || KIND_LABEL[item.kind]}
-                          {item.fragile ? (
-                            <span className="ml-1.5 text-[11px] font-bold text-warn">
-                              zerbrechlich
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
-                          {room ? (
-                            <span
-                              className="rounded px-1 font-bold"
-                              style={{ background: room.color, color: contrastOn(room.color) }}
-                            >
-                              {room.name}
-                            </span>
-                          ) : null}
-                          {person ? (
-                            <span
-                              className="rounded px-1 font-bold"
-                              style={{ background: person.color, color: contrastOn(person.color) }}
-                            >
-                              {person.name}
-                            </span>
-                          ) : null}
-                          {item.target_room ? <span>nach {item.target_room}</span> : null}
-                        </span>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <CodeChip code={item.code} size="md" />
+                        {item.fragile ? (
+                          <span className="rounded-lg border-2 border-warn/40 bg-warn/10 px-2 py-0.5 text-sm font-black text-warn">
+                            zerbrechlich
+                          </span>
+                        ) : null}
                       </span>
+                      <span className="t-name block truncate">
+                        {item.title || KIND_LABEL[item.kind]}
+                      </span>
+                      {room || person || item.target_room ? (
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          {room ? <TagTile tag={room} icon={<DoorOpen size={14} />} /> : null}
+                          {person ? <TagTile tag={person} icon={<User size={14} />} /> : null}
+                          {item.target_room ? (
+                            <span className="t-sub min-w-0 truncate">nach {item.target_room}</span>
+                          ) : null}
+                        </span>
+                      ) : null}
                     </Link>
-                    <span className="flex shrink-0 items-center pr-3">
+                    <span className="flex shrink-0 items-center py-3 pr-3">
                       <StatusPill
                         status={item.status}
-                        size="sm"
                         onClick={canEdit ? () => void cycleStatus(item) : undefined}
                       />
                     </span>
@@ -465,19 +509,25 @@ export default function Items() {
             </Card>
 
             {rows.length < total ? (
-              <div className="mt-4 flex justify-center">
-                <Button variant="outline" loading={loading} onClick={() => void load(page + 1, true)}>
-                  Weitere laden ({rows.length} von {total})
+              <div className="mt-5 flex flex-col items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  loading={loading}
+                  onClick={() => void load(page + 1, true)}
+                >
+                  Weitere laden
                 </Button>
+                <p className="t-sub">
+                  {rows.length} von {total} geladen
+                </p>
               </div>
             ) : (
-              <p className="mt-4 text-center text-xs text-muted">
-                Alle {total} Kisten geladen
-              </p>
+              <p className="t-sub mt-5 text-center">Alle {total} Kisten geladen</p>
             )}
           </>
         )}
-        <div className="h-4" />
+        <div className="h-6" />
       </Page>
 
       {/* Neue Kiste */}
@@ -497,19 +547,20 @@ export default function Items() {
           </>
         }
       >
-        <form id="item-form" onSubmit={onCreate} className="space-y-4">
-          <div className="rounded-xl bg-raised p-3 text-center">
-            <p className="text-xs font-semibold text-muted">Die Nummer wird</p>
-            <p className="font-mono text-2xl font-black">
+        <form id="item-form" onSubmit={onCreate} className="space-y-5">
+          <div className="rounded-2xl border-2 border-line bg-raised px-3 py-4 text-center">
+            <p className="text-sm font-black uppercase tracking-wide text-muted">Die Nummer wird</p>
+            <p className="t-serial mt-2 text-4xl leading-none sm:text-5xl">
               {previewPrefix}
               <span className="opacity-40">-</span>
               <span className="text-danger">{draft.size}</span>
               <span className="opacity-40">-</span>
               <span className="opacity-60">###</span>
             </p>
+            <p className="t-sub mt-2">Die letzten drei Ziffern vergibt Kistly selbst.</p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Zimmer">
               <Select
                 value={draft.room_id}
@@ -543,7 +594,7 @@ export default function Items() {
               label="Welches Kuerzel steht vorne?"
               hint="Eine Kiste kann zu einem Zimmer und einer Person gehoeren. Die Nummer beginnt aber mit genau einem Kuerzel."
             >
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Chip
                   active={draft.code_source === 'room'}
                   onClick={() => setDraft((d) => ({ ...d, code_source: 'room' }))}
@@ -566,7 +617,7 @@ export default function Items() {
             <SizePicker value={draft.size} onChange={(size) => setDraft((d) => ({ ...d, size }))} />
           </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Art">
               <Select
                 value={draft.kind}
@@ -587,7 +638,7 @@ export default function Items() {
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Ziel in der neuen Wohnung" hint="Optional.">
               <Input
                 value={draft.target_room}
@@ -602,7 +653,10 @@ export default function Items() {
                 max={50}
                 value={draft.count}
                 onChange={(e) =>
-                  setDraft((d) => ({ ...d, count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) }))
+                  setDraft((d) => ({
+                    ...d,
+                    count: Math.max(1, Math.min(50, Number(e.target.value) || 1)),
+                  }))
                 }
               />
             </Field>
@@ -623,7 +677,11 @@ export default function Items() {
             hint="Wird auf dem Etikett hervorgehoben."
           />
 
-          {formError ? <p className="text-sm text-danger">{formError}</p> : null}
+          {formError ? (
+            <p className="rounded-xl border-2 border-danger/30 bg-danger/5 px-3 py-2.5 text-base font-bold text-danger">
+              {formError}
+            </p>
+          ) : null}
         </form>
       </Modal>
     </>

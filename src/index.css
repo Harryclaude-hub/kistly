@@ -48,6 +48,18 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Grundgroesse. Tailwind rechnet in rem, darum zieht dieser eine Wert die
+   gesamte Schrift mit. Karam braucht grosse, klar lesbare Schrift, auch
+   beim Tragen einer Kiste mit dem Handy in der Hand. */
+html {
+  font-size: 18px;
+}
+@media (min-width: 1024px) {
+  html {
+    font-size: 17px;
+  }
+}
+
 html,
 body,
 #root {
@@ -59,8 +71,36 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
+  font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
+}
+
+/* Namen von Zimmern, Personen und Kisten. Eine Stelle, damit sie ueberall
+   gleich gross sind. */
+.t-name {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.t-name-lg {
+  font-size: 1.375rem;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.t-sub {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.t-serial {
+  font-family: var(--font-mono);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Abwechselnde Zeilenfarbe. Bei langen Listen ist das der Unterschied
@@ -127,8 +167,10 @@ input[type='color']::-webkit-color-swatch {
 
 /* ------------------------------------------------------------- Drucken */
 @media print {
+  /* Absichtlich ohne size. Das Papierformat setzt allein die
+     Etikettenseite zur Laufzeit, sonst gaebe es zwei Regeln, die sich
+     widersprechen, und A3 wuerde je nach Reihenfolge wieder zu A4. */
   @page {
-    size: A4;
     margin: 8mm;
   }
   body {

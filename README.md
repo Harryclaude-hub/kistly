@@ -5,9 +5,8 @@ Nummer, einen QR-Code und ein druckfertiges Etikett. Beim Einzug wird
 gescannt, und jeder im Umzug sieht sofort, was schon da ist und was fehlt.
 Dazu ein Gruppenchat mit Sprachnachrichten, Bildern, Reaktionen und Anrufen.
 
-Gebaut als installierbare Web-App (PWA): laeuft im Browser, legt sich auf
-Wunsch mit Logo auf den Startbildschirm und kann Benachrichtigungen
-schicken.
+Installierbare Web-App (PWA): laeuft im Browser, legt sich mit Logo auf den
+Startbildschirm, bleibt angemeldet und kann Benachrichtigungen schicken.
 
 ---
 
@@ -20,19 +19,21 @@ W - 3 - 007
 └─────────── Kuerzel des Zimmers oder der Person
 ```
 
-- Jedes **Zimmer** und jede **Person** bekommt einen Namen, ein Kuerzel
-  (1 bis 4 Zeichen) und eine Farbe.
+- Jedes **Zimmer** und jede **Person** bekommt Namen, Kuerzel (1 bis 4 Zeichen)
+  und Farbe.
 - Ein Kuerzel gibt es pro Umzug nur einmal, egal ob Zimmer oder Person.
-- Eine Kiste gehoert zu **einem** Zimmer und/oder **einer** Person. Zwei
-  Zimmer oder zwei Personen an derselben Kiste sind ausgeschlossen, das
-  Datenmodell laesst es gar nicht erst zu.
+- Eine Kiste gehoert zu **einem** Zimmer und/oder **einer** Person. Zwei Zimmer
+  oder zwei Personen an derselben Kiste sind ausgeschlossen, das Datenmodell
+  laesst es gar nicht erst zu.
 - Gehoert eine Kiste zu beidem, waehlt man, welches Kuerzel vorne steht.
 - Die Vergabe passiert in der Datenbank (`items_before_insert`), nicht im
-  Browser. Dadurch kann dieselbe Nummer nicht zweimal entstehen, auch wenn
-  zwei Leute gleichzeitig anlegen.
-- Aendert sich Groesse oder Kuerzel, wird ein neuer Code vergeben und der
-  alte in `item_code_history` aufbewahrt. Ein bereits geklebtes Etikett
-  wird beim Scannen weiterhin gefunden, mit Hinweis, dass es veraltet ist.
+  Browser. Dieselbe Nummer kann nicht zweimal entstehen, auch wenn zwei Leute
+  gleichzeitig anlegen.
+- Aendert sich Groesse oder Kuerzel, wird ein neuer Code vergeben und der alte
+  in `item_code_history` aufbewahrt. Ein bereits geklebtes Etikett wird beim
+  Scannen weiterhin gefunden, mit Hinweis, dass es veraltet ist.
+
+`scripts/smoketest.mjs` prueft genau das gegen die echte Datenbank.
 
 ## Was drin ist
 
@@ -42,13 +43,13 @@ W - 3 - 007
 | Bereiche | Zimmer und Personen, Kuerzel, Farbe, Notiz, Zaehler je Bereich |
 | Kisten | Code, Groesse 1 bis 10, Art, Titel, Ziel, zerbrechlich, Notiz, Status, Mehrfachanlage bis 50 auf einmal |
 | Inhalt | Liste je Kiste, abhakbar, landet auf Wunsch aufs Etikett |
-| Fotos | direkt aus der Kamera, werden vor dem Upload verkleinert |
+| Fotos | aus der Kamera, per Drag and Drop oder aus der Zwischenablage, werden vor dem Upload verkleinert |
 | Status | rot (alte Wohnung), gelb (unterwegs), gruen (angekommen), mit Verlauf wer wann was gesetzt hat |
-| Etiketten | A4-Bogen, 1 bis 12 pro Seite, QR-Code, Farbbalken, Inhaltsliste, Schnittlinien, alles einzeln abschaltbar |
-| Scannen | Kamera-Scanner mit Ton und Vibration, Taschenlampe, Eingabe von Hand, automatisches Setzen des Status |
-| Chat | Textnachrichten, Antworten, Reaktionen, Sprachnachrichten, Bilder, Dateien, Verweise auf Kisten und Zimmer als klickbare Verknuepfung |
+| Etiketten | A5, A4 und A3, 1 bis 12 pro Seite, drei Inhaltsstufen: nur Nummer, Nummer mit QR-Code, oder zusaetzlich die Inhaltstabelle |
+| Scannen | eigener Bereich ueber alle Umzuege hinweg: scannen, Uebersicht sehen, direkt zur Kiste, ins Zimmer oder in den Umzug springen |
+| Chat | Text, Antworten, Reaktionen, Sprachnachrichten, Bilder per Drag and Drop und Einfuegen, klickbare Verweise auf Kisten und Zimmer |
 | Anrufe | Sprach- und Videoanruf ueber WebRTC, Klingelton, wiederholte Benachrichtigung solange es klingelt |
-| App | installierbar, Offline-Huelle, Push-Benachrichtigungen, hell und dunkel |
+| App | installierbar, Offline-Huelle, Push, hell und dunkel, untere Leiste mit den fuenf wichtigsten Bereichen |
 | Export | CSV aller Kisten |
 
 ## Technik
@@ -59,9 +60,9 @@ W - 3 - 007
 - Web Push nach RFC 8291 und 8292, in der Edge Function selbst umgesetzt
 - Service Worker von Hand geschrieben, kein Build-Schritt dahinter
 
-Alle Datenbankzugriffe liegen in [`src/lib/api.ts`](src/lib/api.ts). Die
-Seiten rufen nur diese Funktionen auf, damit dieselbe Abfrage nicht in zwei
-Fassungen auseinanderlaeuft.
+Alle Datenbankzugriffe liegen in [`src/lib/api.ts`](src/lib/api.ts). Die Seiten
+rufen nur diese Funktionen auf, damit dieselbe Abfrage nicht in zwei Fassungen
+auseinanderlaeuft.
 
 ---
 
@@ -70,15 +71,15 @@ Fassungen auseinanderlaeuft.
 ### 1. Repo holen und Pakete installieren
 
 ```bash
-git clone https://github.com/<dein-konto>/kistly.git
+git clone https://github.com/Harryclaude-hub/kistly.git
 cd kistly
 npm install
 ```
 
 ### 2. Supabase-Projekt anlegen
 
-Ein neues Projekt bei [supabase.com](https://supabase.com) anlegen, Region
-Europa. Dann die Migrationen der Reihe nach im SQL-Editor ausfuehren:
+Neues Projekt bei [supabase.com](https://supabase.com), Region Europa. Dann die
+Migrationen der Reihe nach im SQL-Editor ausfuehren:
 
 ```
 supabase/migrations/0001_core.sql
@@ -86,9 +87,12 @@ supabase/migrations/0002_functions.sql
 supabase/migrations/0003_chat_calls_push.sql
 supabase/migrations/0004_rls.sql
 supabase/migrations/0005_storage.sql
+supabase/migrations/0006_hardening.sql
+supabase/migrations/0007_config_access.sql
+supabase/migrations/0008_fix_project_delete.sql
 ```
 
-Mit der Supabase CLI geht es auch in einem Rutsch:
+Mit der Supabase CLI geht es in einem Rutsch:
 
 ```bash
 supabase link --project-ref <ref>
@@ -97,11 +101,13 @@ supabase db push
 
 ### 3. E-Mail-Bestaetigung abschalten
 
-Damit die Anmeldung ohne Bestaetigungslink funktioniert:
+**Das ist der einzige Schritt, der von Hand im Dashboard passieren muss.**
+Ohne ihn kann sich niemand ohne Postfach anmelden.
+
 **Authentication → Sign In / Providers → Email → "Confirm email" ausschalten.**
 
 Bleibt die Option an, meldet die Registrierung das ehrlich zurueck
-("Dieses Supabase-Projekt verlangt noch eine Bestaetigung per E-Mail")
+("Dieses Supabase-Projekt verlangt noch eine Bestaetigung per E-Mail"),
 statt so zu tun, als sei alles fertig.
 
 ### 4. Umgebung setzen
@@ -113,30 +119,76 @@ cp .env.example .env.local
 `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` stehen unter
 **Project Settings → API**.
 
-### 5. Push einrichten (optional, aber empfohlen)
+### 5. Push einrichten
 
 ```bash
 node scripts/vapid.mjs
 ```
 
 Der oeffentliche Schluessel kommt als `VITE_VAPID_PUBLIC_KEY` in die
-`.env.local`. Beide Schluessel gehoeren in die Secrets der Edge Function:
+`.env.local`. Beide Schluessel braucht die Edge Function. Es gibt zwei Wege,
+die Funktion versucht sie in dieser Reihenfolge:
+
+1. Als Function Secrets:
 
 ```bash
 supabase secrets set VAPID_PUBLIC_KEY=...
 supabase secrets set VAPID_PRIVATE_KEY=...
 supabase secrets set VAPID_SUBJECT=mailto:deine@adresse.de
+```
+
+2. Oder in der Tabelle `private.config`, falls die CLI nicht zur Hand ist:
+
+```sql
+insert into private.config (key, value) values
+  ('VAPID_PUBLIC_KEY',  '...'),
+  ('VAPID_PRIVATE_KEY', '...'),
+  ('VAPID_SUBJECT',     'mailto:deine@adresse.de')
+on conflict (key) do update set value = excluded.value;
+```
+
+Das Schema `private` haengt nicht an der REST-Schnittstelle. Nur der
+Dienstschluessel der Edge Function kommt ueber `public.app_config()` dort hin,
+angemeldete Nutzer und Fremde nicht.
+
+Dann ausrollen:
+
+```bash
 supabase functions deploy push-send
 ```
 
-Ohne diese Schluessel laeuft die App normal weiter, sie meldet nur in den
-Einstellungen, dass kein Schluessel hinterlegt ist.
+Ohne Schluessel laeuft die App normal weiter und meldet in den Einstellungen,
+dass kein Schluessel hinterlegt ist.
 
-### 6. Starten
+### 6. Starten und pruefen
 
 ```bash
 npm run dev
+node scripts/smoketest.mjs
 ```
+
+Der Smoketest legt einen Umzug an, prueft die komplette Codevergabe, die
+Code-Historie, Rechte und Abschottung, und raeumt danach wieder auf. Er
+braucht einmalig einen Testzugang:
+
+```sql
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values (
+  '00000000-0000-0000-0000-000000000000', gen_random_uuid(),
+  'authenticated', 'authenticated', 'smoketest@kistly.app',
+  crypt('Smoketest-2026-kistly', gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+  '', '', '', ''
+);
+```
+
+Die leeren Zeichenketten am Ende sind kein Zierrat: GoTrue liest diese Spalten
+in nicht-nullbare Felder und meldet sonst beim Anmelden
+"Database error querying schema".
 
 ### 7. Symbole neu erzeugen (nur wenn das Logo geaendert wird)
 
@@ -148,10 +200,9 @@ node scripts/make-icons.mjs
 
 ## Veroeffentlichen
 
-Die App ist eine statische Seite mit Client-Routing. Wichtig ist nur, dass
-alle Pfade auf `index.html` zeigen und `/sw.js` nicht dauerhaft
-zwischengespeichert wird. Fuer Vercel liegt `vercel.json` bei, fuer Netlify
-`netlify.toml`, beides ohne weitere Einstellungen nutzbar.
+Statische Seite mit Client-Routing. Wichtig ist nur, dass alle Pfade auf
+`index.html` zeigen und `/sw.js` nicht dauerhaft zwischengespeichert wird.
+Fuer Vercel liegt `vercel.json` bei, fuer Netlify `netlify.toml`.
 
 ```bash
 npm run build     # erzeugt dist/
@@ -166,40 +217,47 @@ funktioniert der Link zum Zuruecksetzen des Passworts nicht.
 ## Sicherheit
 
 - Jede Tabelle hat Row Level Security. Ohne Mitgliedschaft im Umzug gibt es
-  keine Zeile zu sehen, auch nicht ueber die API.
+  keine Zeile zu sehen, auch nicht ueber die API. Der Smoketest prueft das.
 - Die Pruefung steht an genau einer Stelle: `is_member`, `is_editor` und
-  `is_owner` in `0001_core.sql`.
-- Die Speicher-Buckets sind privat. Bilder und Sprachnachrichten werden nur
-  ueber zeitlich begrenzte, signierte Links ausgeliefert. Der erste
-  Ordner im Pfad ist die Projekt-ID, daran haengt die Berechtigung.
-- Die Rolle eines Mitglieds kann nur der Besitzer aendern, abgesichert
-  durch einen Trigger, nicht nur durch die Oberflaeche.
+  `is_owner`.
+- Jede Funktion hat einen festen `search_path`. Ausfuehrrechte sind entzogen
+  und nur dort wieder vergeben, wo sie gebraucht werden (siehe
+  `0006_hardening.sql`). `anon` darf gar nichts.
+- `next_seq` prueft die Mitgliedschaft. Ohne diese Pruefung haette ein
+  angemeldeter Nutzer die Nummerierung fremder Umzuege verschieben koennen.
+- Die Speicher-Buckets sind privat. Bilder und Sprachnachrichten kommen nur
+  ueber zeitlich begrenzte, signierte Links. Der erste Ordner im Pfad ist die
+  Projekt-ID, daran haengt die Berechtigung.
+- Die Rolle eines Mitglieds kann nur der Besitzer aendern, abgesichert durch
+  einen Trigger, nicht nur durch die Oberflaeche.
 - Ein Projekt kann nicht ohne Besitzer zurueckbleiben.
-- Der private VAPID-Schluessel liegt ausschliesslich in den Supabase
-  Secrets, nie im Frontend.
+- Der private VAPID-Schluessel liegt nur serverseitig, nie im Frontend.
 
 ## Bekannte Grenzen
 
 Ehrlich aufgeschrieben, damit niemand davon ueberrascht wird:
 
-- **Anrufe ohne TURN-Server.** Die Verbindung wird direkt zwischen den
-  Geraeten aufgebaut. In manchen Mobilfunknetzen klappt das nicht. Die App
-  meldet dann "Die direkte Verbindung kam nicht zustande", statt still zu
-  haengen. Abhilfe: einen TURN-Server in `ICE_SERVERS` in
+- **Anrufe ohne TURN-Server.** Die Verbindung wird direkt zwischen den Geraeten
+  aufgebaut. In manchen Mobilfunknetzen klappt das nicht. Die App meldet dann
+  "Die direkte Verbindung kam nicht zustande", statt still zu haengen. Abhilfe:
+  einen TURN-Server in `ICE_SERVERS` in
   [`src/lib/webrtc.ts`](src/lib/webrtc.ts) eintragen.
-- **Anrufe sind fuer kleine Runden gedacht.** Jeder verbindet sich mit
-  jedem. Bis etwa vier Personen ist das unproblematisch, darueber wird es
-  auf dem Handy eng.
+- **Anrufe sind fuer kleine Runden gedacht.** Jeder verbindet sich mit jedem.
+  Bis etwa vier Personen unproblematisch, darueber wird es auf dem Handy eng.
 - **Push auf dem iPhone** funktioniert erst, wenn die App ueber Teilen,
-  "Zum Home-Bildschirm" installiert wurde. Das ist eine Vorgabe von Apple.
-- **Die Nachrichten sind auf dem Transportweg verschluesselt (TLS) und
-  durch RLS geschuetzt, aber nicht Ende zu Ende verschluesselt.** Wer
-  Zugriff auf die Datenbank hat, koennte sie lesen. Fuer ein privates
-  Umzugsprojekt ist das in Ordnung, es soll aber nicht falsch klingen.
+  "Zum Home-Bildschirm" installiert wurde. Vorgabe von Apple.
+- **Der Push-Versand selbst ist noch nicht auf einem echten Geraet erprobt.**
+  Berechtigung, Mitgliedschaftspruefung und Schluesselzugriff der Edge Function
+  sind geprueft (401 ohne Token, 403 bei fremdem Projekt, 200 mit Token). Die
+  Verschluesselung nach RFC 8291 laesst sich nur mit einem echten Abo im
+  Browser abschliessend pruefen. Fehlschlaege landen sichtbar in `push_log`.
+- **Der Chat ist auf dem Transportweg verschluesselt (TLS) und durch RLS
+  geschuetzt, aber nicht Ende zu Ende verschluesselt.** Wer Zugriff auf die
+  Datenbank hat, koennte mitlesen. Fuer ein privates Umzugsprojekt in Ordnung,
+  soll aber nicht falsch klingen.
 - **Der Passwort-Link zum Zuruecksetzen** laeuft ueber den eingebauten
-  Mailversand von Supabase. Der ist stark begrenzt (wenige Mails pro
-  Stunde). Fuer mehr braucht es einen eigenen SMTP-Zugang im
-  Supabase-Projekt.
+  Mailversand von Supabase. Der ist stark begrenzt (wenige Mails pro Stunde).
+  Fuer mehr braucht es einen eigenen SMTP-Zugang im Supabase-Projekt.
 
 ## Ordner
 
@@ -207,10 +265,10 @@ Ehrlich aufgeschrieben, damit niemand davon ueberrascht wird:
 src/
   components/   Bausteine der Oberflaeche, Scanner, Anrufe, Sprachbubble
   lib/          Datenzugriff (api.ts), Auth, Medien, Push, WebRTC, Hilfen
-  pages/        eine Datei je Seite
+  pages/        eine Datei je Seite, AppLayout haelt die untere Leiste
 supabase/
-  migrations/   Schema, Funktionen, RLS, Storage
+  migrations/   Schema, Funktionen, RLS, Storage, Haertung
   functions/    Edge Function push-send
-scripts/        Symbole erzeugen, VAPID-Schluessel erzeugen
+scripts/        Symbole, VAPID-Schluessel, Smoketest
 public/         Manifest, Service Worker, Symbole
 ```

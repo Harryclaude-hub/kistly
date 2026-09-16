@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Trash2, Users } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
 import {
   Button,
@@ -35,21 +35,28 @@ export default function ProjectSettings() {
 
   return (
     <>
-      <AppHeader title="Umzug einstellen" back={`/app/p/${project.id}`} />
+      <AppHeader title="Umzug einstellen" subtitle={project.name} back={`/app/p/${project.id}`} />
       <Page>
         <SectionTitle>Grunddaten</SectionTitle>
-        <Card className="mb-6 space-y-4 p-4">
-          <Field label="Name">
+        <Card className="mb-6 space-y-5 p-5">
+          <p className="t-sub">
+            {canEdit
+              ? 'Aenderungen werden gespeichert, sobald du das Feld verlaesst.'
+              : 'Du kannst hier nur lesen. Zum Aendern brauchst du die Rolle Bearbeiter.'}
+          </p>
+
+          <Field label="Name des Umzugs">
             <Input
               disabled={!canEdit}
               defaultValue={project.name}
+              className="t-name"
               onBlur={(e) => {
                 const v = e.target.value.trim()
                 if (v && v !== project.name) void save({ name: v })
               }}
             />
           </Field>
-          <Field label="Vermerk">
+          <Field label="Vermerk" hint="Steht auf der Uebersicht unter dem Namen.">
             <Textarea
               rows={2}
               disabled={!canEdit}
@@ -57,7 +64,7 @@ export default function ProjectSettings() {
               onBlur={(e) => void save({ note: e.target.value.trim() || null })}
             />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Alte Adresse">
               <Input
                 disabled={!canEdit}
@@ -81,27 +88,48 @@ export default function ProjectSettings() {
               onChange={(e) => void save({ move_date: e.target.value || null })}
             />
           </Field>
-          <p className="text-xs text-muted">
+          <p className="t-sub">
             Angelegt am {fmtDateTime(project.created_at)}. Zuletzt geaendert{' '}
             {fmtDateTime(project.updated_at)}.
           </p>
         </Card>
 
+        <SectionTitle>Mitglieder</SectionTitle>
+        <Card className="mb-6 p-5">
+          <p className="t-name">Team und Einladungscodes</p>
+          <p className="t-sub mt-1.5">
+            Wer darf mit, wer darf nur lesen, und welcher Code ist offen.
+          </p>
+          <Link to={`/app/p/${project.id}/team`} className="mt-4 block sm:inline-block">
+            <Button variant="soft" size="lg" full className="sm:w-auto">
+              <Users size={20} /> Team oeffnen
+            </Button>
+          </Link>
+        </Card>
+
         {isOwner ? (
           <>
             <SectionTitle>Gefahrenbereich</SectionTitle>
-            <Card className="border-danger/30 p-4">
-              <p className="font-bold text-danger">Umzug loeschen</p>
-              <p className="mt-1 text-sm text-muted">
-                Loescht Kisten, Bereiche, Fotos, Nachrichten und alle Mitgliedschaften.
-                Das laesst sich nicht rueckgaengig machen.
+            <Card className="border-danger/30 p-5">
+              <p className="t-name text-danger">Umzug loeschen</p>
+              <p className="t-sub mt-1.5">
+                Loescht Kisten, Bereiche, Fotos, Nachrichten und alle Mitgliedschaften. Das laesst
+                sich nicht rueckgaengig machen.
               </p>
-              <Button variant="danger" className="mt-3" onClick={() => setDelOpen(true)}>
-                <Trash2 size={16} /> Loeschen
+              <Button
+                variant="danger"
+                size="lg"
+                full
+                className="mt-4 sm:w-auto"
+                onClick={() => setDelOpen(true)}
+              >
+                <Trash2 size={20} /> Umzug loeschen
               </Button>
             </Card>
           </>
         ) : null}
+
+        {/* Luft fuer die untere Navigationsleiste */}
         <div className="h-6" />
       </Page>
 
@@ -145,19 +173,24 @@ export default function ProjectSettings() {
           </>
         }
       >
-        <p className="text-sm text-ink/80">
+        <p className="text-base text-ink/80">
           Alles in diesem Umzug wird geloescht: Kisten, Bereiche, Fotos, Nachrichten und
           Mitgliedschaften. Tippe zur Sicherheit den Namen ein.
         </p>
-        <Field label={`Name des Umzugs: ${project.name}`}>
-          <Input
-            autoFocus
-            value={confirmName}
-            onChange={(e) => setConfirmName(e.target.value)}
-            placeholder={project.name}
-            className="mt-3"
-          />
-        </Field>
+        {/* Der Name steht als eigene Zeile da und nicht in der Beschriftung des
+            Feldes, damit ein langer Name umbrechen kann statt auszubrechen. */}
+        <p className="t-name mt-4 break-words">{project.name}</p>
+        <div className="mt-2">
+          <Field label="Name des Umzugs" hint="Muss Zeichen fuer Zeichen stimmen.">
+            <Input
+              autoFocus
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+              placeholder={project.name}
+              className="t-name"
+            />
+          </Field>
+        </div>
       </Modal>
     </>
   )

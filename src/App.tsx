@@ -9,8 +9,10 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ResetRequest from './pages/ResetRequest'
 import ResetConfirm from './pages/ResetConfirm'
+import AppLayout from './pages/AppLayout'
 import Dashboard from './pages/Dashboard'
 import Settings from './pages/Settings'
+import ScanHub from './pages/ScanHub'
 import ProjectLayout from './pages/ProjectLayout'
 import ProjectHome from './pages/ProjectHome'
 import Areas from './pages/Areas'
@@ -24,6 +26,9 @@ import ProjectSettings from './pages/ProjectSettings'
 import ScanResolve from './pages/ScanResolve'
 import NotFound from './pages/NotFound'
 
+/* Solange die Sitzung noch geprueft wird, wird nicht auf die Anmeldung
+ * umgeleitet. Sonst fliegt man beim Start kurz raus, obwohl man angemeldet
+ * ist, und genau das soll nie passieren. */
 function Gate({ children }: { children: ReactNode }) {
   const { session, ready } = useAuth()
   const loc = useLocation()
@@ -67,40 +72,31 @@ export default function App() {
                 </Gate>
               }
             />
+
             <Route
               path="/app"
               element={
                 <Gate>
-                  <Dashboard />
-                </Gate>
-              }
-            />
-            <Route
-              path="/app/einstellungen"
-              element={
-                <Gate>
-                  <Settings />
-                </Gate>
-              }
-            />
-            <Route
-              path="/app/p/:pid"
-              element={
-                <Gate>
-                  <ProjectLayout />
+                  <AppLayout />
                 </Gate>
               }
             >
-              <Route index element={<ProjectHome />} />
-              <Route path="bereiche" element={<Areas />} />
-              <Route path="kisten" element={<Items />} />
-              <Route path="kisten/:iid" element={<ItemDetail />} />
-              <Route path="etiketten" element={<Labels />} />
-              <Route path="scan" element={<ScanPage />} />
-              <Route path="chat" element={<Chat />} />
-              <Route path="team" element={<Team />} />
-              <Route path="einstellungen" element={<ProjectSettings />} />
+              <Route index element={<Dashboard />} />
+              <Route path="einstellungen" element={<Settings />} />
+              <Route path="scan" element={<ScanHub />} />
+              <Route path="p/:pid" element={<ProjectLayout />}>
+                <Route index element={<ProjectHome />} />
+                <Route path="bereiche" element={<Areas />} />
+                <Route path="kisten" element={<Items />} />
+                <Route path="kisten/:iid" element={<ItemDetail />} />
+                <Route path="etiketten" element={<Labels />} />
+                <Route path="scan" element={<ScanPage />} />
+                <Route path="chat" element={<Chat />} />
+                <Route path="team" element={<Team />} />
+                <Route path="einstellungen" element={<ProjectSettings />} />
+              </Route>
             </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ToastProvider>

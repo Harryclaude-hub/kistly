@@ -8,6 +8,8 @@ import {
   Card,
   ConfirmDialog,
   Empty,
+  ErrorBox,
+  IconButton,
   Loading,
   SectionTitle,
   Select,
@@ -40,9 +42,21 @@ export default function Team() {
     setBusy(true)
     try {
       const inv = await createInvite(project.id, 'editor')
-      await navigator.clipboard.writeText(inv.code).catch(() => {})
-      toast(`Code ${inv.code} angelegt und kopiert`, 'ok')
       invites.reload()
+      // Die Zwischenablage kann fehlen oder gesperrt sein. Dann sagen wir das,
+      // statt "kopiert" zu melden und den Nutzer im Glauben zu lassen.
+      let copied = true
+      try {
+        await navigator.clipboard.writeText(inv.code)
+      } catch {
+        copied = false
+      }
+      toast(
+        copied
+          ? `Code ${inv.code} angelegt und kopiert`
+          : `Code ${inv.code} angelegt. Kopieren ging nicht, schreib ihn bitte ab.`,
+        copied ? 'ok' : 'info',
+      )
     } catch (err) {
       toast(err instanceof Error ? err.message : String(err), 'error')
     } finally {
@@ -50,14 +64,33 @@ export default function Team() {
     }
   }
 
+  async function copyCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code)
+      toast('Code kopiert', 'ok')
+    } catch {
+      toast('Kopieren hat nicht geklappt. Schreib den Code bitte ab.', 'error')
+    }
+  }
+
   async function share(code: string) {
     const text = `Komm zu meinem Umzug "${project.name}" bei Kistly. Code: ${code}\n${location.origin}/app`
     if (navigator.share) {
-      await navigator.share({ title: 'Kistly Einladung', text }).catch(() => {})
-      return
+      try {
+        await navigator.share({ title: 'Kistly Einladung', text })
+        return
+      } catch (err) {
+        // Abbrechen durch den Nutzer ist kein Fehlschlag. Alles andere faellt
+        // auf Kopieren zurueck, statt wortlos nichts zu tun.
+        if (err instanceof DOMException && err.name === 'AbortError') return
+      }
     }
-    await navigator.clipboard.writeText(text)
-    toast('Einladung kopiert', 'ok')
+    try {
+      await navigator.clipboard.writeText(text)
+      toast('Einladung kopiert', 'ok')
+    } catch {
+      toast('Teilen hat nicht geklappt. Schreib den Code bitte ab.', 'error')
+    }
   }
 
   const active = (invites.data ?? []).filter((i) => i.active)
@@ -71,7 +104,7 @@ export default function Team() {
         actions={
           canEdit ? (
             <Button size="sm" loading={busy} onClick={() => void onCreateInvite()}>
-              <UserPlus size={16} /> Einladen
+              <UserPlus size={18} /> Einladen
             </Button>
           ) : null
         }
@@ -82,51 +115,56 @@ export default function Team() {
         <Card className="zebra mb-6 divide-y divide-line overflow-hidden">
           {members.map((m) => {
             const me = m.user_id === user?.id
+            const name = displayNameOf(m.profile, 'Unbekannt')
             return (
-              <div key={m.user_id} className="flex items-center gap-3 px-3 py-3">
-                <Avatar name={displayNameOf(m.profile, 'Unbekannt')} size={38} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">
-                    {displayNameOf(m.profile, 'Unbekannt')}
-                    {me ? <span className="ml-1 text-xs text-muted">(du)</span> : null}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    {m.profile?.email ?? 'ohne E-Mail'} . dabei seit {fmtDate(m.created_at)}
-                  </p>
+              <div key={m.user_id} className="px-3 py-3.5">
+                <div className="flex items-center gap-3">
+                  <Avatar name={name} size={48} />
+                  <div className="min-w-0 flex-1">
+                    <p className="t-name truncate">
+                      {name}
+                      {me ? <span className="t-sub font-normal"> (du)</span> : null}
+                    </p>
+                    <p className="t-sub truncate">{m.profile?.email ?? 'ohne E-Mail'}</p>
+                    <p className="t-sub truncate">dabei seit {fmtDate(m.created_at)}</p>
+                  </div>
+                  {!(isOwner && !me) ? (
+                    <span className="shrink-0 rounded-full bg-raised px-3 py-1 text-sm font-bold">
+                      {ROLE_LABEL[m.role]}
+                    </span>
+                  ) : null}
                 </div>
+
                 {isOwner && !me ? (
-                  <Select
-                    value={m.role}
-                    className="w-auto py-1.5 text-xs"
-                    onChange={async (e) => {
-                      try {
-                        await setMemberRole(project.id, m.user_id, e.target.value as MemberRole)
-                        await reloadMembers()
-                        toast('Rolle geaendert', 'ok')
-                      } catch (err) {
-                        toast(err instanceof Error ? err.message : String(err), 'error')
-                      }
-                    }}
-                  >
-                    {(Object.keys(ROLE_LABEL) as MemberRole[]).map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABEL[r]}
-                      </option>
-                    ))}
-                  </Select>
-                ) : (
-                  <span className="shrink-0 rounded-full bg-raised px-2 py-1 text-[11px] font-bold">
-                    {ROLE_LABEL[m.role]}
-                  </span>
-                )}
-                {isOwner && !me ? (
-                  <button
-                    onClick={() => setKick(m.user_id)}
-                    aria-label="Entfernen"
-                    className="rounded-lg p-2 text-muted hover:bg-danger/10 hover:text-danger"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Select
+                      value={m.role}
+                      aria-label={`Rolle von ${name}`}
+                      className="min-w-0 flex-1"
+                      onChange={async (e) => {
+                        try {
+                          await setMemberRole(project.id, m.user_id, e.target.value as MemberRole)
+                          await reloadMembers()
+                          toast('Rolle geaendert', 'ok')
+                        } catch (err) {
+                          toast(err instanceof Error ? err.message : String(err), 'error')
+                        }
+                      }}
+                    >
+                      {(Object.keys(ROLE_LABEL) as MemberRole[]).map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABEL[r]}
+                        </option>
+                      ))}
+                    </Select>
+                    <IconButton
+                      label={`${name} entfernen`}
+                      tone="danger"
+                      onClick={() => setKick(m.user_id)}
+                    >
+                      <Trash2 size={19} />
+                    </IconButton>
+                  </div>
                 ) : null}
               </div>
             )
@@ -137,7 +175,7 @@ export default function Team() {
           action={
             canEdit ? (
               <Button size="sm" variant="soft" loading={busy} onClick={() => void onCreateInvite()}>
-                <Plus size={14} /> Neuer Code
+                <Plus size={16} /> Neuer Code
               </Button>
             ) : null
           }
@@ -146,15 +184,17 @@ export default function Team() {
         </SectionTitle>
 
         {invites.loading ? (
-          <Loading label="Codes" />
+          <Loading label="Codes werden geladen" />
+        ) : invites.error ? (
+          <ErrorBox error={invites.error} onRetry={invites.reload} />
         ) : active.length === 0 ? (
           <Empty
             title="Kein Code offen"
             hint="Ein Code laesst andere diesem Umzug beitreten. Sie geben ihn unter Code einloesen ein."
             action={
               canEdit ? (
-                <Button onClick={() => void onCreateInvite()}>
-                  <UserPlus size={16} /> Code erstellen
+                <Button size="lg" loading={busy} onClick={() => void onCreateInvite()}>
+                  <UserPlus size={20} /> Code erstellen
                 </Button>
               ) : null
             }
@@ -162,60 +202,64 @@ export default function Team() {
         ) : (
           <Card className="zebra divide-y divide-line overflow-hidden">
             {active.map((inv) => (
-              <div key={inv.id} className="flex items-center gap-3 px-3 py-3">
-                <span className="font-mono text-lg font-black tracking-widest">{inv.code}</span>
-                <span className="min-w-0 flex-1 text-xs text-muted">
-                  {ROLE_LABEL[inv.role]} . {inv.uses}x benutzt
-                </span>
-                <button
-                  onClick={() => {
-                    void navigator.clipboard.writeText(inv.code)
-                    toast('Code kopiert', 'ok')
-                  }}
-                  aria-label="Code kopieren"
-                  className="rounded-lg p-2 text-muted hover:bg-raised hover:text-ink"
-                >
-                  <Copy size={16} />
-                </button>
-                <button
-                  onClick={() => void share(inv.code)}
-                  aria-label="Einladung teilen"
-                  className="rounded-lg p-2 text-muted hover:bg-raised hover:text-ink"
-                >
-                  <Share2 size={16} />
-                </button>
-                {canEdit ? (
-                  <button
-                    onClick={async () => {
-                      try {
-                        await setInviteActive(inv.id, false)
-                        invites.reload()
-                        toast('Code deaktiviert', 'ok')
-                      } catch (err) {
-                        toast(err instanceof Error ? err.message : String(err), 'error')
-                      }
-                    }}
-                    aria-label="Code deaktivieren"
-                    className="rounded-lg p-2 text-muted hover:bg-danger/10 hover:text-danger"
+              <div key={inv.id} className="px-3 py-4">
+                <p className="t-serial break-all text-3xl leading-none">{inv.code}</p>
+                <p className="t-sub mt-2">
+                  {ROLE_LABEL[inv.role]}, {inv.uses}x benutzt
+                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <Button variant="soft" size="sm" onClick={() => void copyCode(inv.code)}>
+                    <Copy size={17} /> Kopieren
+                  </Button>
+                  <IconButton
+                    label="Einladung teilen"
+                    size="sm"
+                    onClick={() => void share(inv.code)}
                   >
-                    <Trash2 size={16} />
-                  </button>
-                ) : null}
+                    <Share2 size={18} />
+                  </IconButton>
+                  {canEdit ? (
+                    <IconButton
+                      label="Code deaktivieren"
+                      tone="danger"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await setInviteActive(inv.id, false)
+                          invites.reload()
+                          toast('Code deaktiviert', 'ok')
+                        } catch (err) {
+                          toast(err instanceof Error ? err.message : String(err), 'error')
+                        }
+                      }}
+                    >
+                      <Trash2 size={18} />
+                    </IconButton>
+                  ) : null}
+                </div>
               </div>
             ))}
           </Card>
         )}
 
         <div className="mt-8">
-          <Button variant="outline" onClick={() => setLeaveOpen(true)}>
-            <LogOut size={16} /> Diesen Umzug verlassen
+          <Button
+            variant="outline"
+            size="lg"
+            full
+            className="sm:w-auto"
+            onClick={() => setLeaveOpen(true)}
+          >
+            <LogOut size={20} /> Diesen Umzug verlassen
           </Button>
           {role === 'owner' ? (
-            <p className="mt-2 text-xs text-muted">
+            <p className="t-sub mt-2">
               Du bist Besitzer. Verlassen geht erst, wenn jemand anders Besitzer ist.
             </p>
           ) : null}
         </div>
+
+        {/* Luft fuer die untere Navigationsleiste */}
         <div className="h-6" />
       </Page>
 

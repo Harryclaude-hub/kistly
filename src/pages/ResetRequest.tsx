@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell'
-import { Button, Field, Input } from '../components/ui'
+import { Button, ErrorBox, Field, Input } from '../components/ui'
 import { useAuth } from '../lib/auth'
 
 export default function ResetRequest() {
@@ -30,21 +30,23 @@ export default function ResetRequest() {
       title="Passwort zuruecksetzen"
       subtitle="Wir schicken dir einen Link, mit dem du ein neues Passwort setzt."
       footer={
-        <Link to="/login" className="font-semibold text-ink underline">
-          Zurueck zur Anmeldung
+        <Link to="/login" className="inline-block">
+          <Button type="button" variant="outline" size="lg">
+            Zurueck zur Anmeldung
+          </Button>
         </Link>
       }
     >
       {sent ? (
-        <div className="rounded-xl border border-ok/30 bg-ok/10 px-4 py-3 text-sm">
-          <p className="font-semibold">Link verschickt</p>
-          <p className="mt-1 text-ink/80">
+        <div className="rounded-2xl border border-ok/30 bg-ok/10 p-4">
+          <p className="t-name">Link verschickt</p>
+          <p className="mt-1.5 text-base text-ink/80">
             Falls es zu dieser Adresse ein Konto gibt, liegt gleich eine Mail im Postfach.
             Der Link fuehrt direkt auf die Seite fuer das neue Passwort.
           </p>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-5">
           <Field label="E-Mail">
             <Input
               type="email"
@@ -55,11 +57,7 @@ export default function ResetRequest() {
               placeholder="du@beispiel.de"
             />
           </Field>
-          {error ? (
-            <p className="rounded-xl border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-              {error}
-            </p>
-          ) : null}
+          {error ? <ErrorBox error={error} /> : null}
           <Button type="submit" full size="lg" loading={busy}>
             Link schicken
           </Button>

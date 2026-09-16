@@ -1,21 +1,31 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell'
-import { Button, Field, Input, PasswordInput } from '../components/ui'
+import { Button, ErrorBox, Field, Input, PasswordInput } from '../components/ui'
 import { useAuth } from '../lib/auth'
+import { getLastProject } from '../lib/lastProject'
+
+/* Wohin nach dem Anmelden. Wichtig ist, dass man sofort wieder im Chat des
+ * zuletzt geoeffneten Umzugs landet. Ein Ziel aus dem Router-State kommt
+ * daher, dass man vorher auf einer geschuetzten Seite war, das hat Vorrang. */
+function zielNachAnmeldung(from: string | null): string {
+  if (from) return from
+  const last = getLastProject()
+  return last ? `/app/p/${last}/chat` : '/app'
+}
 
 export default function Login() {
   const { signIn, session, ready } = useAuth()
   const nav = useNavigate()
   const loc = useLocation()
-  const from = (loc.state as { from?: string } | null)?.from ?? '/app'
+  const from = (loc.state as { from?: string } | null)?.from ?? null
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  if (ready && session) return <Navigate to={from} replace />
+  if (ready && session) return <Navigate to={zielNachAnmeldung(from)} replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -23,7 +33,7 @@ export default function Login() {
     setBusy(true)
     try {
       await signIn(email, password)
-      nav(from, { replace: true })
+      nav(zielNachAnmeldung(from), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -37,14 +47,16 @@ export default function Login() {
       subtitle="Mit E-Mail und Passwort."
       footer={
         <>
-          Noch kein Konto?{' '}
-          <Link to="/registrieren" className="font-semibold text-ink underline">
-            Jetzt anlegen
+          <p>Noch kein Konto?</p>
+          <Link to="/registrieren" className="mt-3 inline-block">
+            <Button type="button" variant="outline" size="lg">
+              Jetzt anlegen
+            </Button>
           </Link>
         </>
       }
     >
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-5">
         <Field label="E-Mail">
           <Input
             type="email"
@@ -65,22 +77,20 @@ export default function Login() {
           />
         </Field>
 
-        {error ? (
-          <p className="rounded-xl border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-            {error}
-          </p>
-        ) : null}
+        {error ? <ErrorBox error={error} /> : null}
 
         <Button type="submit" full size="lg" loading={busy}>
           Anmelden
         </Button>
-
-        <div className="text-center">
-          <Link to="/passwort-vergessen" className="text-sm text-muted underline hover:text-ink">
-            Passwort vergessen
-          </Link>
-        </div>
       </form>
+
+      <div className="mt-3">
+        <Link to="/passwort-vergessen" className="block">
+          <Button type="button" variant="soft" size="lg" full>
+            Passwort vergessen
+          </Button>
+        </Link>
+      </div>
     </AuthShell>
   )
 }

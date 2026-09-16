@@ -69,18 +69,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: 'bg-ink text-paper hover:opacity-90 active:opacity-80',
-  soft: 'bg-raised text-ink hover:bg-line',
-  ghost: 'text-ink hover:bg-raised',
-  outline: 'border border-line text-ink hover:bg-raised',
-  danger: 'bg-danger text-white hover:opacity-90',
+  primary: 'bg-ink text-paper shadow-sm hover:opacity-90 active:scale-[0.98]',
+  soft: 'border border-line bg-raised text-ink hover:bg-line active:scale-[0.98]',
+  ghost: 'border border-transparent text-ink hover:border-line hover:bg-raised',
+  outline:
+    'border-2 border-ink/15 bg-surface text-ink hover:border-ink/40 hover:bg-raised active:scale-[0.98]',
+  danger: 'bg-danger text-white shadow-sm hover:opacity-90 active:scale-[0.98]',
 }
 
 const SIZES = {
-  sm: 'h-8 px-3 text-sm gap-1.5',
-  md: 'h-10 px-4 text-sm gap-2',
-  lg: 'h-12 px-5 text-base gap-2',
-  icon: 'h-10 w-10 justify-center',
+  sm: 'h-10 px-3.5 text-[0.9375rem] gap-1.5',
+  md: 'h-12 px-5 text-base gap-2',
+  lg: 'h-14 px-7 text-lg gap-2.5',
+  icon: 'h-12 w-12 justify-center',
 }
 
 export function Button({
@@ -98,7 +99,7 @@ export function Button({
       {...rest}
       disabled={disabled || loading}
       className={cx(
-        'inline-flex items-center rounded-xl font-semibold transition select-none',
+        'inline-flex items-center rounded-xl font-bold leading-none transition select-none',
         'disabled:opacity-45 disabled:cursor-not-allowed',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         VARIANT[variant],
@@ -108,6 +109,44 @@ export function Button({
       )}
     >
       {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+      {children}
+    </button>
+  )
+}
+
+interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  label: string
+  tone?: 'default' | 'danger'
+  size?: 'sm' | 'md'
+}
+
+/** Symbolknopf mit sichtbarem Rand. Ein nacktes Symbol liest sich nicht als
+ *  Knopf, darum bekommt hier jedes einen Rahmen und eine Flaeche. */
+export function IconButton({
+  label,
+  tone = 'default',
+  size = 'md',
+  className,
+  children,
+  ...rest
+}: IconButtonProps) {
+  return (
+    <button
+      {...rest}
+      type={rest.type ?? 'button'}
+      aria-label={label}
+      title={label}
+      className={cx(
+        'inline-flex shrink-0 items-center justify-center rounded-xl border-2 transition active:scale-95',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+        'disabled:cursor-not-allowed disabled:opacity-40',
+        size === 'sm' ? 'h-10 w-10' : 'h-12 w-12',
+        tone === 'danger'
+          ? 'border-danger/25 bg-danger/5 text-danger hover:border-danger/60 hover:bg-danger/10'
+          : 'border-ink/12 bg-surface text-ink hover:border-ink/35 hover:bg-raised',
+        className,
+      )}
+    >
       {children}
     </button>
   )
@@ -131,25 +170,25 @@ export function Field({
   return (
     <label className="block">
       {label ? (
-        <span className="mb-1.5 block text-sm font-semibold">
+        <span className="mb-2 block text-[0.9375rem] font-bold">
           {label}
           {required ? <span className="text-danger"> *</span> : null}
         </span>
       ) : null}
       {children}
       {error ? (
-        <span className="mt-1 block text-xs font-medium text-danger">{error}</span>
+        <span className="mt-1.5 block text-sm font-semibold text-danger">{error}</span>
       ) : hint ? (
-        <span className="mt-1 block text-xs text-muted">{hint}</span>
+        <span className="mt-1.5 block text-sm text-muted">{hint}</span>
       ) : null}
     </label>
   )
 }
 
 const FIELD_BASE =
-  'w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[15px] text-ink ' +
-  'placeholder:text-muted/70 outline-none transition focus:border-ink/40 ' +
-  'focus:ring-2 focus:ring-ink/10 disabled:opacity-50'
+  'w-full rounded-xl border-2 border-line bg-surface px-4 py-3 text-base text-ink ' +
+  'placeholder:text-muted/70 outline-none transition focus:border-ink/50 ' +
+  'focus:ring-4 focus:ring-ink/10 disabled:opacity-50'
 
 export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...rest} className={cx(FIELD_BASE, className)} />
@@ -183,9 +222,9 @@ export function PasswordInput({
         type="button"
         onClick={() => setShow((s) => !s)}
         aria-label={show ? 'Passwort verbergen' : 'Passwort anzeigen'}
-        className="absolute right-1 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted hover:bg-raised hover:text-ink"
+        className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg border border-line bg-raised text-muted hover:text-ink"
       >
-        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+        {show ? <EyeOff size={19} /> : <Eye size={19} />}
       </button>
     </div>
   )
@@ -208,8 +247,8 @@ export function Switch({
   return (
     <div className="flex items-start justify-between gap-4 py-2.5">
       <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer">
-        <span className="block text-sm font-semibold">{label}</span>
-        {hint ? <span className="mt-0.5 block text-xs text-muted">{hint}</span> : null}
+        <span className="block text-base font-bold">{label}</span>
+        {hint ? <span className="mt-0.5 block text-sm text-muted">{hint}</span> : null}
       </label>
       <button
         id={id}
@@ -219,14 +258,14 @@ export function Switch({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={cx(
-          'relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-40',
-          checked ? 'bg-ok' : 'bg-line',
+          'relative h-8 w-14 shrink-0 rounded-full border-2 transition disabled:opacity-40',
+          checked ? 'border-ok bg-ok' : 'border-line bg-raised',
         )}
       >
         <span
           className={cx(
-            'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all',
-            checked ? 'left-[22px]' : 'left-0.5',
+            'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all',
+            checked ? 'left-[26px]' : 'left-0.5',
           )}
         />
       </button>
@@ -297,8 +336,8 @@ export function Empty({
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line px-6 py-12 text-center">
       {icon ? <div className="mb-3 text-muted">{icon}</div> : null}
-      <p className="font-semibold">{title}</p>
-      {hint ? <p className="mt-1 max-w-sm text-sm text-muted">{hint}</p> : null}
+      <p className="t-name">{title}</p>
+      {hint ? <p className="mt-1.5 max-w-sm text-base text-muted">{hint}</p> : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   )
@@ -318,7 +357,7 @@ export function Badge({
     <span
       style={style}
       className={cx(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold leading-5',
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.8125rem] font-bold leading-4',
         !color && 'bg-raised text-ink',
         className,
       )}
@@ -382,20 +421,22 @@ export function CodeChip({
 }) {
   const p = parseCode(code)
   const cls = {
-    sm: 'text-[11px] px-1.5 py-0.5',
-    md: 'text-[13px] px-2 py-0.5',
-    lg: 'text-lg px-2.5 py-1',
-    xl: 'text-3xl px-3 py-1.5',
+    sm: 'text-[0.8125rem] px-2 py-0.5',
+    md: 'text-[1.0625rem] px-2.5 py-1',
+    lg: 'text-2xl px-3 py-1.5',
+    xl: 'text-4xl px-4 py-2',
   }[size]
   if (!p.ok) {
     return (
-      <span className={cx('rounded-lg bg-raised font-mono font-bold', cls, className)}>{code}</span>
+      <span className={cx('t-serial rounded-lg border border-line bg-raised', cls, className)}>
+        {code}
+      </span>
     )
   }
   return (
     <span
       className={cx(
-        'inline-flex items-baseline rounded-lg bg-raised font-mono font-bold tracking-tight tabular-nums',
+        't-serial inline-flex items-baseline rounded-lg border border-line bg-raised',
         cls,
         className,
       )}
@@ -425,13 +466,13 @@ export function StatusPill({
       onClick={onClick}
       type={onClick ? 'button' : undefined}
       className={cx(
-        'inline-flex items-center gap-1.5 rounded-full font-bold',
-        size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs',
-        onClick && 'transition hover:opacity-80',
+        'inline-flex items-center gap-1.5 rounded-full border-2 font-bold',
+        size === 'sm' ? 'px-2.5 py-1 text-[0.8125rem]' : 'px-3.5 py-1.5 text-[0.9375rem]',
+        onClick && 'transition hover:brightness-95 active:scale-95',
       )}
-      style={{ background: `${color}1a`, color }}
+      style={{ background: `${color}1a`, color, borderColor: `${color}55` }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+      <span className="h-2 w-2 rounded-full" style={{ background: color }} />
       {STATUS_LABEL[status]}
     </Tag>
   )
@@ -492,6 +533,55 @@ export function QrCode({
       <rect width={path.n} height={path.n} fill="#ffffff" />
       <path d={path.d} fill="#000000" />
     </svg>
+  )
+}
+
+/** QR-Code mit Rahmen und der Nummer darunter. So ist auf einen Blick klar,
+ *  zu welcher Kiste der Code gehoert, auch wenn das Etikett schief klebt. */
+export function QrPanel({
+  value,
+  code,
+  size = 190,
+  caption,
+  className,
+}: {
+  value: string
+  code?: string
+  size?: number
+  caption?: string
+  className?: string
+}) {
+  return (
+    <div
+      className={cx(
+        'inline-flex flex-col items-center gap-2 rounded-2xl border-4 border-ink bg-white p-3',
+        className,
+      )}
+    >
+      <QrCode value={value} size={size} />
+      {code ? (
+        <span className="t-serial text-center text-xl leading-none text-black">
+          {(() => {
+            const p = parseCode(code)
+            if (!p.ok) return code
+            return (
+              <>
+                {p.prefix}
+                <span className="opacity-35">-</span>
+                <span style={{ color: '#E11D48' }}>{p.size}</span>
+                <span className="opacity-35">-</span>
+                {p.seq}
+              </>
+            )
+          })()}
+        </span>
+      ) : null}
+      {caption ? (
+        <span className="max-w-[16ch] text-center text-[0.8125rem] font-bold leading-tight text-black">
+          {caption}
+        </span>
+      ) : null}
+    </div>
   )
 }
 
@@ -689,8 +779,10 @@ export function Chip({
       type="button"
       onClick={onClick}
       className={cx(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-semibold transition',
-        active ? 'border-ink bg-ink text-paper' : 'border-line bg-surface text-ink hover:bg-raised',
+        'inline-flex h-10 shrink-0 items-center gap-2 rounded-full border-2 px-4 text-[0.9375rem] font-bold transition active:scale-95',
+        active
+          ? 'border-ink bg-ink text-paper'
+          : 'border-line bg-surface text-ink hover:border-ink/35 hover:bg-raised',
       )}
     >
       {color ? (
@@ -704,7 +796,7 @@ export function Chip({
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-3">
-      <h2 className="text-sm font-bold uppercase tracking-wide text-muted">{children}</h2>
+      <h2 className="text-[0.9375rem] font-black uppercase tracking-wider text-muted">{children}</h2>
       {action}
     </div>
   )

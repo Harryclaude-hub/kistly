@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Check, ScanLine, Search } from 'lucide-react'
+import { ArrowRight, Check, ScanLine, Search, Warehouse } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
 import { Scanner } from '../components/Scanner'
 import {
   Button,
   Card,
   CodeChip,
+  Empty,
   Field,
   Input,
   SectionTitle,
@@ -102,7 +103,11 @@ export default function ScanPage() {
     <>
       <AppHeader
         title="Scannen"
-        subtitle={autoStatus === 'off' ? 'Nur nachschlagen' : `Setzt automatisch: ${STATUS_LABEL[autoStatus]}`}
+        subtitle={
+          autoStatus === 'off'
+            ? 'Nur nachschlagen'
+            : `Setzt automatisch: ${STATUS_LABEL[autoStatus]}`
+        }
         back={`/app/p/${project.id}`}
       />
       <Page>
@@ -110,7 +115,7 @@ export default function ScanPage() {
           <Scanner onResult={(t) => void onScan(t)} paused={paused || busy} />
         </div>
 
-        <Card className="mb-4 p-3">
+        <Card className="mb-4 p-4">
           <Switch
             checked={autoStatus !== 'off'}
             onChange={(v) => setAutoStatus(v ? 'arrived' : 'off')}
@@ -118,28 +123,30 @@ export default function ScanPage() {
             hint="So geht der Einzug schnell: scannen, gruen, naechste Kiste."
             disabled={!canEdit}
           />
+          {/* Auf dem Handy untereinander, damit lange Namen wie Alte Wohnung
+              nicht umbrechen muessen. */}
           {autoStatus !== 'off' ? (
-            <div className="mt-2 flex gap-2">
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
               {(['open', 'transit', 'arrived'] as ItemStatus[]).map((s) => (
-                <button
+                <Button
                   key={s}
+                  full
+                  variant={autoStatus === s ? 'primary' : 'outline'}
+                  aria-pressed={autoStatus === s}
                   onClick={() => setAutoStatus(s)}
-                  className={`flex-1 rounded-xl border px-2 py-2 text-xs font-bold transition ${
-                    autoStatus === s ? 'border-ink bg-ink text-paper' : 'border-line hover:bg-raised'
-                  }`}
                 >
                   {STATUS_LABEL[s]}
-                </button>
+                </Button>
               ))}
             </div>
           ) : null}
         </Card>
 
-        <Card className="mb-5 p-3">
+        <Card className="mb-4 p-4">
           <Field label="Code von Hand eingeben" hint="Falls der QR-Code beschaedigt ist.">
             <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <div className="relative min-w-0 flex-1">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <Input
                   value={manual}
                   onChange={(e) => setManual(e.target.value.toUpperCase())}
@@ -150,7 +157,7 @@ export default function ScanPage() {
                     }
                   }}
                   placeholder="W-3-007"
-                  className="pl-9 font-mono uppercase"
+                  className="t-serial pl-10 uppercase"
                 />
               </div>
               <Button
@@ -166,12 +173,27 @@ export default function ScanPage() {
           </Field>
         </Card>
 
+        {/* Dieser Scanner sucht nur in diesem Umzug. Wer ein fremdes Etikett in
+            der Hand haelt, kommt hier zum Scanner ueber alle Umzuege. */}
+        <Card className="mb-5 p-4">
+          <p className="t-name">Etikett aus einem anderen Umzug?</p>
+          <p className="t-sub mt-1.5 break-words">
+            Hier wird nur in {project.name} gesucht. Der grosse Scan-Bereich zeigt Treffer aus allen
+            deinen Umzuegen.
+          </p>
+          <Link to="/app/scan" className="mt-4 block sm:inline-block">
+            <Button variant="soft" size="lg" full className="sm:w-auto">
+              <Warehouse size={20} /> Ueber alle Umzuege scannen
+            </Button>
+          </Link>
+        </Card>
+
         <SectionTitle
           action={
             hits.length > 0 ? (
-              <button onClick={() => setHits([])} className="text-xs underline">
+              <Button variant="outline" size="sm" onClick={() => setHits([])}>
                 Liste leeren
-              </button>
+              </Button>
             ) : null
           }
         >
@@ -179,10 +201,11 @@ export default function ScanPage() {
         </SectionTitle>
 
         {hits.length === 0 ? (
-          <Card className="p-8 text-center text-sm text-muted">
-            <ScanLine size={26} className="mx-auto mb-2 opacity-50" />
-            Noch nichts gescannt. Halte den QR-Code vom Etikett in den Rahmen.
-          </Card>
+          <Empty
+            icon={<ScanLine size={30} />}
+            title="Noch nichts gescannt"
+            hint="Halte den QR-Code vom Etikett in den Rahmen. Jeder Treffer landet hier in der Liste."
+          />
         ) : (
           <Card className="zebra divide-y divide-line overflow-hidden">
             {hits.map((h, i) => {
@@ -192,35 +215,39 @@ export default function ScanPage() {
                 <Link
                   key={`${h.item.id}-${i}`}
                   to={`/app/p/${project.id}/kisten/${h.item.id}`}
-                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-raised"
+                  className="flex items-center gap-3 px-3 py-3 hover:bg-raised"
                 >
-                  <Check size={16} className="shrink-0 text-ok" />
-                  <CodeChip code={h.item.code} />
+                  <Check size={20} className="shrink-0 text-ok" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">
+                    <span className="t-name block truncate">
                       {h.item.title || room?.name || person?.name || 'Kiste'}
                     </span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-muted">
-                      {fmtTime(h.at)}
+                    <span className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <CodeChip code={h.item.code} />
+                      <StatusPill status={h.item.status} size="sm" />
                       {room ? (
                         <span
-                          className="rounded px-1 font-bold"
+                          className="rounded-lg px-2 py-1 text-sm font-black"
                           style={{ background: room.color, color: contrastOn(room.color) }}
                         >
                           {room.short}
                         </span>
                       ) : null}
-                      {h.note ? <span className="text-warn">{h.note}</span> : null}
+                    </span>
+                    <span className="t-sub mt-1.5 block truncate">
+                      Gescannt um {fmtTime(h.at)}
+                      {h.note ? <span className="font-bold text-warn">, {h.note}</span> : null}
                     </span>
                   </span>
-                  <StatusPill status={h.item.status} size="sm" />
-                  <ArrowRight size={15} className="shrink-0 text-muted" />
+                  <ArrowRight size={20} className="shrink-0 text-muted" />
                 </Link>
               )
             })}
           </Card>
         )}
-        <div className="h-4" />
+
+        {/* Luft fuer die untere Navigationsleiste */}
+        <div className="h-6" />
       </Page>
     </>
   )

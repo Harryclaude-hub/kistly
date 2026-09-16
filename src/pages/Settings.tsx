@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, BellOff, LogOut, ShieldCheck } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
@@ -8,10 +8,11 @@ import {
   Avatar,
   Button,
   Card,
+  ErrorBox,
   Field,
   Input,
+  Loading,
   PasswordInput,
-  SectionTitle,
   Switch,
   useToast,
 } from '../components/ui'
@@ -29,6 +30,13 @@ const PUSH_TEXT: Record<PushState, string> = {
   'granted-on': 'Dieses Geraet bekommt Benachrichtigungen.',
 }
 
+/* Eigene Abschnittsueberschrift, weil die Einstellungen die einzige Seite
+ * sind, auf der man sich durch lauter kleine Schalter liest. Da darf die
+ * Ueberschrift nicht kleiner sein als das, was darunter steht. */
+function Abschnitt({ children }: { children: ReactNode }) {
+  return <h2 className="mb-3 text-xl font-black tracking-tight">{children}</h2>
+}
+
 export default function Settings() {
   const { user, profile, updateProfile, updatePassword, signOut } = useAuth()
   const { mode, setMode } = useTheme()
@@ -37,22 +45,38 @@ export default function Settings() {
 
   const [name, setName] = useState(profile?.display_name ?? '')
   const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busyName, setBusyName] = useState(false)
+  const [busyPass, setBusyPass] = useState(false)
   const [push, setPush] = useState<PushState>('default')
   const [prefs, setPrefsState] = useState<NotificationPrefs | null>(null)
+  const [prefsError, setPrefsError] = useState<string | null>(null)
+  const [prefsLoading, setPrefsLoading] = useState(true)
 
   useEffect(() => {
     setName(profile?.display_name ?? '')
   }, [profile?.display_name])
 
   useEffect(() => {
-    void pushState().then(setPush)
-    if (user) {
-      void getPrefs(user.id)
-        .then(setPrefsState)
-        .catch((err) => console.warn('[settings] Einstellungen:', err))
-    }
+    // Schlaegt die Abfrage fehl, stuende hier sonst stillschweigend
+    // "Noch nicht erlaubt.", obwohl gar nichts geprueft werden konnte.
+    pushState()
+      .then(setPush)
+      .catch((err) => toast(err instanceof Error ? err.message : String(err), 'error'))
+  }, [toast])
+
+  const loadPrefs = useCallback(() => {
+    if (!user) return
+    setPrefsLoading(true)
+    setPrefsError(null)
+    getPrefs(user.id)
+      .then(setPrefsState)
+      .catch((err) => setPrefsError(err instanceof Error ? err.message : String(err)))
+      .finally(() => setPrefsLoading(false))
   }, [user])
+
+  useEffect(() => {
+    loadPrefs()
+  }, [loadPrefs])
 
   async function savePrefs(patch: Partial<NotificationPrefs>) {
     if (!user || !prefs) return
@@ -71,31 +95,33 @@ export default function Settings() {
       <AppHeader title="Einstellungen" back="/app" />
       <Page>
         {/* Profil */}
-        <SectionTitle>Profil</SectionTitle>
-        <Card className="mb-6 p-4">
-          <div className="mb-4 flex items-center gap-3">
-            <Avatar name={displayNameOf(profile, user?.email ?? '?')} size={52} />
+        <Abschnitt>Profil</Abschnitt>
+        <Card className="mb-8 p-4">
+          <div className="mb-5 flex items-center gap-3">
+            <Avatar name={displayNameOf(profile, user?.email ?? '?')} size={56} />
             <div className="min-w-0">
-              <p className="truncate font-bold">{displayNameOf(profile, 'Ohne Namen')}</p>
-              <p className="truncate text-sm text-muted">{user?.email}</p>
+              <p className="t-name-lg truncate">{displayNameOf(profile, 'Ohne Namen')}</p>
+              <p className="t-sub truncate">{user?.email}</p>
             </div>
           </div>
 
           <Field label="Anzeigename" hint="So sehen dich die anderen in Umzuegen und im Chat.">
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" />
               <Button
-                loading={busy}
+                size="lg"
+                className="w-full justify-center sm:w-auto"
+                loading={busyName}
                 disabled={name.trim() === (profile?.display_name ?? '')}
                 onClick={async () => {
-                  setBusy(true)
+                  setBusyName(true)
                   try {
                     await updateProfile({ display_name: name.trim() || null })
                     toast('Name gespeichert', 'ok')
                   } catch (err) {
                     toast(err instanceof Error ? err.message : String(err), 'error')
                   } finally {
-                    setBusy(false)
+                    setBusyName(false)
                   }
                 }}
               >
@@ -106,10 +132,10 @@ export default function Settings() {
         </Card>
 
         {/* Sicherheit */}
-        <SectionTitle>Passwort</SectionTitle>
-        <Card className="mb-6 p-4">
+        <Abschnitt>Passwort</Abschnitt>
+        <Card className="mb-8 p-4">
           <Field label="Neues Passwort" hint="Mindestens 8 Zeichen. Mit dem Auge kannst du es anzeigen.">
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <PasswordInput
                 value={password}
                 autoComplete="new-password"
@@ -117,10 +143,12 @@ export default function Settings() {
                 placeholder="Neues Passwort"
               />
               <Button
+                size="lg"
+                className="w-full justify-center sm:w-auto"
                 disabled={password.length < 8}
-                loading={busy}
+                loading={busyPass}
                 onClick={async () => {
-                  setBusy(true)
+                  setBusyPass(true)
                   try {
                     await updatePassword(password)
                     setPassword('')
@@ -128,7 +156,7 @@ export default function Settings() {
                   } catch (err) {
                     toast(err instanceof Error ? err.message : String(err), 'error')
                   } finally {
-                    setBusy(false)
+                    setBusyPass(false)
                   }
                 }}
               >
@@ -136,87 +164,100 @@ export default function Settings() {
               </Button>
             </div>
           </Field>
-          <p className="mt-3 flex items-start gap-2 text-xs text-muted">
-            <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+          <p className="mt-4 flex items-start gap-2 text-sm text-muted">
+            <ShieldCheck size={16} className="mt-0.5 shrink-0" />
             Die Verbindung laeuft verschluesselt, Passwoerter liegen nur als Hash beim
             Anbieter. Deine Daten sieht nur, wer im jeweiligen Umzug eingetragen ist.
           </p>
         </Card>
 
         {/* Benachrichtigungen */}
-        <SectionTitle>Benachrichtigungen</SectionTitle>
-        <Card className="mb-6 p-4">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-semibold">Auf diesem Geraet</p>
-              <p className="mt-0.5 text-sm text-muted">{PUSH_TEXT[push]}</p>
+        <Abschnitt>Benachrichtigungen</Abschnitt>
+        <Card className="mb-8 p-4">
+          <div className="mb-4">
+            <p className="t-name">Auf diesem Geraet</p>
+            <p className="t-sub mt-1">{PUSH_TEXT[push]}</p>
+            <div className="mt-3">
+              {push === 'granted-on' ? (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full justify-center sm:w-auto"
+                  onClick={async () => {
+                    try {
+                      setPush(await disablePush())
+                      toast('Auf diesem Geraet aus', 'ok')
+                    } catch (err) {
+                      toast(err instanceof Error ? err.message : String(err), 'error')
+                    }
+                  }}
+                >
+                  <BellOff size={18} /> Ausschalten
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  className="w-full justify-center sm:w-auto"
+                  disabled={push === 'unsupported' || push === 'no-key' || push === 'denied'}
+                  onClick={async () => {
+                    try {
+                      setPush(await enablePush())
+                      toast('Benachrichtigungen an', 'ok')
+                    } catch (err) {
+                      toast(err instanceof Error ? err.message : String(err), 'error')
+                    }
+                  }}
+                >
+                  <Bell size={18} /> Einschalten
+                </Button>
+              )}
             </div>
-            {push === 'granted-on' ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    setPush(await disablePush())
-                    toast('Auf diesem Geraet aus', 'ok')
-                  } catch (err) {
-                    toast(err instanceof Error ? err.message : String(err), 'error')
-                  }
-                }}
-              >
-                <BellOff size={15} /> Aus
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                disabled={push === 'unsupported' || push === 'no-key' || push === 'denied'}
-                onClick={async () => {
-                  try {
-                    setPush(await enablePush())
-                    toast('Benachrichtigungen an', 'ok')
-                  } catch (err) {
-                    toast(err instanceof Error ? err.message : String(err), 'error')
-                  }
-                }}
-              >
-                <Bell size={15} /> An
-              </Button>
-            )}
           </div>
 
-          {prefs ? (
-            <div className="border-t border-line pt-1">
-              <Switch
-                checked={prefs.chat}
-                onChange={(v) => void savePrefs({ chat: v })}
-                label="Chatnachrichten"
-                hint="Einmal pro Nachricht."
-              />
-              <Switch
-                checked={prefs.calls}
-                onChange={(v) => void savePrefs({ calls: v })}
-                label="Anrufe"
-                hint="Wiederholt sich, solange es klingelt."
-              />
-              <Switch
-                checked={prefs.items}
-                onChange={(v) => void savePrefs({ items: v })}
-                label="Kisten und Status"
-                hint="Wenn jemand etwas scannt oder auf angekommen setzt."
-              />
-            </div>
-          ) : null}
+          {/* Laedt, Fehler, Daten. Ein leerer Block waere hier nicht zu deuten. */}
+          <div className="border-t border-line pt-1">
+            {prefsLoading ? (
+              <Loading label="Einstellungen werden geladen" />
+            ) : prefsError ? (
+              <div className="py-3">
+                <ErrorBox error={prefsError} onRetry={loadPrefs} />
+              </div>
+            ) : prefs ? (
+              <>
+                <Switch
+                  checked={prefs.chat}
+                  onChange={(v) => void savePrefs({ chat: v })}
+                  label="Chatnachrichten"
+                  hint="Einmal pro Nachricht."
+                />
+                <Switch
+                  checked={prefs.calls}
+                  onChange={(v) => void savePrefs({ calls: v })}
+                  label="Anrufe"
+                  hint="Wiederholt sich, solange es klingelt."
+                />
+                <Switch
+                  checked={prefs.items}
+                  onChange={(v) => void savePrefs({ items: v })}
+                  label="Kisten und Status"
+                  hint="Wenn jemand etwas scannt oder auf angekommen setzt."
+                />
+              </>
+            ) : null}
+          </div>
         </Card>
 
         {/* Darstellung */}
-        <SectionTitle>Darstellung</SectionTitle>
-        <Card className="mb-6 p-4">
+        <Abschnitt>Darstellung</Abschnitt>
+        <Card className="mb-8 p-4">
           <div className="flex gap-2">
             {(['system', 'light', 'dark'] as const).map((m) => (
               <button
                 key={m}
+                type="button"
                 onClick={() => setMode(m)}
-                className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-bold transition ${
+                aria-pressed={mode === m}
+                className={`min-w-0 flex-1 rounded-xl border-2 px-2 py-3 text-base font-bold transition ${
                   mode === m ? 'border-ink bg-ink text-paper' : 'border-line hover:bg-raised'
                 }`}
               >
@@ -227,25 +268,28 @@ export default function Settings() {
         </Card>
 
         {/* App */}
-        <SectionTitle>App</SectionTitle>
-        <div className="mb-6">
+        <Abschnitt>App</Abschnitt>
+        <div className="mb-8">
           <InstallCard />
         </div>
 
         <Button
           variant="outline"
+          size="lg"
+          className="w-full justify-center sm:w-auto"
           onClick={async () => {
             await signOut()
             nav('/')
           }}
         >
-          <LogOut size={16} /> Abmelden
+          <LogOut size={18} /> Abmelden
         </Button>
 
-        <p className="mt-8 text-center text-xs text-muted">
+        <p className="mt-8 text-center text-sm text-muted">
           Kistly . gebaut fuer den eigenen Umzug
         </p>
-        <div className="h-6" />
+        {/* Luft fuer die untere Navigationsleiste */}
+        <div className="h-10" />
       </Page>
     </div>
   )

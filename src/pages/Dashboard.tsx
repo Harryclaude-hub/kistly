@@ -1,11 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Boxes, LogIn, Plus, Settings as SettingsIcon, Users } from 'lucide-react'
+import { Boxes, LogIn, Plus, Users } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
 import { InstallCard } from '../components/InstallCard'
-import { ThemeToggle } from '../components/ThemeToggle'
 import {
-  Avatar,
   Button,
   Card,
   Empty,
@@ -20,29 +18,31 @@ import {
   useToast,
 } from '../components/ui'
 import { createProject, joinProject, listProjects, type ProjectWithStats } from '../lib/api'
-import { displayNameOf, useAuth } from '../lib/auth'
+import { useAuth } from '../lib/auth'
 import { ROLE_LABEL } from '../lib/types'
 import { fmtDate, useAsync } from '../lib/util'
 
+/** Fortschritt eines Umzugs. Der Balken ist bewusst dick, damit man ihn im
+ *  Vorbeigehen erkennt, und die Prozentzahl steht gross daneben. */
 function Progress({ done, total }: { done: number; total: number }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
   return (
-    <div className="mt-3">
-      <div className="h-2 w-full overflow-hidden rounded-full bg-raised">
-        <div
-          className="h-full rounded-full bg-ok transition-all"
-          style={{ width: `${pct}%` }}
-          role="progressbar"
-          aria-valuenow={pct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        />
-      </div>
-      <div className="mt-1.5 flex justify-between text-xs text-muted">
-        <span>
+    <div className="mt-4">
+      <div className="flex items-end justify-between gap-3">
+        <span className="t-sub min-w-0 truncate">
           {done} von {total} angekommen
         </span>
-        <span className="font-bold text-ink">{pct}%</span>
+        <span className="shrink-0 text-2xl font-black leading-none tabular-nums">{pct}%</span>
+      </div>
+      <div
+        className="mt-2 h-3 w-full overflow-hidden rounded-full bg-raised"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Angekommen"
+      >
+        <div className="h-full rounded-full bg-ok transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -52,30 +52,35 @@ function ProjectCard({ row }: { row: ProjectWithStats }) {
   const { project, stats, role, members } = row
   return (
     <Link to={`/app/p/${project.id}`} className="block">
-      <Card className="p-4 transition hover:border-ink/25 hover:shadow-sm">
+      <Card className="p-5 transition hover:border-ink/25 hover:shadow-sm active:scale-[0.99]">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="truncate text-lg font-bold">{project.name}</h3>
-            <p className="mt-0.5 truncate text-sm text-muted">
-              {project.note || (project.move_date ? `Umzug am ${fmtDate(project.move_date)}` : 'Kein Vermerk')}
+          <div className="min-w-0 flex-1">
+            <h3 className="t-name-lg break-words">{project.name}</h3>
+            <p className="t-sub mt-1 break-words">
+              {project.note ||
+                (project.move_date ? `Umzug am ${fmtDate(project.move_date)}` : 'Kein Vermerk')}
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-raised px-2 py-0.5 text-[11px] font-bold">
+          <span className="shrink-0 rounded-full bg-raised px-3 py-1 text-sm font-bold">
             {ROLE_LABEL[role]}
           </span>
         </div>
 
         <Progress done={stats.items_arrived} total={stats.items_total} />
 
-        <div className="mt-3 flex items-center gap-4 text-xs text-muted">
-          <span className="inline-flex items-center gap-1.5">
-            <Boxes size={14} /> {stats.items_total} Kisten
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span className="inline-flex items-center gap-2 text-base font-bold">
+            <Boxes size={19} className="text-muted" />
+            {stats.items_total}
+            <span className="font-semibold text-muted">Kisten</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Users size={14} /> {members}
+          <span className="inline-flex items-center gap-2 text-base font-bold">
+            <Users size={19} className="text-muted" />
+            {members}
+            <span className="font-semibold text-muted">dabei</span>
           </span>
           {stats.items_transit > 0 ? (
-            <span className="font-semibold text-warn">{stats.items_transit} unterwegs</span>
+            <span className="text-base font-bold text-warn">{stats.items_transit} unterwegs</span>
           ) : null}
         </div>
       </Card>
@@ -84,7 +89,7 @@ function ProjectCard({ row }: { row: ProjectWithStats }) {
 }
 
 export default function Dashboard() {
-  const { profile, user } = useAuth()
+  const { profile } = useAuth()
   const nav = useNavigate()
   const toast = useToast()
   const list = useAsync(listProjects, [])
@@ -97,6 +102,19 @@ export default function Dashboard() {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  /** Beide Formulare teilen sich den Fehlertext. Er wird beim Oeffnen und
+   *  Schliessen geleert, damit im zweiten Dialog nicht der Fehler des ersten
+   *  stehen bleibt. */
+  function openNew(v: boolean) {
+    setFormError(null)
+    setNewOpen(v)
+  }
+
+  function openJoin(v: boolean) {
+    setFormError(null)
+    setJoinOpen(v)
+  }
 
   async function onCreate(e: FormEvent) {
     e.preventDefault()
@@ -130,35 +148,29 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <AppHeader
-        title={<Wordmark size={24} />}
-        actions={
-          <>
-            <ThemeToggle />
-            <Link to="/app/einstellungen" aria-label="Einstellungen" className="rounded-xl p-2 hover:bg-raised">
-              <SettingsIcon size={20} />
-            </Link>
-            <Link to="/app/einstellungen">
-              <Avatar name={displayNameOf(profile, user?.email ?? '?')} size={32} />
-            </Link>
-          </>
-        }
-      />
+      {/* Profil und Einstellungen sitzen bereits rechts in der Kopfzeile,
+          darum steht hier kein zweites Zahnrad und kein zweiter Avatar. */}
+      <AppHeader title={<Wordmark size={24} />} />
 
       <Page>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">
-              Hallo{profile?.display_name ? `, ${profile.display_name}` : ''}
-            </h1>
-            <p className="text-sm text-muted">Deine Umzuege auf einen Blick.</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setJoinOpen(true)}>
-              <LogIn size={16} /> Code einloesen
+        <div className="mb-5">
+          <h1 className="text-2xl font-black tracking-tight">
+            Hallo{profile?.display_name ? `, ${profile.display_name}` : ''}
+          </h1>
+          <p className="t-sub mt-1">Deine Umzuege auf einen Blick.</p>
+
+          <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+            <Button size="lg" full className="sm:w-auto" onClick={() => openNew(true)}>
+              <Plus size={20} /> Neuer Umzug
             </Button>
-            <Button onClick={() => setNewOpen(true)}>
-              <Plus size={16} /> Neuer Umzug
+            <Button
+              size="lg"
+              variant="outline"
+              full
+              className="sm:w-auto"
+              onClick={() => openJoin(true)}
+            >
+              <LogIn size={20} /> Code einloesen
             </Button>
           </div>
         </div>
@@ -177,8 +189,8 @@ export default function Dashboard() {
             title="Noch kein Umzug angelegt"
             hint="Ein Umzug ist die Klammer um alles: Zimmer, Personen, Kisten, Etiketten und den Chat."
             action={
-              <Button onClick={() => setNewOpen(true)}>
-                <Plus size={16} /> Ersten Umzug anlegen
+              <Button size="lg" onClick={() => openNew(true)}>
+                <Plus size={20} /> Ersten Umzug anlegen
               </Button>
             }
           />
@@ -189,15 +201,18 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+
+        {/* Luft fuer die untere Navigationsleiste */}
+        <div className="h-6" />
       </Page>
 
       <Modal
         open={newOpen}
-        onClose={() => setNewOpen(false)}
+        onClose={() => openNew(false)}
         title="Neuer Umzug"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setNewOpen(false)}>
+            <Button variant="ghost" onClick={() => openNew(false)}>
               Abbrechen
             </Button>
             <Button form="new-project" type="submit" loading={busy}>
@@ -225,17 +240,17 @@ export default function Dashboard() {
             label="Standardzimmer anlegen"
             hint="Wohnzimmer, Kueche, Schlafzimmer, Kinderzimmer, Bad, Flur, Keller. Kannst du danach aendern."
           />
-          {formError ? <p className="text-sm text-danger">{formError}</p> : null}
+          {formError ? <ErrorBox error={formError} /> : null}
         </form>
       </Modal>
 
       <Modal
         open={joinOpen}
-        onClose={() => setJoinOpen(false)}
+        onClose={() => openJoin(false)}
         title="Einem Umzug beitreten"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setJoinOpen(false)}>
+            <Button variant="ghost" onClick={() => openJoin(false)}>
               Abbrechen
             </Button>
             <Button form="join-project" type="submit" loading={busy}>
@@ -245,17 +260,20 @@ export default function Dashboard() {
         }
       >
         <form id="join-project" onSubmit={onJoin} className="space-y-4">
-          <Field label="Einladungscode" hint="Den Code bekommst du von der Person, die den Umzug angelegt hat.">
+          <Field
+            label="Einladungscode"
+            hint="Den Code bekommst du von der Person, die den Umzug angelegt hat."
+          >
             <Input
               required
               autoFocus
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="ABCD-2345"
-              className="font-mono text-lg tracking-widest"
+              className="t-serial text-2xl tracking-widest"
             />
           </Field>
-          {formError ? <p className="text-sm text-danger">{formError}</p> : null}
+          {formError ? <ErrorBox error={formError} /> : null}
         </form>
       </Modal>
     </div>

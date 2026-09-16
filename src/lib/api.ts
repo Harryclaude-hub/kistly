@@ -124,13 +124,23 @@ export async function joinProject(code: string): Promise<Project> {
 
 /* ============================================================ Mitglieder */
 
+/* Die Profile kommen in einer zweiten Abfrage, nicht als eingebettete
+ * Beziehung. project_members.user_id zeigt auf auth.users, nicht auf
+ * public.profiles. PostgREST kann daraus keine Verknuepfung ableiten und
+ * meldete "Could not find a relationship between project_members and
+ * profiles". Zwei Abfragen sind hier der ehrlichere Weg als ein
+ * zusaetzlicher Fremdschluessel nur fuer die Anzeige. */
 export async function listMembers(projectId: string): Promise<ProjectMember[]> {
   const res = await supabase
     .from('project_members')
-    .select('*, profile:profiles(*)')
+    .select('*')
     .eq('project_id', projectId)
     .order('created_at')
-  return unwrap(res, 'Mitglieder laden') as ProjectMember[]
+  const rows = unwrap(res, 'Mitglieder laden') as ProjectMember[]
+  if (rows.length === 0) return rows
+
+  const profiles = await listProfiles(rows.map((r) => r.user_id))
+  return rows.map((r) => ({ ...r, profile: profiles.get(r.user_id) ?? null }))
 }
 
 export async function setMemberRole(
