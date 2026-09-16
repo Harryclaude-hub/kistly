@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ClipboardList,
   Cog,
+  FileDown,
   LayoutGrid,
   Plus,
   Printer,
@@ -263,6 +264,11 @@ export default function ProjectHome() {
             icon={<Printer size={26} />}
             label={t('umzuege.etiketten')}
             onClick={() => nav(`${base}/etiketten`)}
+          />
+          <Quick
+            icon={<FileDown size={26} />}
+            label={t('ausgabe.titel')}
+            onClick={() => nav(`${base}/export`)}
           />
         </div>
 

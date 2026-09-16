@@ -23,6 +23,7 @@ import ItemDetail from './pages/ItemDetail'
 import Furniture from './pages/Furniture'
 import FurnitureDetail from './pages/FurnitureDetail'
 import Labels from './pages/Labels'
+import Export from './pages/Export'
 import ScanPage from './pages/ScanPage'
 import Chat from './pages/Chat'
 import Team from './pages/Team'
@@ -101,6 +102,7 @@ export default function App() {
                 <Route path="kisten" element={<Items />} />
                 <Route path="kisten/:iid" element={<ItemDetail />} />
                 <Route path="etiketten" element={<Labels />} />
+                <Route path="export" element={<Export />} />
                 <Route path="scan" element={<ScanPage />} />
                 <Route path="chat" element={<Chat />} />
                 <Route path="team" element={<Team />} />

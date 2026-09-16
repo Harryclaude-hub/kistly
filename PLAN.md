@@ -105,12 +105,31 @@ einzelnen Inhalt umhaengen geht ueber
 `src/components/InhaltVerschieben.tsx`, sowohl in einer Kiste als auch im
 Teilekatalog eines Moebelstuecks.
 
-### 5. Drucken und Ausgeben
+### 5. Drucken und Ausgeben FERTIG
 
 - Vorschau zeigt, was aufs Blatt kommt: QR-Code, Seriennummer, Tabelle
 - Auswaehlbar: mit oder ohne Farben, mit oder ohne Symbole, schlicht
 - Groesse und Gestaltung einstellbar
 - Ausgabe als PDF und als Word-Datei, nicht nur ueber den Druckdialog
+
+Stand: `src/pages/Export.tsx` unter `/app/p/:pid/export`. Die Tabelle wird
+genau einmal gebaut, in `src/lib/ausgabe.ts`. Dieses eine Stueck HTML ist
+die Vorschau, der Druck und der Inhalt der Datei. Es gibt keine zweite
+Fassung fuer die Vorschau, die auseinanderlaufen koennte.
+
+Ausgabewege:
+- Word (`.doc` als HTML mit Word-Kopf): oeffnet in Word und LibreOffice,
+  mit Farben, Zeichen und QR-Codes als eingebettete PNG. Ausdruecklich
+  kein `.docx` im Zip-Format.
+- HTML-Datei zum Weitergeben, laesst sich im Browser als PDF speichern.
+- CSV fuer Excel.
+- Drucken, und im Druckfenster "Als PDF speichern".
+
+Warum PDF ueber das Druckfenster: eine selbst gebaute PDF-Ausgabe
+(jsPDF und Aehnliches) kann kein Arabisch setzen, weil sie die Buchstaben
+nicht verbindet und die Richtung nicht dreht. Ein zweisprachiges Programm
+darf in einer der beiden Sprachen keine kaputten Dateien erzeugen. Der
+Weg ueber den Drucker liefert in beiden Sprachen ein sauberes PDF.
 
 ---
 
