@@ -17,8 +17,11 @@ import ScanHub from './pages/ScanHub'
 import ProjectLayout from './pages/ProjectLayout'
 import ProjectHome from './pages/ProjectHome'
 import Areas from './pages/Areas'
+import AreaDetail from './pages/AreaDetail'
 import Items from './pages/Items'
 import ItemDetail from './pages/ItemDetail'
+import Furniture from './pages/Furniture'
+import FurnitureDetail from './pages/FurnitureDetail'
 import Labels from './pages/Labels'
 import ScanPage from './pages/ScanPage'
 import Chat from './pages/Chat'
@@ -89,6 +92,12 @@ export default function App() {
               <Route path="p/:pid" element={<ProjectLayout />}>
                 <Route index element={<ProjectHome />} />
                 <Route path="bereiche" element={<Areas />} />
+                {/* Eigene Seiten. Zimmer und Person teilen sich eine Datei,
+                    sie sind in der Datenbank dieselbe Tabelle. */}
+                <Route path="zimmer/:tagId" element={<AreaDetail kind="room" />} />
+                <Route path="person/:tagId" element={<AreaDetail kind="person" />} />
+                <Route path="moebel" element={<Furniture />} />
+                <Route path="moebel/:id" element={<FurnitureDetail />} />
                 <Route path="kisten" element={<Items />} />
                 <Route path="kisten/:iid" element={<ItemDetail />} />
                 <Route path="etiketten" element={<Labels />} />

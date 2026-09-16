@@ -14,7 +14,9 @@ import { start } from './bausteine/start'
 import { konto } from './bausteine/konto'
 import { umzuege } from './bausteine/umzuege'
 import { bereiche } from './bausteine/bereiche'
+import { bereichsseite } from './bausteine/bereichsseite'
 import { kisten } from './bausteine/kisten'
+import { moebel } from './bausteine/moebel'
 import { etiketten } from './bausteine/etiketten'
 import { scannen } from './bausteine/scannen'
 import { chat } from './bausteine/chat'
@@ -46,7 +48,9 @@ export const WOERTER: Woerterbuch = zusammenlegen(
   konto,
   umzuege,
   bereiche,
+  bereichsseite,
   kisten,
+  moebel,
   etiketten,
   scannen,
   chat,

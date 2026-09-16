@@ -56,7 +56,7 @@ Arbeitsgang nachgezogen (`mergeTags`, `moveContent`, `moveItems`, Filter
 `kind` und `kindNot`, `addPhotoRecord` mit `art` und `seite`). Der Smoketest
 prueft die Erweiterung mit 24 zusaetzlichen Punkten.
 
-### 2. Eigene Seiten und Vollbild
+### 2. Eigene Seiten und Vollbild FERTIG
 
 - `/app/p/:pid/zimmer/:tagId` Zimmerseite: Kisten, Moebel, Personen
 - `/app/p/:pid/person/:tagId` Personenseite
@@ -65,6 +65,15 @@ prueft die Erweiterung mit 24 zusaetzlichen Punkten.
   Aufbauanleitung
 - Wischen nach rechts geht zurueck, nach links vorwaerts (Handy)
 - Am Laptop dieselben Seiten, breiter gesetzt
+
+Stand: alle vier Seiten stehen. Zimmer und Person teilen sich eine Datei
+(`src/pages/AreaDetail.tsx`), weil sie in der Datenbank dieselbe Tabelle
+sind. Die Kistenzeile steht nur noch einmal, in
+`src/components/ItemRow.tsx`, und wird von Kistenliste, Zimmerseite,
+Personenseite und Moebelbereich gemeinsam benutzt. Das Wischen liegt in
+`src/lib/wischen.ts`, nicht in der Designschicht, und ist auf Arabisch
+gespiegelt. Moebel sind aus der Kistenliste ausgeblendet
+(`kindNot: 'furniture'`), damit ein Stueck nicht in zwei Listen steht.
 
 ### 3. Markieren wie in Excel
 

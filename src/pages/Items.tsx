@@ -130,8 +130,11 @@ export default function Items() {
   const [exporting, setExporting] = useState(false)
   const PAGE = 60
 
+  /* Moebel haben einen eigenen Bereich. Sie stehen in derselben Tabelle,
+   * darum werden sie hier ausdruecklich ausgeschlossen, sonst taucht
+   * dasselbe Stueck in zwei Listen auf. */
   const filter = useMemo(
-    () => ({ search: debounced, status, roomId, personId, sort }),
+    () => ({ search: debounced, status, roomId, personId, sort, kindNot: 'furniture' as const }),
     [debounced, status, roomId, personId, sort],
   )
 

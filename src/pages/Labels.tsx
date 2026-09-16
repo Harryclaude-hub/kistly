@@ -503,7 +503,7 @@ export default function Labels() {
   const patch = (next: Partial<Config>) => setStored({ ...cfg, ...next })
 
   const [roomId, setRoomId] = useState(params.get('room') ?? 'all')
-  const [personId, setPersonId] = useState('all')
+  const [personId, setPersonId] = useState(params.get('person') ?? 'all')
   const [status, setStatus] = useState<ItemStatus | 'all'>('all')
 
   const [items, setItems] = useState<Item[]>([])

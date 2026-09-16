@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Pencil, Plus, Trash2, User, DoorOpen } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ChevronRight, Pencil, Plus, Trash2, User, DoorOpen } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
 import {
   Button,
@@ -75,6 +76,7 @@ function ColorGrid({ value, onChange }: { value: string; onChange: (c: string) =
 
 function TagRow({
   tag,
+  to,
   count,
   countsFailed,
   onEdit,
@@ -82,6 +84,8 @@ function TagRow({
   canEdit,
 }: {
   tag: Tag
+  /** Die eigene Seite dieses Bereichs. Antippen oeffnet sie wie eine Akte. */
+  to: string
   count: number | undefined
   countsFailed: boolean
   onEdit: () => void
@@ -101,19 +105,22 @@ function TagRow({
         {/* Das Kuerzel ist die Verbindung zur Nummer auf dem Etikett, darum
             steht es so gross wie moeglich. Es bleibt immer von links nach
             rechts, auch im arabischen Satz. */}
-        <span
-          dir="ltr"
-          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl font-mono font-black ${
-            tag.short.length > 2 ? 'text-lg' : 'text-2xl'
-          }`}
-          style={{ background: tag.color, color: contrastOn(tag.color) }}
-        >
-          {tag.short}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="t-name-lg break-words">{tag.name}</p>
-          <p className="t-sub truncate">{countText}</p>
-        </div>
+        <Link to={to} className="-m-1 flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-1">
+          <span
+            dir="ltr"
+            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl font-mono font-black ${
+              tag.short.length > 2 ? 'text-lg' : 'text-2xl'
+            }`}
+            style={{ background: tag.color, color: contrastOn(tag.color) }}
+          >
+            {tag.short}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="t-name-lg block break-words">{tag.name}</span>
+            <span className="t-sub block truncate">{countText}</span>
+          </span>
+          <ChevronRight size={20} className="spiegeln shrink-0 text-muted" />
+        </Link>
         {canEdit ? (
           <div className="flex shrink-0 gap-1.5">
             <IconButton
@@ -151,8 +158,32 @@ export default function Areas() {
   const [countsError, setCountsError] = useState<string | null>(null)
   const [countsNonce, setCountsNonce] = useState(0)
   const [toDelete, setToDelete] = useState<Tag | null>(null)
+  const [params, setParams] = useSearchParams()
 
   const retryCounts = useCallback(() => setCountsNonce((n) => n + 1), [])
+
+  /* Die eigene Seite eines Bereichs schickt zum Bearbeiten hierher zurueck.
+   * Der Dialog steht nur an dieser einen Stelle, sonst gaebe es ihn zweimal
+   * und beide wuerden auseinanderlaufen. */
+  useEffect(() => {
+    const wunsch = params.get('bearbeiten')
+    if (!wunsch) return
+    const tag = tags.find((x) => x.id === wunsch)
+    if (tag) {
+      setError(null)
+      setDraft({
+        id: tag.id,
+        kind: tag.kind,
+        name: tag.name,
+        short: tag.short,
+        color: tag.color,
+        note: tag.note ?? '',
+      })
+    }
+    const rest = new URLSearchParams(params)
+    rest.delete('bearbeiten')
+    setParams(rest, { replace: true })
+  }, [params, tags, setParams])
 
   useEffect(() => {
     let alive = true
@@ -283,6 +314,7 @@ export default function Areas() {
             <TagRow
               key={tag.id}
               tag={tag}
+              to={`/app/p/${project.id}/${tag.kind === 'room' ? 'zimmer' : 'person'}/${tag.id}`}
               count={counts.get(tag.id)}
               countsFailed={Boolean(countsError)}
               canEdit={canEdit}

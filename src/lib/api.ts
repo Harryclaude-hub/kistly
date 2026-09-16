@@ -361,6 +361,12 @@ export async function createItem(input: {
   fragile?: boolean
   target_room?: string | null
   status?: ItemStatus
+  /* Nur fuer Moebel, also Eintraege mit kind 'furniture'. Sie stehen in
+   * derselben Tabelle, darum stehen sie auch in derselben Funktion. */
+  hersteller?: string | null
+  modell?: string | null
+  masse?: string | null
+  zerlegt?: boolean
 }): Promise<Item> {
   const res = await supabase.from('items').insert(input).select('*').single()
   return unwrap(res, 'fehler.kiste_anlegen') as Item

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  Armchair,
   ArrowLeft,
   Boxes,
   ChevronRight,
@@ -254,6 +255,11 @@ export default function ProjectHome() {
             onClick={() => nav(`${base}/bereiche`)}
           />
           <Quick
+            icon={<Armchair size={26} />}
+            label={t('moebel.titel')}
+            onClick={() => nav(`${base}/moebel`)}
+          />
+          <Quick
             icon={<Printer size={26} />}
             label={t('umzuege.etiketten')}
             onClick={() => nav(`${base}/etiketten`)}
@@ -289,7 +295,7 @@ export default function ProjectHome() {
             {rooms.map((r) => (
               <Link
                 key={r.id}
-                to={`${base}/kisten?room=${r.id}`}
+                to={`${base}/zimmer/${r.id}`}
                 className="flex items-center gap-3 px-3 py-3 hover:bg-raised"
               >
                 <span
@@ -324,7 +330,7 @@ export default function ProjectHome() {
             </SectionTitle>
             <div className="mb-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {people.map((p) => (
-                <Link key={p.id} to={`${base}/kisten?person=${p.id}`} className="block">
+                <Link key={p.id} to={`${base}/person/${p.id}`} className="block">
                   <span
                     className="flex min-h-[76px] items-center gap-3 rounded-2xl border-2 bg-surface px-3 py-3 transition hover:bg-raised active:scale-[0.99]"
                     style={{ borderColor: withAlpha(p.color, 0.45) }}
