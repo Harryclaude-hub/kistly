@@ -231,6 +231,8 @@ export async function createTag(input: {
   name: string
   short: string
   color: string
+  /** Freiwilliges Zeichen neben dem Kuerzel. Siehe Migration 0010. */
+  symbol?: string | null
   note?: string | null
 }): Promise<Tag> {
   const res = await supabase
@@ -473,13 +475,13 @@ export async function moveContent(
   if (error) throw new Error(tg('fehler.inhalt_verschieben', { grund: errText(error) }))
 }
 
-/** Mehrere Kisten auf einmal in ein anderes Zimmer oder zu einer anderen
- *  Person haengen. Einzeln, damit der Trigger je Zeile einen sauberen
- *  neuen Code vergeben kann. Fehlschlaege werden gesammelt gemeldet,
- *  nicht verschluckt. */
-export async function moveItems(
+/** Mehrere Kisten auf einmal aendern. Einzeln, damit der Trigger je Zeile
+ *  einen sauberen neuen Code vergeben kann. Fehlschlaege werden gesammelt
+ *  gemeldet, nicht verschluckt: wer zehn Kisten markiert und sieben
+ *  bekommt, muss das erfahren. */
+export async function patchItems(
   ids: string[],
-  patch: { room_id?: string | null; person_id?: string | null; code_source?: Item['code_source'] },
+  patch: Partial<Item>,
 ): Promise<{ ok: number; fehler: string[] }> {
   let okZahl = 0
   const fehler: string[] = []
@@ -492,6 +494,17 @@ export async function moveItems(
     }
   }
   return { ok: okZahl, fehler }
+}
+
+/** Mehrere Kisten in ein anderes Zimmer oder zu einer anderen Person
+ *  haengen. Eigener Name, damit an der Aufrufstelle steht, was gemeint
+ *  ist. Der Weg dorthin ist derselbe wie bei patchItems, es gibt ihn nur
+ *  einmal. */
+export async function moveItems(
+  ids: string[],
+  patch: { room_id?: string | null; person_id?: string | null; code_source?: Item['code_source'] },
+): Promise<{ ok: number; fehler: string[] }> {
+  return patchItems(ids, patch)
 }
 
 export async function updateContent(id: string, patch: Partial<ItemContent>): Promise<void> {

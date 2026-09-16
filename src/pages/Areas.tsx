@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronRight, Pencil, Plus, Trash2, User, DoorOpen } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
+import { MarkIcon } from '../components/Mark'
 import {
   Button,
   Card,
@@ -20,8 +21,9 @@ import {
 import { useProject } from './ProjectLayout'
 import { createTag, deleteTag, listTagStats, updateTag } from '../lib/api'
 import { useSprache, useT } from '../lib/i18n'
+import { MARK_SYMBOLE } from '../lib/marken'
 import { TAG_COLORS, type Tag, type TagKind } from '../lib/types'
-import { contrastOn, suggestShort } from '../lib/util'
+import { contrastOn, cx, suggestShort } from '../lib/util'
 
 interface Draft {
   id?: string
@@ -29,6 +31,9 @@ interface Draft {
   name: string
   short: string
   color: string
+  /** Ein Zeichen neben dem Kuerzel. Freiwillig, hilft beim schnellen
+   *  Erkennen auf Papier und in langen Listen. */
+  symbol: string | null
   note: string
 }
 
@@ -37,6 +42,7 @@ const EMPTY = (kind: TagKind, color: string): Draft => ({
   name: '',
   short: '',
   color,
+  symbol: null,
   note: '',
 })
 
@@ -116,7 +122,10 @@ function TagRow({
             {tag.short}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="t-name-lg block break-words">{tag.name}</span>
+            <span className="t-name-lg flex items-center gap-1.5 break-words">
+              {tag.symbol ? <MarkIcon symbol={tag.symbol} size={17} /> : null}
+              {tag.name}
+            </span>
             <span className="t-sub block truncate">{countText}</span>
           </span>
           <ChevronRight size={20} className="spiegeln shrink-0 text-muted" />
@@ -177,6 +186,7 @@ export default function Areas() {
         name: tag.name,
         short: tag.short,
         color: tag.color,
+        symbol: tag.symbol,
         note: tag.note ?? '',
       })
     }
@@ -220,6 +230,7 @@ export default function Areas() {
       name: tag.name,
       short: tag.short,
       color: tag.color,
+      symbol: tag.symbol,
       note: tag.note ?? '',
     })
   }
@@ -249,6 +260,7 @@ export default function Areas() {
           name: draft.name.trim(),
           short,
           color: draft.color,
+          symbol: draft.symbol,
           note: draft.note.trim() || null,
         })
         toast(t('bereiche.gespeichert'), 'ok')
@@ -259,6 +271,7 @@ export default function Areas() {
           name: draft.name.trim(),
           short,
           color: draft.color,
+          symbol: draft.symbol,
           note: draft.note.trim() || null,
         })
         toast(t('bereiche.angelegt'), 'ok')
@@ -421,6 +434,44 @@ export default function Areas() {
                 placeholder={t('bereiche.kuerzel_platzhalter')}
                 className="w-32 font-mono text-2xl font-black uppercase"
               />
+            </Field>
+
+            <Field label={t('marken.symbol')} hint={t('begriff.optional')}>
+              <div className="flex flex-wrap gap-2">
+                {MARK_SYMBOLE.map((sym) => (
+                  <button
+                    key={sym}
+                    type="button"
+                    onClick={() =>
+                      setDraft((d) => (d ? { ...d, symbol: d.symbol === sym ? null : sym } : d))
+                    }
+                    aria-label={t(`marken.symbol_${sym}`)}
+                    title={t(`marken.symbol_${sym}`)}
+                    aria-pressed={draft.symbol === sym}
+                    className={cx(
+                      'flex h-11 w-11 items-center justify-center rounded-xl border-2 transition active:scale-95',
+                      draft.symbol === sym
+                        ? 'border-ink bg-ink text-paper'
+                        : 'border-line bg-surface text-ink hover:border-ink/35 hover:bg-raised',
+                    )}
+                  >
+                    <MarkIcon symbol={sym} size={20} />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setDraft((d) => (d ? { ...d, symbol: null } : d))}
+                  aria-pressed={draft.symbol === null}
+                  className={cx(
+                    'flex h-11 items-center rounded-xl border-2 px-3 text-[0.9375rem] font-bold transition active:scale-95',
+                    draft.symbol === null
+                      ? 'border-ink bg-ink text-paper'
+                      : 'border-line bg-surface text-ink',
+                  )}
+                >
+                  {t('marken.ohne_symbol')}
+                </button>
+              </div>
             </Field>
 
             <Field label={t('begriff.farbe')} hint={t('bereiche.farbe_hinweis')}>

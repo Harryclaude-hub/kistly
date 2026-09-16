@@ -17,6 +17,7 @@ import { bereiche } from './bausteine/bereiche'
 import { bereichsseite } from './bausteine/bereichsseite'
 import { kisten } from './bausteine/kisten'
 import { moebel } from './bausteine/moebel'
+import { marken } from './bausteine/marken'
 import { etiketten } from './bausteine/etiketten'
 import { scannen } from './bausteine/scannen'
 import { chat } from './bausteine/chat'
@@ -51,6 +52,7 @@ export const WOERTER: Woerterbuch = zusammenlegen(
   bereichsseite,
   kisten,
   moebel,
+  marken,
   etiketten,
   scannen,
   chat,

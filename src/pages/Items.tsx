@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Boxes, DoorOpen, Download, Filter, Plus, Search, User, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Boxes, CheckSquare, Download, Filter, Plus, Search, X } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
+import { ItemRow } from '../components/ItemRow'
+import { Auswahlleiste } from '../components/Auswahlleiste'
 import {
   Button,
   Card,
   Chip,
-  CodeChip,
   Empty,
   ErrorBox,
   Field,
@@ -16,7 +17,6 @@ import {
   Modal,
   Select,
   Spinner,
-  StatusPill,
   Switch,
   Textarea,
   useToast,
@@ -30,10 +30,9 @@ import {
   type Item,
   type ItemKind,
   type ItemStatus,
-  type Tag,
   type TagKind,
 } from '../lib/types'
-import { contrastOn, download, toCsv, useDebounced } from '../lib/util'
+import { download, toCsv, useDebounced } from '../lib/util'
 
 const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
   open: 'transit',
@@ -81,20 +80,6 @@ export function SizePicker({
   )
 }
 
-/** Zimmer und Person als farbige Kachel mit vollem Namen. Ein Kuerzel in
- *  Kleinstschrift sagt beim Tragen niemandem, wem die Kiste gehoert. */
-function TagTile({ tag, icon }: { tag: Tag; icon: ReactNode }) {
-  return (
-    <span
-      className="inline-flex max-w-full items-center gap-1 rounded-lg px-2 py-0.5 text-[0.9375rem] font-bold leading-6"
-      style={{ background: tag.color, color: contrastOn(tag.color) }}
-    >
-      <span className="shrink-0 opacity-80">{icon}</span>
-      <span className="min-w-0 truncate">{tag.name}</span>
-    </span>
-  )
-}
-
 interface Draft {
   kind: ItemKind
   title: string
@@ -128,6 +113,11 @@ export default function Items() {
   const [page, setPage] = useState(0)
   const [showFilter, setShowFilter] = useState(false)
   const [exporting, setExporting] = useState(false)
+  /* Auswaehlen wie in einer Tabelle. Die Auswahl haelt nur Kennungen, nie
+   * ganze Zeilen. Sonst haette man nach dem Nachladen zwei Fassungen
+   * derselben Kiste im Kopf. */
+  const [waehlen, setWaehlen] = useState(false)
+  const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set())
   const PAGE = 60
 
   /* Moebel haben einen eigenen Bereich. Sie stehen in derselben Tabelle,
@@ -335,6 +325,18 @@ export default function Items() {
               {exporting ? <Spinner /> : <Download size={19} />}
             </IconButton>
             {canEdit ? (
+              <IconButton
+                label={waehlen ? t('auswahl.modus_aus') : t('auswahl.modus_an')}
+                size="sm"
+                onClick={() => {
+                  setWaehlen((v) => !v)
+                  setGewaehlt(new Set())
+                }}
+              >
+                <CheckSquare size={19} />
+              </IconButton>
+            ) : null}
+            {canEdit ? (
               <Button size="sm" onClick={() => setOpen(true)}>
                 <Plus size={16} /> {t('aktion.neu')}
               </Button>
@@ -479,53 +481,27 @@ export default function Items() {
               </div>
             ) : null}
             <Card className="zebra divide-y divide-line overflow-hidden">
-              {rows.map((item) => {
-                const room = tagById(item.room_id)
-                const person = tagById(item.person_id)
-                const color = room?.color ?? person?.color ?? '#94a3b8'
-                return (
-                  <div key={item.id} className="flex items-stretch">
-                    <span
-                      aria-hidden="true"
-                      className="w-2 shrink-0"
-                      style={{ background: color }}
-                    />
-                    <Link
-                      to={`/app/p/${project.id}/kisten/${item.id}`}
-                      className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 py-3.5 transition hover:bg-raised"
-                    >
-                      <span className="flex flex-wrap items-center gap-2">
-                        <CodeChip code={item.code} size="md" />
-                        {item.fragile ? (
-                          <span className="rounded-lg border-2 border-warn/40 bg-warn/10 px-2 py-0.5 text-sm font-black text-warn">
-                            {t('begriff.zerbrechlich')}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="t-name block truncate">
-                        {item.title || t(`art.${item.kind}`)}
-                      </span>
-                      {room || person || item.target_room ? (
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          {room ? <TagTile tag={room} icon={<DoorOpen size={14} />} /> : null}
-                          {person ? <TagTile tag={person} icon={<User size={14} />} /> : null}
-                          {item.target_room ? (
-                            <span className="t-sub min-w-0 truncate">
-                              {t('kisten.nach_ziel', { ziel: item.target_room })}
-                            </span>
-                          ) : null}
-                        </span>
-                      ) : null}
-                    </Link>
-                    <span className="flex shrink-0 items-center py-3 pe-3">
-                      <StatusPill
-                        status={item.status}
-                        onClick={canEdit ? () => void cycleStatus(item) : undefined}
-                      />
-                    </span>
-                  </div>
-                )
-              })}
+              {rows.map((item) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  projectId={project.id}
+                  tagById={tagById}
+                  canEdit={canEdit}
+                  onStatus={(i) => void cycleStatus(i)}
+                  auswahl={{
+                    an: waehlen,
+                    gewaehlt: gewaehlt.has(item.id),
+                    umschalten: (id) =>
+                      setGewaehlt((v) => {
+                        const next = new Set(v)
+                        if (next.has(id)) next.delete(id)
+                        else next.add(id)
+                        return next
+                      }),
+                  }}
+                />
+              ))}
             </Card>
 
             {rows.length < total ? (
@@ -545,6 +521,25 @@ export default function Items() {
             )}
           </>
         )}
+        {waehlen ? (
+          <Auswahlleiste
+            ids={[...gewaehlt]}
+            gesamt={rows.length}
+            rooms={rooms}
+            people={people}
+            onAlle={() => setGewaehlt(new Set(rows.map((r) => r.id)))}
+            onKeine={() => setGewaehlt(new Set())}
+            onEnde={() => {
+              setWaehlen(false)
+              setGewaehlt(new Set())
+            }}
+            onFertig={() => {
+              setGewaehlt(new Set())
+              void load(0, false)
+            }}
+          />
+        ) : null}
+
         <div className="h-6" />
       </Page>
 

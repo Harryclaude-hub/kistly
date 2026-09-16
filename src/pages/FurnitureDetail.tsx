@@ -8,11 +8,15 @@ import {
   ImagePlus,
   Pencil,
   Plus,
+  MoveRight,
+  Palette,
   Printer,
   Trash2,
   X,
 } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
+import { InhaltVerschieben } from '../components/InhaltVerschieben'
+import { MarkIcon, MarkPicker } from '../components/Mark'
 import {
   Button,
   Card,
@@ -48,6 +52,7 @@ import {
   updateItem,
 } from '../lib/api'
 import { useSprache } from '../lib/i18n'
+import { markFlaeche } from '../lib/marken'
 import { compressImage, signedUrls, uploadTo } from '../lib/media'
 import { notifyItemStatus } from '../lib/push'
 import { useWischen } from '../lib/wischen'
@@ -106,6 +111,8 @@ export default function FurnitureDetail() {
   const [ziehen, setZiehen] = useState(false)
   const [loeschen, setLoeschen] = useState(false)
   const [bearbeiten, setBearbeiten] = useState(false)
+  const [markieren, setMarkieren] = useState(false)
+  const [umhaengen, setUmhaengen] = useState<ItemContent | null>(null)
 
   const fotoFeld = useRef<HTMLInputElement>(null)
   const anleitungFeld = useRef<HTMLInputElement>(null)
@@ -276,18 +283,39 @@ export default function FurnitureDetail() {
         back={`/app/p/${project.id}/moebel`}
         actions={
           canEdit ? (
-            <IconButton label={t('aktion.bearbeiten')} size="sm" onClick={() => setBearbeiten(true)}>
-              <Pencil size={17} />
-            </IconButton>
+            <>
+              <IconButton label={t('marken.markieren')} size="sm" onClick={() => setMarkieren(true)}>
+                <Palette size={17} />
+              </IconButton>
+              <IconButton
+                label={t('aktion.bearbeiten')}
+                size="sm"
+                onClick={() => setBearbeiten(true)}
+              >
+                <Pencil size={17} />
+              </IconButton>
+            </>
           ) : null
         }
       />
       <Page>
         {/* Nummer und Status ganz oben, so wie bei einer Kiste. */}
-        <Card className="mb-5 p-4">
+        <Card className="mb-5 p-4" style={{ backgroundColor: markFlaeche(item.mark_color) }}>
           <div className="flex flex-wrap items-center gap-3">
             <CodeChip code={item.code} size="lg" />
             <StatusPill status={item.status} />
+            {item.mark_symbol ? (
+              <span
+                className="flex h-9 items-center gap-1.5 rounded-xl border-2 px-2.5 text-[0.9375rem] font-bold"
+                style={{
+                  borderColor: item.mark_color ?? 'var(--line)',
+                  color: item.mark_color ?? 'var(--ink)',
+                }}
+              >
+                <MarkIcon symbol={item.mark_symbol} size={16} />
+                {t(`marken.symbol_${item.mark_symbol}`)}
+              </span>
+            ) : null}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {zimmer ? (
@@ -416,6 +444,15 @@ export default function FurnitureDetail() {
                   <span className="t-serial shrink-0 rounded-lg border border-line bg-raised px-2 py-0.5 font-bold">
                     {teil.qty}
                   </span>
+                  {canEdit ? (
+                    <IconButton
+                      label={t('inhalt.verschieben')}
+                      size="sm"
+                      onClick={() => setUmhaengen(teil)}
+                    >
+                      <MoveRight size={16} className="spiegeln" />
+                    </IconButton>
+                  ) : null}
                   {canEdit ? (
                     <IconButton
                       label={t('kisten.eintrag_loeschen')}
@@ -691,6 +728,34 @@ export default function FurnitureDetail() {
           toast(t('moebel.gespeichert'), 'ok')
         }}
       />
+
+      <InhaltVerschieben
+        offen={umhaengen !== null}
+        projectId={project.id}
+        quelleId={item.id}
+        inhalt={umhaengen}
+        onClose={() => setUmhaengen(null)}
+        onFertig={(inhaltId) => setTeile((c) => c.filter((x) => x.id !== inhaltId))}
+      />
+
+      <Modal
+        open={markieren}
+        onClose={() => setMarkieren(false)}
+        title={t('marken.titel')}
+        footer={
+          <Button variant="ghost" onClick={() => setMarkieren(false)}>
+            {t('aktion.fertig')}
+          </Button>
+        }
+      >
+        <MarkPicker
+          farbe={item.mark_color}
+          symbol={item.mark_symbol}
+          onFarbe={(c) => void aendern({ mark_color: c })}
+          onSymbol={(sym) => void aendern({ mark_symbol: sym })}
+        />
+        <p className="t-sub mt-4">{t('marken.gehoert_der_zeile')}</p>
+      </Modal>
 
       <ConfirmDialog
         open={loeschen}

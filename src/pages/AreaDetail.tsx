@@ -1,19 +1,27 @@
-import { Link, useParams } from 'react-router-dom'
-import { Armchair, Boxes, DoorOpen, Pencil, Printer, User } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Armchair, Boxes, CheckSquare, DoorOpen, Merge, Pencil, Printer, User } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
 import { ItemRow } from '../components/ItemRow'
+import { Auswahlleiste } from '../components/Auswahlleiste'
+import { MarkIcon } from '../components/Mark'
 import {
   Badge,
   Button,
   Card,
+  IconButton,
+  ConfirmDialog,
   Empty,
   ErrorBox,
+  Field,
   Loading,
+  Modal,
   SectionTitle,
+  Select,
   useToast,
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
-import { listItems, setItemStatus } from '../lib/api'
+import { listItems, mergeTags, setItemStatus } from '../lib/api'
 import { useSprache } from '../lib/i18n'
 import { notifyItemStatus } from '../lib/push'
 import { useWischen } from '../lib/wischen'
@@ -48,9 +56,13 @@ function Zahl({ wert, wort, farbe }: { wert: number; wort: string; farbe: string
 
 export default function AreaDetail({ kind }: { kind: TagKind }) {
   const { tagId = '' } = useParams()
-  const { project, tags, tagById, canEdit } = useProject()
+  const nav = useNavigate()
+  const { project, tags, tagById, canEdit, reloadTags } = useProject()
   const { t, tn } = useSprache()
   const toast = useToast()
+  const [zusammen, setZusammen] = useState(false)
+  const [waehlen, setWaehlen] = useState(false)
+  const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set())
   useWischen()
 
   const tag = tags.find((x) => x.id === tagId && x.kind === kind)
@@ -95,6 +107,15 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
     return liste
   })()
 
+  function umschalten(id: string) {
+    setGewaehlt((v) => {
+      const next = new Set(v)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   async function statusWeiter(item: Item) {
     const ziel = NAECHSTER_STATUS[item.status]
     try {
@@ -132,12 +153,24 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
         back={`/app/p/${project.id}/bereiche`}
         actions={
           canEdit ? (
-            <Link to={`/app/p/${project.id}/bereiche?bearbeiten=${tag.id}`}>
-              <Button variant="outline" size="sm">
-                <Pencil size={16} />
-                {t('aktion.bearbeiten')}
-              </Button>
-            </Link>
+            <>
+              <IconButton
+                label={waehlen ? t('auswahl.modus_aus') : t('auswahl.modus_an')}
+                size="sm"
+                onClick={() => {
+                  setWaehlen((v) => !v)
+                  setGewaehlt(new Set())
+                }}
+              >
+                <CheckSquare size={17} />
+              </IconButton>
+              <Link to={`/app/p/${project.id}/bereiche?bearbeiten=${tag.id}`}>
+                <Button variant="outline" size="sm">
+                  <Pencil size={16} />
+                  {t('aktion.bearbeiten')}
+                </Button>
+              </Link>
+            </>
           ) : null
         }
       />
@@ -161,7 +194,12 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
               <p className="t-sub mt-1 flex flex-wrap items-center gap-2">
                 {kind === 'room' ? <DoorOpen size={15} /> : <User size={15} />}
                 {alles.loading ? t('bereichsseite.zahlen_laden') : tn('begriff.kisten_anzahl', rows.length)}
-                {tag.symbol ? <Badge>{tag.symbol}</Badge> : null}
+                {tag.symbol ? (
+                  <Badge>
+                    <MarkIcon symbol={tag.symbol} size={14} />
+                    {t(`marken.symbol_${tag.symbol}`)}
+                  </Badge>
+                ) : null}
               </p>
             </div>
           </div>
@@ -201,6 +239,12 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
               {t('bereichsseite.etiketten')}
             </Button>
           </Link>
+          {canEdit ? (
+            <Button variant="outline" size="sm" onClick={() => setZusammen(true)}>
+              <Merge size={16} />
+              {t('zusammen.knopf')}
+            </Button>
+          ) : null}
         </div>
 
         {alles.loading ? (
@@ -271,6 +315,11 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
                     tagById={tagById}
                     canEdit={canEdit}
                     onStatus={statusWeiter}
+                    auswahl={{
+                      an: waehlen,
+                      gewaehlt: gewaehlt.has(item.id),
+                      umschalten: umschalten,
+                    }}
                     zeigeZimmer={kind !== 'room'}
                     zeigePerson={kind !== 'person'}
                   />
@@ -307,6 +356,11 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
                     tagById={tagById}
                     canEdit={canEdit}
                     onStatus={statusWeiter}
+                    auswahl={{
+                      an: waehlen,
+                      gewaehlt: gewaehlt.has(item.id),
+                      umschalten: umschalten,
+                    }}
                     zeigeZimmer={kind !== 'room'}
                     zeigePerson={kind !== 'person'}
                   />
@@ -315,8 +369,130 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
             )}
           </>
         )}
+        {waehlen ? (
+          <Auswahlleiste
+            ids={[...gewaehlt]}
+            gesamt={rows.length}
+            rooms={tags.filter((x) => x.kind === 'room')}
+            people={tags.filter((x) => x.kind === 'person')}
+            onAlle={() => setGewaehlt(new Set(rows.map((r) => r.id)))}
+            onKeine={() => setGewaehlt(new Set())}
+            onEnde={() => {
+              setWaehlen(false)
+              setGewaehlt(new Set())
+            }}
+            onFertig={() => {
+              setGewaehlt(new Set())
+              alles.reload()
+            }}
+          />
+        ) : null}
+
         <div className="h-6" />
       </Page>
+
+      <ZusammenDialog
+        offen={zusammen}
+        quelle={tag}
+        ziele={tags.filter((x) => x.kind === kind && x.id !== tag.id)}
+        onClose={() => setZusammen(false)}
+        onFertig={async (n) => {
+          setZusammen(false)
+          toast(tn('zusammen.erledigt', n), 'ok')
+          await reloadTags()
+          nav(`/app/p/${project.id}/bereiche`)
+        }}
+      />
+    </>
+  )
+}
+
+/* ------------------------------------------------- Bereiche zusammenfuehren */
+
+/** Zwei Bereiche zu einem machen. Die Datenbank haengt alles um und
+ *  vergibt die Nummern neu, die alten Etiketten bleiben ueber die
+ *  Codehistorie scannbar. Zurueck geht das nicht, darum wird zweimal
+ *  gefragt. */
+function ZusammenDialog({
+  offen,
+  quelle,
+  ziele,
+  onClose,
+  onFertig,
+}: {
+  offen: boolean
+  quelle: Tag
+  ziele: Tag[]
+  onClose: () => void
+  onFertig: (umgehaengt: number) => Promise<void>
+}) {
+  const { t } = useSprache()
+  const toast = useToast()
+  const [zielId, setZielId] = useState('')
+  const [nachfrage, setNachfrage] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const ziel = ziele.find((z) => z.id === zielId)
+
+  return (
+    <>
+      <Modal
+        open={offen && !nachfrage}
+        onClose={onClose}
+        title={t('zusammen.titel')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={onClose}>
+              {t('aktion.abbrechen')}
+            </Button>
+            <Button disabled={!ziel} onClick={() => setNachfrage(true)}>
+              {t('zusammen.knopf')}
+            </Button>
+          </>
+        }
+      >
+        {ziele.length === 0 ? (
+          <p className="text-base text-muted">{t('zusammen.kein_ziel')}</p>
+        ) : (
+          <div className="space-y-4">
+            <Field label={t('zusammen.ziel')} hint={t('zusammen.ziel_waehlen')}>
+              <Select value={zielId} onChange={(e) => setZielId(e.target.value)}>
+                <option value="">{t('zusammen.ziel_waehlen')}</option>
+                {ziele.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.short} - {z.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {ziel ? (
+              <p className="t-sub">
+                {t('zusammen.warnung', { von: quelle.name, nach: ziel.name })}
+              </p>
+            ) : null}
+          </div>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={nachfrage}
+        title={t('zusammen.titel')}
+        body={t('zusammen.warnung', { von: quelle.name, nach: ziel?.name ?? '' })}
+        confirmLabel={t('zusammen.knopf')}
+        onClose={() => setNachfrage(false)}
+        onConfirm={() => {
+          if (!ziel || busy) return
+          setBusy(true)
+          void mergeTags(quelle.id, ziel.id)
+            .then((n) => onFertig(n))
+            .catch((err: unknown) => {
+              toast(err instanceof Error ? err.message : String(err), 'error')
+            })
+            .finally(() => {
+              setBusy(false)
+              setNachfrage(false)
+            })
+        }}
+      />
     </>
   )
 }

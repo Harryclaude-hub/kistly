@@ -75,20 +75,35 @@ Personenseite und Moebelbereich gemeinsam benutzt. Das Wischen liegt in
 gespiegelt. Moebel sind aus der Kistenliste ausgeblendet
 (`kindNot: 'furniture'`), damit ein Stueck nicht in zwei Listen steht.
 
-### 3. Markieren wie in Excel
+### 3. Markieren wie in Excel FERTIG
 
 - Zeilen und Bereiche einfaerben, Symbol vergeben
 - Abwechselnde Zeilenhelligkeit bleibt **immer** erhalten, auch mit
   eigenen Farben. Eine Zeile dunkler, eine heller, sonst verliert man beim
   Lesen die Spur.
 
-### 4. Verschieben und Zusammenfuehren
+Stand: geloest ueber zwei Schichten in `src/index.css`. Die eigene Farbe
+liegt als `--mark` in der Hintergrundfarbe, der Zebrastreifen als
+`linear-gradient` darueber. Damit tragen zwei Zeilen mit derselben eigenen
+Farbe trotzdem verschiedene Helligkeit. Im Browser nachgemessen, nicht
+geschaetzt. Die Farben und Zeichen selbst stehen in `src/lib/marken.ts`,
+die Bilder dazu in `src/components/Mark.tsx`.
+
+### 4. Verschieben und Zusammenfuehren FERTIG
 
 - Kiste in ein anderes Zimmer (geht schon ueber Bearbeiten, braucht einen
   schnellen Weg aus der Liste heraus)
 - Mehrere Kisten auf einmal
 - Zimmer zusammenfuehren
 - Einzelne Inhalte von einer Kiste in eine andere
+
+Stand: Auswaehlen wie in einer Tabelle steckt in
+`src/components/Auswahlleiste.tsx` und wird von Kistenliste und
+Bereichsseite gemeinsam benutzt. Zusammenfuehren sitzt auf der
+Bereichsseite und fragt zweimal, weil es nicht rueckgaengig geht. Einen
+einzelnen Inhalt umhaengen geht ueber
+`src/components/InhaltVerschieben.tsx`, sowohl in einer Kiste als auch im
+Teilekatalog eines Moebelstuecks.
 
 ### 5. Drucken und Ausgeben
 

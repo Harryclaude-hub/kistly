@@ -10,9 +10,13 @@ import {
   Printer,
   Trash2,
   Upload,
+  MoveRight,
+  Palette,
   X,
 } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
+import { InhaltVerschieben } from '../components/InhaltVerschieben'
+import { MarkIcon, MarkPicker } from '../components/Mark'
 import {
   Avatar,
   Button,
@@ -47,6 +51,7 @@ import {
   updateItem,
 } from '../lib/api'
 import { useSprache } from '../lib/i18n'
+import { markFlaeche } from '../lib/marken'
 import { compressImage, signedUrls, uploadTo } from '../lib/media'
 import { notifyItemStatus } from '../lib/push'
 import {
@@ -120,6 +125,10 @@ export default function ItemDetail() {
 
   const [contents, setContents] = useState<ItemContent[]>([])
   const [photos, setPhotos] = useState<ItemPhoto[]>([])
+  /* Einen Eintrag in eine andere Kiste umhaengen, und die Zeile selbst
+   * markieren. Beides sind eigene Dialoge, damit die Seite ruhig bleibt. */
+  const [umhaengen, setUmhaengen] = useState<ItemContent | null>(null)
+  const [markieren, setMarkieren] = useState(false)
   const [urls, setUrls] = useState<Map<string, string>>(new Map())
   const [newEntry, setNewEntry] = useState('')
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -292,6 +301,9 @@ export default function ItemDetail() {
         actions={
           canEdit ? (
             <>
+              <IconButton label={t('marken.markieren')} size="sm" onClick={() => setMarkieren(true)}>
+                <Palette size={19} />
+              </IconButton>
               <IconButton label={t('kisten.bearbeiten')} size="sm" onClick={() => setEditOpen(true)}>
                 <Pencil size={19} />
               </IconButton>
@@ -310,8 +322,17 @@ export default function ItemDetail() {
 
       <Page>
         {/* Kopf: Nummer, Titel, Zimmer und Person, QR-Code */}
-        <Card className="mb-5 overflow-hidden">
-          <div className="h-2.5" style={{ background: color }} />
+        <Card
+          className="mb-5 overflow-hidden"
+          style={{ backgroundColor: markFlaeche(item.mark_color) }}
+        >
+          <div className="h-2.5" style={{ background: item.mark_color ?? color }} />
+          {item.mark_symbol ? (
+            <p className="flex items-center gap-2 border-b border-line px-4 py-2 text-[0.9375rem] font-bold">
+              <MarkIcon symbol={item.mark_symbol} size={17} />
+              {t(`marken.symbol_${item.mark_symbol}`)}
+            </p>
+          ) : null}
 
           <div className="grid gap-5 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-7 sm:p-5">
             <div className="min-w-0">
@@ -457,6 +478,16 @@ export default function ItemDetail() {
                     {c.qty > 1 ? <span className="t-serial">{c.qty}x </span> : null}
                     {c.text}
                   </span>
+
+                  {canEdit ? (
+                    <IconButton
+                      label={t('inhalt.verschieben')}
+                      size="sm"
+                      onClick={() => setUmhaengen(c)}
+                    >
+                      <MoveRight size={16} className="spiegeln" />
+                    </IconButton>
+                  ) : null}
 
                   {canEdit ? (
                     <IconButton
@@ -801,6 +832,34 @@ export default function ItemDetail() {
             label={t('begriff.zerbrechlich')}
           />
         </div>
+      </Modal>
+
+      <InhaltVerschieben
+        offen={umhaengen !== null}
+        projectId={project.id}
+        quelleId={item.id}
+        inhalt={umhaengen}
+        onClose={() => setUmhaengen(null)}
+        onFertig={(inhaltId) => setContents((list) => list.filter((x) => x.id !== inhaltId))}
+      />
+
+      <Modal
+        open={markieren}
+        onClose={() => setMarkieren(false)}
+        title={t('marken.titel')}
+        footer={
+          <Button variant="ghost" onClick={() => setMarkieren(false)}>
+            {t('aktion.fertig')}
+          </Button>
+        }
+      >
+        <MarkPicker
+          farbe={item.mark_color}
+          symbol={item.mark_symbol}
+          onFarbe={(c) => void patch({ mark_color: c })}
+          onSymbol={(sym) => void patch({ mark_symbol: sym })}
+        />
+        <p className="t-sub mt-4">{t('marken.gehoert_der_zeile')}</p>
       </Modal>
 
       <ConfirmDialog

@@ -154,9 +154,17 @@ body {
 }
 
 /* Abwechselnde Zeilenfarbe. Bei langen Listen ist das der Unterschied
-   zwischen lesbar und nicht lesbar. */
+   zwischen lesbar und nicht lesbar.
+
+   Wichtig: der Wechsel bleibt AUCH dann erhalten, wenn eine Zeile eine
+   eigene Farbe bekommen hat. Die eigene Farbe liegt als Hintergrundfarbe
+   darunter, der Zebrastreifen als hauchduenner Film darueber. Wer eine
+   Zeile faerbt, verliert darum nie die Spur beim Lesen. */
+.zebra > * {
+  background-color: var(--mark, transparent);
+}
 .zebra > *:nth-child(even) {
-  background: var(--zebra);
+  background-image: linear-gradient(var(--zebra), var(--zebra));
 }
 
 .safe-bottom {
