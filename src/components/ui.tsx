@@ -16,7 +16,8 @@ import {
 } from 'react'
 import { Eye, EyeOff, Loader2, X } from 'lucide-react'
 import { contrastOn, cx, initials, parseCode } from '../lib/util'
-import { STATUS_COLOR, STATUS_LABEL, type ItemStatus } from '../lib/types'
+import { useT } from '../lib/i18n'
+import { STATUS_COLOR, type ItemStatus } from '../lib/types'
 
 /* ------------------------------------------------------------------ Logo */
 
@@ -222,6 +223,7 @@ export function PasswordInput({
   ...rest
 }: InputHTMLAttributes<HTMLInputElement>) {
   const [show, setShow] = useState(false)
+  const t = useT()
   return (
     <div className="relative">
       <input
@@ -232,7 +234,7 @@ export function PasswordInput({
       <button
         type="button"
         onClick={() => setShow((s) => !s)}
-        aria-label={show ? 'Passwort verbergen' : 'Passwort anzeigen'}
+        aria-label={show ? t('konto.passwort_verbergen') : t('konto.passwort_anzeigen')}
         className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg border border-line bg-raised text-muted hover:text-ink"
       >
         {show ? <EyeOff size={19} /> : <Eye size={19} />}
@@ -310,23 +312,25 @@ export function Spinner({ className = '' }: { className?: string }) {
   return <Loader2 size={18} className={cx('animate-spin text-muted', className)} />
 }
 
-export function Loading({ label = 'Laedt' }: { label?: string }) {
+export function Loading({ label }: { label?: string }) {
+  const t = useT()
   return (
-    <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted">
+    <div className="flex items-center justify-center gap-2 py-12 text-base text-muted">
       <Spinner />
-      {label}
+      {label ?? t('zustand.laedt')}
     </div>
   )
 }
 
 export function ErrorBox({ error, onRetry }: { error: string; onRetry?: () => void }) {
+  const t = useT()
   return (
-    <div className="rounded-2xl border border-danger/30 bg-danger/5 p-4 text-sm">
-      <p className="font-semibold text-danger">Das hat nicht geklappt</p>
-      <p className="mt-1 text-ink/80">{error}</p>
+    <div className="rounded-2xl border-2 border-danger/30 bg-danger/8 p-4">
+      <p className="t-name text-danger">{t('zustand.fehler')}</p>
+      <p className="mt-1 text-base text-ink/85">{error}</p>
       {onRetry ? (
         <Button size="sm" variant="outline" className="mt-3" onClick={onRetry}>
-          Nochmal versuchen
+          {t('aktion.nochmal')}
         </Button>
       ) : null}
     </div>
@@ -471,6 +475,7 @@ export function StatusPill({
   onClick?: () => void
 }) {
   const color = STATUS_COLOR[status]
+  const t = useT()
   const Tag = onClick ? 'button' : 'span'
   return (
     <Tag
@@ -484,7 +489,7 @@ export function StatusPill({
       style={{ background: `${color}1a`, color, borderColor: `${color}55` }}
     >
       <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-      {STATUS_LABEL[status]}
+      {t(`status.${status}`)}
     </Tag>
   )
 }
@@ -539,7 +544,7 @@ export function QrCode({
       className={className}
       shapeRendering="crispEdges"
       role="img"
-      aria-label={`QR-Code ${value}`}
+      aria-label={`QR ${value}`}
     >
       <rect width={path.n} height={path.n} fill="#ffffff" />
       <path d={path.d} fill="#000000" />
@@ -613,6 +618,7 @@ export function Modal({
   footer?: ReactNode
   wide?: boolean
 }) {
+  const t = useT()
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -644,7 +650,7 @@ export function Modal({
           <h2 className="text-base font-bold">{title}</h2>
           <button
             onClick={onClose}
-            aria-label="Schliessen"
+            aria-label={t('aktion.schliessen')}
             className="rounded-lg p-1.5 text-muted hover:bg-raised hover:text-ink"
           >
             <X size={18} />
@@ -665,7 +671,7 @@ export function ConfirmDialog({
   open,
   title,
   body,
-  confirmLabel = 'Loeschen',
+  confirmLabel,
   onConfirm,
   onClose,
   danger = true,
@@ -679,6 +685,7 @@ export function ConfirmDialog({
   danger?: boolean
 }) {
   const [busy, setBusy] = useState(false)
+  const t = useT()
   return (
     <Modal
       open={open}
@@ -687,7 +694,7 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Abbrechen
+            {t('aktion.abbrechen')}
           </Button>
           <Button
             variant={danger ? 'danger' : 'primary'}
@@ -702,7 +709,7 @@ export function ConfirmDialog({
               }
             }}
           >
-            {confirmLabel}
+            {confirmLabel ?? t('aktion.loeschen')}
           </Button>
         </>
       }

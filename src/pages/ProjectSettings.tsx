@@ -14,10 +14,12 @@ import {
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
 import { deleteProject, updateProject } from '../lib/api'
+import { useT } from '../lib/i18n'
 import { fmtDateTime } from '../lib/util'
 
 export default function ProjectSettings() {
   const { project, setProject, canEdit, isOwner } = useProject()
+  const t = useT()
   const toast = useToast()
   const nav = useNavigate()
   const [delOpen, setDelOpen] = useState(false)
@@ -27,7 +29,7 @@ export default function ProjectSettings() {
   async function save(patch: Parameters<typeof updateProject>[1]) {
     try {
       setProject(await updateProject(project.id, patch))
-      toast('Gespeichert', 'ok')
+      toast(t('team.gespeichert'), 'ok')
     } catch (err) {
       toast(err instanceof Error ? err.message : String(err), 'error')
     }
@@ -35,17 +37,19 @@ export default function ProjectSettings() {
 
   return (
     <>
-      <AppHeader title="Umzug einstellen" subtitle={project.name} back={`/app/p/${project.id}`} />
+      <AppHeader
+        title={t('team.einstellen_titel')}
+        subtitle={project.name}
+        back={`/app/p/${project.id}`}
+      />
       <Page>
-        <SectionTitle>Grunddaten</SectionTitle>
+        <SectionTitle>{t('team.grunddaten')}</SectionTitle>
         <Card className="mb-6 space-y-5 p-5">
           <p className="t-sub">
-            {canEdit
-              ? 'Aenderungen werden gespeichert, sobald du das Feld verlaesst.'
-              : 'Du kannst hier nur lesen. Zum Aendern brauchst du die Rolle Bearbeiter.'}
+            {canEdit ? t('team.speichert_beim_verlassen') : t('team.nur_lesen')}
           </p>
 
-          <Field label="Name des Umzugs">
+          <Field label={t('team.umzug_name')}>
             <Input
               disabled={!canEdit}
               defaultValue={project.name}
@@ -56,7 +60,7 @@ export default function ProjectSettings() {
               }}
             />
           </Field>
-          <Field label="Vermerk" hint="Steht auf der Uebersicht unter dem Namen.">
+          <Field label={t('team.vermerk')} hint={t('team.vermerk_hinweis')}>
             <Textarea
               rows={2}
               disabled={!canEdit}
@@ -65,14 +69,14 @@ export default function ProjectSettings() {
             />
           </Field>
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Alte Adresse">
+            <Field label={t('team.alte_adresse')}>
               <Input
                 disabled={!canEdit}
                 defaultValue={project.from_address ?? ''}
                 onBlur={(e) => void save({ from_address: e.target.value.trim() || null })}
               />
             </Field>
-            <Field label="Neue Adresse">
+            <Field label={t('team.neue_adresse')}>
               <Input
                 disabled={!canEdit}
                 defaultValue={project.to_address ?? ''}
@@ -80,7 +84,7 @@ export default function ProjectSettings() {
               />
             </Field>
           </div>
-          <Field label="Umzugstag">
+          <Field label={t('team.umzugstag')}>
             <Input
               type="date"
               disabled={!canEdit}
@@ -89,33 +93,30 @@ export default function ProjectSettings() {
             />
           </Field>
           <p className="t-sub">
-            Angelegt am {fmtDateTime(project.created_at)}. Zuletzt geaendert{' '}
-            {fmtDateTime(project.updated_at)}.
+            {t('team.zeitstempel', {
+              angelegt: fmtDateTime(project.created_at),
+              geaendert: fmtDateTime(project.updated_at),
+            })}
           </p>
         </Card>
 
-        <SectionTitle>Mitglieder</SectionTitle>
+        <SectionTitle>{t('begriff.mitglieder')}</SectionTitle>
         <Card className="mb-6 p-5">
-          <p className="t-name">Team und Einladungscodes</p>
-          <p className="t-sub mt-1.5">
-            Wer darf mit, wer darf nur lesen, und welcher Code ist offen.
-          </p>
+          <p className="t-name">{t('team.karte_titel')}</p>
+          <p className="t-sub mt-1.5">{t('team.karte_hinweis')}</p>
           <Link to={`/app/p/${project.id}/team`} className="mt-4 block sm:inline-block">
             <Button variant="soft" size="lg" full className="sm:w-auto">
-              <Users size={20} /> Team oeffnen
+              <Users size={20} /> {t('team.karte_knopf')}
             </Button>
           </Link>
         </Card>
 
         {isOwner ? (
           <>
-            <SectionTitle>Gefahrenbereich</SectionTitle>
+            <SectionTitle>{t('team.gefahr_titel')}</SectionTitle>
             <Card className="border-danger/30 p-5">
-              <p className="t-name text-danger">Umzug loeschen</p>
-              <p className="t-sub mt-1.5">
-                Loescht Kisten, Bereiche, Fotos, Nachrichten und alle Mitgliedschaften. Das laesst
-                sich nicht rueckgaengig machen.
-              </p>
+              <p className="t-name text-danger">{t('team.umzug_loeschen')}</p>
+              <p className="t-sub mt-1.5">{t('team.umzug_loeschen_hinweis')}</p>
               <Button
                 variant="danger"
                 size="lg"
@@ -123,7 +124,7 @@ export default function ProjectSettings() {
                 className="mt-4 sm:w-auto"
                 onClick={() => setDelOpen(true)}
               >
-                <Trash2 size={20} /> Umzug loeschen
+                <Trash2 size={20} /> {t('team.umzug_loeschen')}
               </Button>
             </Card>
           </>
@@ -139,7 +140,7 @@ export default function ProjectSettings() {
           setDelOpen(false)
           setConfirmName('')
         }}
-        title="Umzug endgueltig loeschen"
+        title={t('team.loeschen_titel')}
         footer={
           <>
             <Button
@@ -149,7 +150,7 @@ export default function ProjectSettings() {
                 setConfirmName('')
               }}
             >
-              Abbrechen
+              {t('aktion.abbrechen')}
             </Button>
             <Button
               variant="danger"
@@ -159,7 +160,7 @@ export default function ProjectSettings() {
                 setDeleting(true)
                 try {
                   await deleteProject(project.id)
-                  toast('Umzug geloescht', 'ok')
+                  toast(t('team.geloescht'), 'ok')
                   nav('/app')
                 } catch (err) {
                   toast(err instanceof Error ? err.message : String(err), 'error')
@@ -168,20 +169,17 @@ export default function ProjectSettings() {
                 }
               }}
             >
-              Ja, loeschen
+              {t('team.loeschen_ja')}
             </Button>
           </>
         }
       >
-        <p className="text-base text-ink/80">
-          Alles in diesem Umzug wird geloescht: Kisten, Bereiche, Fotos, Nachrichten und
-          Mitgliedschaften. Tippe zur Sicherheit den Namen ein.
-        </p>
+        <p className="text-base text-ink/80">{t('team.loeschen_text')}</p>
         {/* Der Name steht als eigene Zeile da und nicht in der Beschriftung des
             Feldes, damit ein langer Name umbrechen kann statt auszubrechen. */}
         <p className="t-name mt-4 break-words">{project.name}</p>
         <div className="mt-2">
-          <Field label="Name des Umzugs" hint="Muss Zeichen fuer Zeichen stimmen.">
+          <Field label={t('team.umzug_name')} hint={t('team.loeschen_name_hinweis')}>
             <Input
               autoFocus
               value={confirmName}

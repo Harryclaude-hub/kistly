@@ -24,12 +24,18 @@ import {
   setMemberRole,
 } from '../lib/api'
 import { displayNameOf, useAuth } from '../lib/auth'
-import { ROLE_LABEL, type MemberRole } from '../lib/types'
+import { useSprache } from '../lib/i18n'
+import { type MemberRole } from '../lib/types'
 import { appUrl, fmtDate, useAsync } from '../lib/util'
+
+/* Reihenfolge der Rollen in der Auswahl. Die Beschriftungen stehen im
+ * Woerterbuch unter rolle.owner, rolle.editor und rolle.viewer. */
+const ROLLEN: MemberRole[] = ['owner', 'editor', 'viewer']
 
 export default function Team() {
   const { project, members, role, isOwner, canEdit, reloadMembers } = useProject()
   const { user } = useAuth()
+  const { t, tn } = useSprache()
   const toast = useToast()
   const nav = useNavigate()
   const invites = useAsync(() => listInvites(project.id), [project.id])
@@ -53,8 +59,8 @@ export default function Team() {
       }
       toast(
         copied
-          ? `Code ${inv.code} angelegt und kopiert`
-          : `Code ${inv.code} angelegt. Kopieren ging nicht, schreib ihn bitte ab.`,
+          ? t('team.code_angelegt_kopiert', { code: inv.code })
+          : t('team.code_angelegt_ohne_kopie', { code: inv.code }),
         copied ? 'ok' : 'info',
       )
     } catch (err) {
@@ -67,17 +73,19 @@ export default function Team() {
   async function copyCode(code: string) {
     try {
       await navigator.clipboard.writeText(code)
-      toast('Code kopiert', 'ok')
+      toast(t('team.code_kopiert'), 'ok')
     } catch {
-      toast('Kopieren hat nicht geklappt. Schreib den Code bitte ab.', 'error')
+      toast(t('team.kopieren_fehler'), 'error')
     }
   }
 
   async function share(code: string) {
-    const text = `Komm zu meinem Umzug "${project.name}" bei Kistly. Code: ${code}\n${appUrl('app')}`
+    // Nachricht an einen Menschen, also uebersetzt. Der Name des Umzugs und
+    // der Code bleiben unveraendert.
+    const text = `${t('team.teilen_text', { name: project.name, code })}\n${appUrl('app')}`
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Kistly Einladung', text })
+        await navigator.share({ title: t('team.teilen_titel'), text })
         return
       } catch (err) {
         // Abbrechen durch den Nutzer ist kein Fehlschlag. Alles andere faellt
@@ -87,9 +95,9 @@ export default function Team() {
     }
     try {
       await navigator.clipboard.writeText(text)
-      toast('Einladung kopiert', 'ok')
+      toast(t('team.einladung_kopiert'), 'ok')
     } catch {
-      toast('Teilen hat nicht geklappt. Schreib den Code bitte ab.', 'error')
+      toast(t('team.teilen_fehler'), 'error')
     }
   }
 
@@ -98,24 +106,24 @@ export default function Team() {
   return (
     <>
       <AppHeader
-        title="Team"
-        subtitle={`${members.length} Mitglieder`}
+        title={t('team.titel')}
+        subtitle={tn('begriff.mitglieder_anzahl', members.length)}
         back={`/app/p/${project.id}`}
         actions={
           canEdit ? (
             <Button size="sm" loading={busy} onClick={() => void onCreateInvite()}>
-              <UserPlus size={18} /> Einladen
+              <UserPlus size={18} /> {t('team.einladen')}
             </Button>
           ) : null
         }
       />
 
       <Page>
-        <SectionTitle>Mitglieder</SectionTitle>
+        <SectionTitle>{t('begriff.mitglieder')}</SectionTitle>
         <Card className="zebra mb-6 divide-y divide-line overflow-hidden">
           {members.map((m) => {
             const me = m.user_id === user?.id
-            const name = displayNameOf(m.profile, 'Unbekannt')
+            const name = displayNameOf(m.profile, t('team.unbekannt'))
             return (
               <div key={m.user_id} className="px-3 py-3.5">
                 <div className="flex items-center gap-3">
@@ -123,14 +131,16 @@ export default function Team() {
                   <div className="min-w-0 flex-1">
                     <p className="t-name truncate">
                       {name}
-                      {me ? <span className="t-sub font-normal"> (du)</span> : null}
+                      {me ? <span className="t-sub font-normal"> {t('team.du')}</span> : null}
                     </p>
-                    <p className="t-sub truncate">{m.profile?.email ?? 'ohne E-Mail'}</p>
-                    <p className="t-sub truncate">dabei seit {fmtDate(m.created_at)}</p>
+                    <p className="t-sub truncate">{m.profile?.email ?? t('team.ohne_email')}</p>
+                    <p className="t-sub truncate">
+                      {t('team.dabei_seit', { datum: fmtDate(m.created_at) })}
+                    </p>
                   </div>
                   {!(isOwner && !me) ? (
                     <span className="shrink-0 rounded-full bg-raised px-3 py-1 text-sm font-bold">
-                      {ROLE_LABEL[m.role]}
+                      {t(`rolle.${m.role}`)}
                     </span>
                   ) : null}
                 </div>
@@ -139,26 +149,26 @@ export default function Team() {
                   <div className="mt-3 flex items-center gap-2">
                     <Select
                       value={m.role}
-                      aria-label={`Rolle von ${name}`}
+                      aria-label={t('team.rolle_von', { name })}
                       className="min-w-0 flex-1"
                       onChange={async (e) => {
                         try {
                           await setMemberRole(project.id, m.user_id, e.target.value as MemberRole)
                           await reloadMembers()
-                          toast('Rolle geaendert', 'ok')
+                          toast(t('team.rolle_geaendert'), 'ok')
                         } catch (err) {
                           toast(err instanceof Error ? err.message : String(err), 'error')
                         }
                       }}
                     >
-                      {(Object.keys(ROLE_LABEL) as MemberRole[]).map((r) => (
+                      {ROLLEN.map((r) => (
                         <option key={r} value={r}>
-                          {ROLE_LABEL[r]}
+                          {t(`rolle.${r}`)}
                         </option>
                       ))}
                     </Select>
                     <IconButton
-                      label={`${name} entfernen`}
+                      label={t('team.entfernen_label', { name })}
                       tone="danger"
                       onClick={() => setKick(m.user_id)}
                     >
@@ -175,26 +185,26 @@ export default function Team() {
           action={
             canEdit ? (
               <Button size="sm" variant="soft" loading={busy} onClick={() => void onCreateInvite()}>
-                <Plus size={16} /> Neuer Code
+                <Plus size={16} /> {t('team.neuer_code')}
               </Button>
             ) : null
           }
         >
-          Einladungscodes
+          {t('team.codes_titel')}
         </SectionTitle>
 
         {invites.loading ? (
-          <Loading label="Codes werden geladen" />
+          <Loading label={t('team.codes_laden')} />
         ) : invites.error ? (
           <ErrorBox error={invites.error} onRetry={invites.reload} />
         ) : active.length === 0 ? (
           <Empty
-            title="Kein Code offen"
-            hint="Ein Code laesst andere diesem Umzug beitreten. Sie geben ihn unter Code einloesen ein."
+            title={t('team.kein_code_titel')}
+            hint={t('team.kein_code_hinweis')}
             action={
               canEdit ? (
                 <Button size="lg" loading={busy} onClick={() => void onCreateInvite()}>
-                  <UserPlus size={20} /> Code erstellen
+                  <UserPlus size={20} /> {t('team.code_erstellen')}
                 </Button>
               ) : null
             }
@@ -205,14 +215,14 @@ export default function Team() {
               <div key={inv.id} className="px-3 py-4">
                 <p className="t-serial break-all text-3xl leading-none">{inv.code}</p>
                 <p className="t-sub mt-2">
-                  {ROLE_LABEL[inv.role]}, {inv.uses}x benutzt
+                  {t('team.code_zeile', { rolle: t(`rolle.${inv.role}`), n: inv.uses })}
                 </p>
                 <div className="mt-3 flex items-center gap-2">
                   <Button variant="soft" size="sm" onClick={() => void copyCode(inv.code)}>
-                    <Copy size={17} /> Kopieren
+                    <Copy size={17} /> {t('aktion.kopieren')}
                   </Button>
                   <IconButton
-                    label="Einladung teilen"
+                    label={t('team.einladung_teilen')}
                     size="sm"
                     onClick={() => void share(inv.code)}
                   >
@@ -220,14 +230,14 @@ export default function Team() {
                   </IconButton>
                   {canEdit ? (
                     <IconButton
-                      label="Code deaktivieren"
+                      label={t('team.code_deaktivieren')}
                       tone="danger"
                       size="sm"
                       onClick={async () => {
                         try {
                           await setInviteActive(inv.id, false)
                           invites.reload()
-                          toast('Code deaktiviert', 'ok')
+                          toast(t('team.code_deaktiviert'), 'ok')
                         } catch (err) {
                           toast(err instanceof Error ? err.message : String(err), 'error')
                         }
@@ -250,12 +260,10 @@ export default function Team() {
             className="sm:w-auto"
             onClick={() => setLeaveOpen(true)}
           >
-            <LogOut size={20} /> Diesen Umzug verlassen
+            <LogOut size={20} className="spiegeln" /> {t('team.verlassen_knopf')}
           </Button>
           {role === 'owner' ? (
-            <p className="t-sub mt-2">
-              Du bist Besitzer. Verlassen geht erst, wenn jemand anders Besitzer ist.
-            </p>
+            <p className="t-sub mt-2">{t('team.verlassen_besitzer')}</p>
           ) : null}
         </div>
 
@@ -265,15 +273,15 @@ export default function Team() {
 
       <ConfirmDialog
         open={leaveOpen}
-        title="Umzug verlassen"
-        confirmLabel="Verlassen"
-        body="Du siehst diesen Umzug danach nicht mehr. Mit einem neuen Einladungscode kommst du wieder rein."
+        title={t('team.verlassen_titel')}
+        confirmLabel={t('team.verlassen_bestaetigen')}
+        body={t('team.verlassen_text')}
         onClose={() => setLeaveOpen(false)}
         onConfirm={async () => {
           if (!user) return
           try {
             await removeMember(project.id, user.id)
-            toast('Umzug verlassen', 'ok')
+            toast(t('team.verlassen_ok'), 'ok')
             nav('/app')
           } catch (err) {
             toast(err instanceof Error ? err.message : String(err), 'error')
@@ -283,16 +291,16 @@ export default function Team() {
 
       <ConfirmDialog
         open={Boolean(kick)}
-        title="Mitglied entfernen"
-        confirmLabel="Entfernen"
-        body="Die Person verliert den Zugriff auf diesen Umzug. Ihre Kisten und Nachrichten bleiben erhalten."
+        title={t('team.entfernen_titel')}
+        confirmLabel={t('aktion.entfernen')}
+        body={t('team.entfernen_text')}
         onClose={() => setKick(null)}
         onConfirm={async () => {
           if (!kick) return
           try {
             await removeMember(project.id, kick)
             await reloadMembers()
-            toast('Mitglied entfernt', 'ok')
+            toast(t('team.entfernt'), 'ok')
           } catch (err) {
             toast(err instanceof Error ? err.message : String(err), 'error')
           }

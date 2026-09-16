@@ -56,8 +56,9 @@ import { supabase } from '../lib/supabase'
 import { notifyProject } from '../lib/push'
 import { displayNameOf, useAuth } from '../lib/auth'
 import { compressImage, extOf, signedUrls, uploadTo, VoiceRecorder } from '../lib/media'
-import { STATUS_COLOR, STATUS_LABEL, type Item, type Message, type MessageReaction, type Tag } from '../lib/types'
-import { chatDayLabel, contrastOn, cx, fmtDuration, fmtTime, uid } from '../lib/util'
+import { useSprache, useT } from '../lib/i18n'
+import { STATUS_COLOR, type Item, type Message, type MessageReaction, type Tag } from '../lib/types'
+import { contrastOn, cx, fmtDuration, fmtTime, uid } from '../lib/util'
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '🙏', '✅']
 const REF_RE = /\[\[(item|tag):([0-9a-fA-F-]{36})\|([^\]]*)\]\]/g
@@ -155,6 +156,7 @@ function LinkPreview({
   color: string
   roomName?: string
 }) {
+  const t = useT()
   return (
     <Link
       to={`/app/p/${projectId}/kisten/${item.id}`}
@@ -164,9 +166,11 @@ function LinkPreview({
       <span className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2">
         <CodeChip code={item.code} size="md" />
         <span className="min-w-0 flex-1">
-          <span className="t-name block truncate">{item.title || roomName || 'Kiste'}</span>
+          <span className="t-name block truncate">
+            {item.title || roomName || t('begriff.kiste')}
+          </span>
           <span className="block text-sm font-semibold" style={{ color: STATUS_COLOR[item.status] }}>
-            {STATUS_LABEL[item.status]}
+            {t(`status.${item.status}`)}
           </span>
         </span>
       </span>
@@ -189,6 +193,7 @@ function RefPicker({
   projectId: string
   tags: Tag[]
 }) {
+  const t = useT()
   const [q, setQ] = useState('')
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(false)
@@ -200,7 +205,7 @@ function RefPicker({
     let alive = true
     setLoading(true)
     setError(null)
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       void listItems(projectId, { search: q, limit: 25 })
         .then((r) => {
           if (alive) setItems(r.rows)
@@ -217,51 +222,51 @@ function RefPicker({
     }, 220)
     return () => {
       alive = false
-      clearTimeout(t)
+      clearTimeout(timer)
     }
   }, [q, open, projectId, retry])
 
   const matchedTags = tags.filter(
-    (t) =>
+    (tag) =>
       !q ||
-      t.name.toLowerCase().includes(q.toLowerCase()) ||
-      t.short.toLowerCase().includes(q.toLowerCase()),
+      tag.name.toLowerCase().includes(q.toLowerCase()) ||
+      tag.short.toLowerCase().includes(q.toLowerCase()),
   )
 
   return (
-    <Modal open={open} onClose={onClose} title="Kiste oder Bereich verlinken">
+    <Modal open={open} onClose={onClose} title={t('chat.verlinken_titel')}>
       <Input
         autoFocus
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Nummer, Titel oder Zimmer suchen"
+        placeholder={t('chat.verlinken_suche')}
       />
       <div className="mt-3 max-h-[50vh] space-y-1 overflow-y-auto">
         {error ? (
           <ErrorBox error={error} onRetry={() => setRetry((n) => n + 1)} />
         ) : null}
-        {matchedTags.map((t) => (
+        {matchedTags.map((tag) => (
           <button
-            key={t.id}
+            key={tag.id}
             onClick={() => {
-              onPick('tag', t.id, t.name)
+              onPick('tag', tag.id, tag.name)
               onClose()
             }}
-            className="flex w-full items-center gap-2 rounded-xl border border-line bg-surface px-2 py-2 text-left hover:bg-raised"
+            className="flex w-full items-center gap-2 rounded-xl border border-line bg-surface px-2 py-2 text-start hover:bg-raised"
           >
             <span
               className="t-serial flex h-10 min-w-10 shrink-0 items-center justify-center rounded-lg px-1.5 text-base"
-              style={{ background: t.color, color: contrastOn(t.color) }}
+              style={{ background: tag.color, color: contrastOn(tag.color) }}
             >
-              {t.short}
+              {tag.short}
             </span>
-            <span className="t-name min-w-0 flex-1 truncate">{t.name}</span>
+            <span className="t-name min-w-0 flex-1 truncate">{tag.name}</span>
             <span className="shrink-0 text-sm text-muted">
-              {t.kind === 'room' ? 'Zimmer' : 'Person'}
+              {tag.kind === 'room' ? t('begriff.zimmer') : t('begriff.person')}
             </span>
           </button>
         ))}
-        {loading ? <Loading label="sucht" /> : null}
+        {loading ? <Loading label={t('chat.sucht')} /> : null}
         {items.map((i) => (
           <button
             key={i.id}
@@ -269,14 +274,16 @@ function RefPicker({
               onPick('item', i.id, i.code)
               onClose()
             }}
-            className="flex w-full items-center gap-2 rounded-xl border border-line bg-surface px-2 py-2 text-left hover:bg-raised"
+            className="flex w-full items-center gap-2 rounded-xl border border-line bg-surface px-2 py-2 text-start hover:bg-raised"
           >
             <CodeChip code={i.code} size="md" />
-            <span className="t-name min-w-0 flex-1 truncate">{i.title || 'Kiste'}</span>
+            <span className="t-name min-w-0 flex-1 truncate">
+              {i.title || t('begriff.kiste')}
+            </span>
           </button>
         ))}
         {!loading && !error && items.length === 0 && matchedTags.length === 0 ? (
-          <p className="py-6 text-center text-base text-muted">Nichts gefunden.</p>
+          <p className="py-6 text-center text-base text-muted">{t('zustand.nichts_gefunden')}</p>
         ) : null}
       </div>
     </Modal>
@@ -288,6 +295,7 @@ function RefPicker({
 export default function Chat() {
   const { project, tags, members, clearUnread } = useProject()
   const { user, profile } = useAuth()
+  const { lang, t, tn } = useSprache()
   const toast = useToast()
   const calls = useCalls()
   const uidSelf = user?.id ?? ''
@@ -310,6 +318,9 @@ export default function Chat() {
   const [linkedItems, setLinkedItems] = useState<Map<string, Item>>(new Map())
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [menuFor, setMenuFor] = useState<string | null>(null)
+  /* Welche Nachricht zeigt gerade ihre Aktionen. Am Zeigergeraet
+   * uebernimmt das Schweben, am Telefon das Antippen der Blase. */
+  const [aktionenFuer, setAktionenFuer] = useState<string | null>(null)
 
   const listRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -321,8 +332,9 @@ export default function Chat() {
   const attachRef = useRef<Pending[]>([])
 
   const nameOf = useCallback(
-    (id: string | null) => displayNameOf(members.find((m) => m.user_id === id)?.profile, 'Jemand'),
-    [members],
+    (id: string | null) =>
+      displayNameOf(members.find((m) => m.user_id === id)?.profile, t('chat.jemand')),
+    [members, t],
   )
 
   const scrollDown = useCallback((smooth = false) => {
@@ -341,9 +353,11 @@ export default function Chat() {
     (list: File[]) => {
       const taken: Pending[] = []
       for (const file of list) {
-        const name = file.name || (file.type.startsWith('image/') ? 'Bild.png' : 'Datei')
+        const name =
+          file.name ||
+          (file.type.startsWith('image/') ? t('chat.bild_dateiname') : t('chat.datei'))
         if (file.size > MAX_UPLOAD) {
-          toast(`${name} ist zu gross. Hoechstens 25 MB.`, 'error')
+          toast(t('chat.datei_zu_gross', { name }), 'error')
           continue
         }
         taken.push({
@@ -356,7 +370,7 @@ export default function Chat() {
       if (taken.length === 0) return
       setAttachments((prev) => [...prev, ...taken])
     },
-    [toast],
+    [toast, t],
   )
 
   const dropAttachment = useCallback((id: string) => {
@@ -434,7 +448,7 @@ export default function Chat() {
     e.preventDefault()
     const files = filesFrom(e.dataTransfer)
     if (files.length === 0) {
-      toast('Da war keine Datei dabei.', 'error')
+      toast(t('chat.kein_datei_abwurf'), 'error')
       return
     }
     addFiles(files)
@@ -511,7 +525,7 @@ export default function Chat() {
               await loadLinked([{ ...m, reactions: [], links: extras.links }])
             }
           } catch (err) {
-            toast(`Neue Nachricht nur teilweise geladen: ${errText(err)}`, 'error')
+            toast(t('chat.teilweise_geladen', { grund: errText(err) }), 'error')
           }
           scrollDown(true)
         },
@@ -552,14 +566,14 @@ export default function Chat() {
     return () => {
       void supabase.removeChannel(ch)
     }
-  }, [project.id, loadImages, loadLinked, scrollDown, toast])
+  }, [project.id, loadImages, loadLinked, scrollDown, toast, t])
 
   /* ---------------------------------------------------------- senden */
   async function pushNotice(body: string) {
     await notifyProject(
       project.id,
       {
-        title: `${displayNameOf(profile, 'Neue Nachricht')} . ${project.name}`,
+        title: `${displayNameOf(profile, t('chat.push_neue_nachricht'))} . ${project.name}`,
         body,
         type: 'chat',
         tag: `chat-${project.id}`,
@@ -605,7 +619,7 @@ export default function Chat() {
       reply_to: replyId,
     })
     await appendOwn(gesendet)
-    void pushNotice(isImage ? 'Bild' : a.name)
+    void pushNotice(isImage ? t('chat.bild') : a.name)
   }
 
   async function onSend() {
@@ -664,7 +678,7 @@ export default function Chat() {
 
   async function startRecording() {
     if (!VoiceRecorder.supported()) {
-      toast('Dieser Browser kann keine Sprachnachrichten aufnehmen.', 'error')
+      toast(t('chat.aufnahme_nicht_moeglich'), 'error')
       return
     }
     const rec = new VoiceRecorder()
@@ -677,8 +691,8 @@ export default function Chat() {
       recorderRef.current = null
       toast(
         err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Zugriff auf das Mikrofon wurde abgelehnt.'
-          : `Aufnahme nicht moeglich: ${errText(err)}`,
+          ? t('chat.mikrofon_abgelehnt')
+          : t('chat.aufnahme_fehler', { grund: errText(err) }),
         'error',
       )
     }
@@ -686,8 +700,8 @@ export default function Chat() {
 
   useEffect(() => {
     if (!recording) return
-    const t = setInterval(() => setRecSeconds((s) => s + 1), 1000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => setRecSeconds((s) => s + 1), 1000)
+    return () => clearInterval(timer)
   }, [recording])
 
   async function stopRecording(send: boolean) {
@@ -703,7 +717,7 @@ export default function Chat() {
       const { blob, seconds, mimeType } = await rec.stop()
       recorderRef.current = null
       if (seconds < 0.7) {
-        toast('Zu kurz. Halte den Knopf gedrueckt, solange du sprichst.', 'info')
+        toast(t('chat.aufnahme_zu_kurz'), 'info')
         return
       }
       const path = `${project.id}/${uid()}.${extOf({ type: mimeType }, 'webm')}`
@@ -717,7 +731,7 @@ export default function Chat() {
       })
       await appendOwn(gesendet)
       setReplyTo(null)
-      void pushNotice(`Sprachnachricht, ${fmtDuration(seconds)}`)
+      void pushNotice(t('chat.push_sprachnachricht', { dauer: fmtDuration(seconds) }))
     } catch (err) {
       recorderRef.current = null
       toast(errText(err), 'error')
@@ -757,22 +771,43 @@ export default function Chat() {
     }
   }
 
+  /* Heute und Gestern kommen aus dem Woerterbuch, alles davor formatiert
+   * der Browser in der gerade gewaehlten Sprache. Die Ziffern bleiben
+   * westlich, weil dieselben Ziffern auf den Etiketten stehen. */
+  const tagName = useCallback(
+    (wann: string) => {
+      const d = new Date(wann)
+      const heute = new Date()
+      const gestern = new Date()
+      gestern.setDate(heute.getDate() - 1)
+      const gleicherTag = (a: Date, b: Date) => a.toDateString() === b.toDateString()
+      if (gleicherTag(d, heute)) return t('chat.heute')
+      if (gleicherTag(d, gestern)) return t('chat.gestern')
+      return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-u-nu-latn' : 'de-DE', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).format(d)
+    },
+    [lang, t],
+  )
+
   const grouped = useMemo(() => {
     const out: Array<{ day: string; items: ChatMessage[] }> = []
     for (const m of messages) {
-      const day = chatDayLabel(m.created_at)
+      const day = tagName(m.created_at)
       const last = out[out.length - 1]
       if (last && last.day === day) last.items.push(m)
       else out.push({ day, items: [m] })
     }
     return out
-  }, [messages])
+  }, [messages, tagName])
 
   return (
     /* Die Hoehe laesst der unteren Navigationsleiste ihren Platz, sonst
      * verschwindet die Eingabezeile dahinter. */
     <div
-      className="relative flex h-[calc(100dvh-5.5rem)] flex-col"
+      className="relative flex h-[calc(100dvh-var(--nav-h,6rem))] flex-col"
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -780,12 +815,12 @@ export default function Chat() {
     >
       <AppHeader
         title={project.name}
-        subtitle={`${members.length} Mitglieder`}
+        subtitle={tn('begriff.mitglieder_anzahl', members.length)}
         back={`/app/p/${project.id}`}
         actions={
           <>
             <IconButton
-              label="Anrufen"
+              label={t('chat.anrufen')}
               size="sm"
               onClick={() => void calls.start(false)}
               disabled={calls.busy || calls.inCall}
@@ -793,7 +828,7 @@ export default function Chat() {
               <Phone size={20} />
             </IconButton>
             <IconButton
-              label="Videoanruf"
+              label={t('chat.videoanruf')}
               size="sm"
               onClick={() => void calls.start(true)}
               disabled={calls.busy || calls.inCall}
@@ -810,8 +845,8 @@ export default function Chat() {
         <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-ink/75 p-6 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3 rounded-3xl border-4 border-dashed border-paper/70 px-8 py-10 text-center text-paper">
             <Upload size={48} />
-            <p className="t-name-lg">Loslassen zum Senden</p>
-            <p className="text-base text-paper/80">Bilder und Dateien einfach hier fallen lassen.</p>
+            <p className="t-name-lg">{t('chat.abwurf_titel')}</p>
+            <p className="text-base text-paper/80">{t('chat.abwurf_hinweis')}</p>
           </div>
         </div>
       ) : null}
@@ -819,7 +854,7 @@ export default function Chat() {
       {/* Verlauf */}
       <div ref={listRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-3">
         <div className="mx-auto max-w-2xl">
-          {loading ? <Loading label="Nachrichten" /> : null}
+          {loading ? <Loading label={t('chat.laedt')} /> : null}
 
           {error ? (
             <ErrorBox error={error} onRetry={() => setReloadKey((k) => k + 1)} />
@@ -829,8 +864,8 @@ export default function Chat() {
             <div className="mt-10">
               <Empty
                 icon={<MessageCircle size={40} />}
-                title="Noch keine Nachricht"
-                hint="Hier besprecht ihr den Umzug. Du kannst Kisten und Zimmer verlinken, Bilder hereinziehen oder einfach einfuegen."
+                title={t('chat.leer_titel')}
+                hint={t('chat.leer_hinweis')}
               />
             </div>
           ) : null}
@@ -843,7 +878,7 @@ export default function Chat() {
                 loading={olderBusy}
                 onClick={() => void loadOlder()}
               >
-                Aeltere Nachrichten
+                {t('chat.aeltere')}
               </Button>
             </div>
           ) : null}
@@ -882,23 +917,31 @@ export default function Chat() {
                   >
                     {!own ? <Avatar name={nameOf(m.sender_id)} size={32} /> : null}
 
-                    <div className="min-w-0 max-w-[85%]">
+                    <div className="group min-w-0 max-w-[85%]">
                       {!own ? (
                         <p className="t-name mb-1 truncate px-1 text-ink">{nameOf(m.sender_id)}</p>
                       ) : null}
 
                       <div
+                        onClick={(e) => {
+                          /* Ein Tipp auf die Blase zeigt die Aktionen. Tippt
+                           * jemand auf einen Verweis, ein Bild oder einen
+                           * Knopf darin, passiert hier nichts. */
+                          const ziel = e.target as HTMLElement
+                          if (ziel.closest('a, button, audio, input')) return
+                          setAktionenFuer((cur) => (cur === m.id ? null : m.id))
+                        }}
                         className={cx(
-                          'rounded-2xl px-3.5 py-2.5 text-base shadow-sm',
+                          'cursor-pointer rounded-2xl px-3.5 py-2.5 text-base shadow-sm',
                           own
-                            ? 'rounded-br-md bg-ink text-paper'
-                            : 'rounded-bl-md border border-line bg-surface text-ink',
+                            ? 'rounded-ee-md bg-ink text-paper'
+                            : 'rounded-es-md border border-line bg-surface text-ink',
                         )}
                       >
                         {replied ? (
                           <div
                             className={cx(
-                              'mb-2 rounded-lg border-l-2 px-2 py-1.5 text-sm',
+                              'mb-2 rounded-lg border-s-2 px-2 py-1.5 text-sm',
                               own ? 'border-paper/50 bg-paper/10' : 'border-ink/30 bg-raised',
                             )}
                           >
@@ -907,19 +950,19 @@ export default function Chat() {
                             </span>
                             <span className="line-clamp-2 opacity-70">
                               {replied.deleted_at
-                                ? 'geloescht'
+                                ? t('chat.geloescht_kurz')
                                 : (replied.body?.replace(REF_RE, '$3') ??
                                   (replied.kind === 'voice'
-                                    ? 'Sprachnachricht'
+                                    ? t('chat.sprachnachricht')
                                     : replied.kind === 'image'
-                                      ? 'Bild'
+                                      ? t('chat.bild')
                                       : ''))}
                             </span>
                           </div>
                         ) : null}
 
                         {m.deleted_at ? (
-                          <span className="italic opacity-60">Nachricht geloescht</span>
+                          <span className="italic opacity-60">{t('chat.geloescht')}</span>
                         ) : m.kind === 'voice' && m.attachment_path ? (
                           <VoiceBubble
                             path={m.attachment_path}
@@ -931,16 +974,16 @@ export default function Chat() {
                             onClick={() => {
                               const u = imageUrls.get(m.attachment_path!)
                               if (u) setLightbox(u)
-                              else toast('Das Bild ist gerade nicht erreichbar.', 'error')
+                              else toast(t('chat.bild_nicht_erreichbar'), 'error')
                             }}
-                            aria-label="Bild gross anzeigen"
-                            title="Bild gross anzeigen"
+                            aria-label={t('chat.bild_gross')}
+                            title={t('chat.bild_gross')}
                             className="block overflow-hidden rounded-xl"
                           >
                             {imageUrls.get(m.attachment_path) ? (
                               <img
                                 src={imageUrls.get(m.attachment_path)}
-                                alt="Bild"
+                                alt={t('chat.bild')}
                                 className="max-h-72 w-full rounded-xl object-cover"
                               />
                             ) : (
@@ -955,14 +998,14 @@ export default function Chat() {
                             onClick={() => {
                               const u = imageUrls.get(m.attachment_path!)
                               if (!u) {
-                                toast('Die Datei ist gerade nicht erreichbar.', 'error')
+                                toast(t('chat.datei_nicht_erreichbar'), 'error')
                                 return
                               }
                               window.open(u, '_blank', 'noopener')
                             }}
                           >
                             <Paperclip size={16} className="shrink-0" />
-                            <span className="min-w-0 truncate">{m.body ?? 'Datei'}</span>
+                            <span className="min-w-0 truncate">{m.body ?? t('chat.datei')}</span>
                           </Button>
                         ) : (
                           <MessageText body={m.body ?? ''} projectId={project.id} own={own} />
@@ -974,7 +1017,7 @@ export default function Chat() {
                             own ? 'text-paper/70' : 'text-muted',
                           )}
                         >
-                          {m.edited_at ? <span>bearbeitet</span> : null}
+                          {m.edited_at ? <span>{t('chat.bearbeitet')}</span> : null}
                           {fmtTime(m.created_at)}
                         </div>
                       </div>
@@ -1011,7 +1054,10 @@ export default function Chat() {
                                     toast(errText(err), 'error'),
                                   )
                                 }
-                                aria-label={`${emoji} ${list.length}, antippen zum Aendern`}
+                                aria-label={t('chat.reaktion_umschalten', {
+                                  emoji,
+                                  n: list.length,
+                                })}
                                 className={cx(
                                   'rounded-full border-2 px-2.5 py-1 text-sm font-bold transition active:scale-95',
                                   mine
@@ -1026,23 +1072,35 @@ export default function Chat() {
                         </div>
                       ) : null}
 
-                      {/* Aktionen. Stehen fest in der Reihe, damit sie auch am
-                          Telefon ohne Zeiger erreichbar bleiben. */}
+                      {/* Aktionen erscheinen beim Schweben, am Telefon nach
+                          einem Tipp auf die Blase. Vorher standen sie fest
+                          unter jeder einzelnen Nachricht und haben die ganze
+                          Unterhaltung zugestellt. */}
                       {!m.deleted_at ? (
-                        <div className={cx('mt-1.5 flex gap-1.5', own && 'justify-end')}>
+                        <div
+                          className={cx(
+                            'mt-1.5 gap-1.5',
+                            own && 'justify-end',
+                            aktionenFuer === m.id ? 'flex' : 'hidden zeiger:group-hover:flex',
+                          )}
+                        >
                           <IconButton
-                            label="Reagieren"
+                            label={t('chat.reagieren')}
                             size="sm"
                             onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}
                           >
                             <SmilePlus size={18} />
                           </IconButton>
-                          <IconButton label="Antworten" size="sm" onClick={() => setReplyTo(m)}>
-                            <CornerUpLeft size={18} />
+                          <IconButton
+                            label={t('chat.antworten')}
+                            size="sm"
+                            onClick={() => setReplyTo(m)}
+                          >
+                            <CornerUpLeft size={18} className="spiegeln" />
                           </IconButton>
                           {own ? (
                             <IconButton
-                              label="Nachricht loeschen"
+                              label={t('chat.loeschen')}
                               tone="danger"
                               size="sm"
                               onClick={() => onDelete(m.id)}
@@ -1072,8 +1130,8 @@ export default function Chat() {
                                 )
                                 setMenuFor(null)
                               }}
-                              aria-label={`Mit ${e} reagieren`}
-                              title={`Mit ${e} reagieren`}
+                              aria-label={t('chat.mit_reagieren', { emoji: e })}
+                              title={t('chat.mit_reagieren', { emoji: e })}
                               className="rounded-xl border-2 border-line bg-paper px-2.5 py-1.5 text-xl transition hover:border-ink/35 hover:bg-raised active:scale-95"
                             >
                               {e}
@@ -1098,17 +1156,21 @@ export default function Chat() {
       <div className="no-print border-t border-line bg-surface px-3 pt-2">
         <div className="mx-auto max-w-2xl">
           {replyTo ? (
-            <div className="mb-2 flex items-center gap-2 rounded-xl border-l-4 border-ink bg-raised px-3 py-2">
+            <div className="mb-2 flex items-center gap-2 rounded-xl border-s-4 border-ink bg-raised px-3 py-2">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-bold">
-                  Antwort an {nameOf(replyTo.sender_id)}
+                  {t('chat.antwort_an', { name: nameOf(replyTo.sender_id) })}
                 </p>
                 <p className="truncate text-sm text-muted">
                   {replyTo.body?.replace(REF_RE, '$3') ??
-                    (replyTo.kind === 'voice' ? 'Sprachnachricht' : 'Bild')}
+                    (replyTo.kind === 'voice' ? t('chat.sprachnachricht') : t('chat.bild'))}
                 </p>
               </div>
-              <IconButton label="Antwort verwerfen" size="sm" onClick={() => setReplyTo(null)}>
+              <IconButton
+                label={t('chat.antwort_verwerfen')}
+                size="sm"
+                onClick={() => setReplyTo(null)}
+              >
                 <X size={18} />
               </IconButton>
             </div>
@@ -1119,9 +1181,7 @@ export default function Chat() {
           {attachments.length > 0 ? (
             <div className="mb-2 rounded-2xl border border-line bg-raised p-2">
               <p className="px-1 pb-1.5 text-sm font-bold text-muted">
-                {attachments.length === 1
-                  ? '1 Anhang, noch nicht gesendet'
-                  : `${attachments.length} Anhaenge, noch nicht gesendet`}
+                {tn('chat.anhaenge_offen', attachments.length)}
               </p>
               <div className="max-h-44 space-y-1.5 overflow-y-auto">
                 {attachments.map((a) => (
@@ -1142,7 +1202,7 @@ export default function Chat() {
                     )}
                     <span className="min-w-0 flex-1 truncate text-base font-semibold">{a.name}</span>
                     <IconButton
-                      label={`${a.name} entfernen`}
+                      label={t('chat.anhang_entfernen', { name: a.name })}
                       tone="danger"
                       size="sm"
                       onClick={() => dropAttachment(a.id)}
@@ -1158,26 +1218,30 @@ export default function Chat() {
           {recording ? (
             <div className="mb-2 flex items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2">
               <span className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-danger" />
-              <span className="t-serial flex-1">{fmtDuration(recSeconds)}</span>
+              {/* Die Aufnahmedauer bleibt von links nach rechts, steht aber
+                  im Arabischen am Anfang der Zeile, gleich neben dem Punkt. */}
+              <span className="flex-1">
+                <span className="t-serial">{fmtDuration(recSeconds)}</span>
+              </span>
               <Button size="sm" variant="outline" onClick={() => void stopRecording(false)}>
-                Verwerfen
+                {t('chat.verwerfen')}
               </Button>
               <Button size="sm" onClick={() => void stopRecording(true)}>
-                <Send size={16} /> Senden
+                <Send size={16} className="spiegeln" /> {t('chat.senden')}
               </Button>
             </div>
           ) : null}
 
           <div className="flex items-end gap-1.5 pb-3">
             <IconButton
-              label="Bild oder Datei senden"
+              label={t('chat.bild_datei')}
               size="sm"
               onClick={() => fileRef.current?.click()}
             >
               <ImagePlus size={20} />
             </IconButton>
             <IconButton
-              label="Kiste oder Zimmer verlinken"
+              label={t('chat.verlinken')}
               size="sm"
               onClick={() => setPickerOpen(true)}
             >
@@ -1198,7 +1262,7 @@ export default function Chat() {
               onKeyDown={onKeyDown}
               onPaste={onPasteInput}
               rows={1}
-              placeholder="Nachricht"
+              placeholder={t('chat.platzhalter')}
               className="max-h-32 min-h-[2.75rem] min-w-0 flex-1 resize-none rounded-2xl border border-line bg-paper px-3.5 py-2.5 text-base outline-none focus:border-ink/40"
             />
 
@@ -1208,10 +1272,10 @@ export default function Chat() {
                 className="shrink-0"
                 loading={sending}
                 onClick={() => void onSend()}
-                aria-label="Senden"
-                title="Senden"
+                aria-label={t('chat.senden')}
+                title={t('chat.senden')}
               >
-                <Send size={20} />
+                <Send size={20} className="spiegeln" />
               </Button>
             ) : (
               /* Gedrueckt halten statt antippen, darum Zeigerereignisse
@@ -1223,8 +1287,8 @@ export default function Chat() {
                 onPointerDown={() => void startRecording()}
                 onPointerUp={() => void stopRecording(true)}
                 onPointerLeave={() => recording && void stopRecording(true)}
-                aria-label="Sprachnachricht aufnehmen, gedrueckt halten"
-                title="Sprachnachricht aufnehmen, gedrueckt halten"
+                aria-label={t('chat.aufnehmen')}
+                title={t('chat.aufnehmen')}
               >
                 <Mic size={20} />
               </Button>
@@ -1246,9 +1310,13 @@ export default function Chat() {
           className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-4"
           onClick={() => setLightbox(null)}
         >
-          <img src={lightbox} alt="Bild" className="max-h-full max-w-full rounded-xl object-contain" />
-          <div className="safe-top absolute right-3 top-3">
-            <IconButton label="Bild schliessen" onClick={() => setLightbox(null)}>
+          <img
+            src={lightbox}
+            alt={t('chat.bild')}
+            className="max-h-full max-w-full rounded-xl object-contain"
+          />
+          <div className="safe-top absolute end-3 top-3">
+            <IconButton label={t('chat.bild_schliessen')} onClick={() => setLightbox(null)}>
               <X size={22} />
             </IconButton>
           </div>

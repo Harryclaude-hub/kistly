@@ -18,6 +18,7 @@ import {
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
 import { createTag, deleteTag, listTagStats, updateTag } from '../lib/api'
+import { useSprache, useT } from '../lib/i18n'
 import { TAG_COLORS, type Tag, type TagKind } from '../lib/types'
 import { contrastOn, suggestShort } from '../lib/util'
 
@@ -39,6 +40,7 @@ const EMPTY = (kind: TagKind, color: string): Draft => ({
 })
 
 function ColorGrid({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  const t = useT()
   return (
     <div className="flex flex-wrap gap-2">
       {TAG_COLORS.map((c) => (
@@ -46,7 +48,7 @@ function ColorGrid({ value, onChange }: { value: string; onChange: (c: string) =
           key={c}
           type="button"
           onClick={() => onChange(c)}
-          aria-label={`Farbe ${c}`}
+          aria-label={t('bereiche.farbe_waehlen', { farbe: c })}
           aria-pressed={value.toUpperCase() === c}
           className="h-11 w-11 rounded-xl border-4 transition active:scale-95"
           style={{
@@ -56,7 +58,7 @@ function ColorGrid({ value, onChange }: { value: string; onChange: (c: string) =
         />
       ))}
       <label
-        title="Eigene Farbe"
+        title={t('bereiche.eigene_farbe')}
         className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border-2 border-line bg-raised"
       >
         <input
@@ -64,7 +66,7 @@ function ColorGrid({ value, onChange }: { value: string; onChange: (c: string) =
           value={value}
           onChange={(e) => onChange(e.target.value.toUpperCase())}
           className="h-7 w-7 cursor-pointer"
-          aria-label="Eigene Farbe"
+          aria-label={t('bereiche.eigene_farbe')}
         />
       </label>
     </div>
@@ -86,18 +88,21 @@ function TagRow({
   onDelete: () => void
   canEdit: boolean
 }) {
+  const { t, tn } = useSprache()
   const countText =
     count !== undefined
-      ? `${count} ${count === 1 ? 'Kiste' : 'Kisten'}`
+      ? tn('begriff.kisten_anzahl', count)
       : countsFailed
-        ? 'Anzahl nicht geladen'
-        : 'wird gezaehlt'
+        ? t('bereiche.anzahl_fehlt')
+        : t('bereiche.wird_gezaehlt')
   return (
     <div className="px-3 py-3">
       <div className="flex items-center gap-3">
         {/* Das Kuerzel ist die Verbindung zur Nummer auf dem Etikett, darum
-            steht es so gross wie moeglich. */}
+            steht es so gross wie moeglich. Es bleibt immer von links nach
+            rechts, auch im arabischen Satz. */}
         <span
+          dir="ltr"
           className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl font-mono font-black ${
             tag.short.length > 2 ? 'text-lg' : 'text-2xl'
           }`}
@@ -111,10 +116,19 @@ function TagRow({
         </div>
         {canEdit ? (
           <div className="flex shrink-0 gap-1.5">
-            <IconButton label={`${tag.name} bearbeiten`} size="sm" onClick={onEdit}>
+            <IconButton
+              label={t('bereiche.bearbeiten_label', { name: tag.name })}
+              size="sm"
+              onClick={onEdit}
+            >
               <Pencil size={17} />
             </IconButton>
-            <IconButton label={`${tag.name} loeschen`} size="sm" tone="danger" onClick={onDelete}>
+            <IconButton
+              label={t('bereiche.loeschen_label', { name: tag.name })}
+              size="sm"
+              tone="danger"
+              onClick={onDelete}
+            >
               <Trash2 size={17} />
             </IconButton>
           </div>
@@ -127,6 +141,7 @@ function TagRow({
 
 export default function Areas() {
   const { project, rooms, people, tags, canEdit, reloadTags } = useProject()
+  const { t, tn } = useSprache()
   const toast = useToast()
 
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -166,15 +181,15 @@ export default function Areas() {
     setDraft(EMPTY(kind, TAG_COLORS[used % TAG_COLORS.length]))
   }
 
-  function openEdit(t: Tag) {
+  function openEdit(tag: Tag) {
     setError(null)
     setDraft({
-      id: t.id,
-      kind: t.kind,
-      name: t.name,
-      short: t.short,
-      color: t.color,
-      note: t.note ?? '',
+      id: tag.id,
+      kind: tag.kind,
+      name: tag.name,
+      short: tag.short,
+      color: tag.color,
+      note: tag.note ?? '',
     })
   }
 
@@ -183,17 +198,17 @@ export default function Areas() {
     if (!draft) return
     setError(null)
     if (!draft.name.trim()) {
-      setError('Name fehlt.')
+      setError(t('bereiche.fehler_name'))
       return
     }
     const short = draft.short.trim().toUpperCase()
     if (!/^[A-Z0-9]{1,4}$/.test(short)) {
-      setError('Das Kuerzel darf 1 bis 4 Buchstaben oder Ziffern haben.')
+      setError(t('bereiche.fehler_kuerzel'))
       return
     }
-    const clash = tags.find((t) => t.short.toUpperCase() === short && t.id !== draft.id)
+    const clash = tags.find((x) => x.short.toUpperCase() === short && x.id !== draft.id)
     if (clash) {
-      setError(`Das Kuerzel ${short} gehoert schon zu ${clash.name}.`)
+      setError(t('bereiche.fehler_kuerzel_belegt', { kuerzel: short, name: clash.name }))
       return
     }
     setBusy(true)
@@ -205,7 +220,7 @@ export default function Areas() {
           color: draft.color,
           note: draft.note.trim() || null,
         })
-        toast('Bereich gespeichert', 'ok')
+        toast(t('bereiche.gespeichert'), 'ok')
       } else {
         await createTag({
           project_id: project.id,
@@ -215,7 +230,7 @@ export default function Areas() {
           color: draft.color,
           note: draft.note.trim() || null,
         })
-        toast('Bereich angelegt', 'ok')
+        toast(t('bereiche.angelegt'), 'ok')
       }
       await reloadTags()
       setDraft(null)
@@ -234,27 +249,29 @@ export default function Areas() {
         action={
           canEdit ? (
             <Button size="sm" variant="soft" onClick={() => openNew(kind)}>
-              <Plus size={16} /> {kind === 'room' ? 'Zimmer' : 'Person'}
+              <Plus size={16} /> {kind === 'room' ? t('begriff.zimmer') : t('begriff.person')}
             </Button>
           ) : null
         }
       >
-        {kind === 'room' ? 'Zimmer und Bereiche' : 'Personen'}
+        {kind === 'room' ? t('bereiche.zimmer_titel') : t('begriff.personen')}
       </SectionTitle>
       {list.length === 0 ? (
         <div className="mb-6">
           <Empty
             icon={kind === 'room' ? <DoorOpen size={26} /> : <User size={26} />}
-            title={kind === 'room' ? 'Noch kein Zimmer' : 'Noch keine Person'}
+            title={
+              kind === 'room' ? t('bereiche.leer_zimmer_titel') : t('bereiche.leer_person_titel')
+            }
             hint={
               kind === 'room'
-                ? 'Wohnzimmer, Kueche, Keller. Jedes bekommt ein Kuerzel und eine Farbe.'
-                : 'Wem gehoert die Kiste? Personen bekommen genau wie Zimmer ein Kuerzel.'
+                ? t('bereiche.leer_zimmer_hinweis')
+                : t('bereiche.leer_person_hinweis')
             }
             action={
               canEdit ? (
                 <Button onClick={() => openNew(kind)}>
-                  <Plus size={16} /> Anlegen
+                  <Plus size={16} /> {t('aktion.anlegen')}
                 </Button>
               ) : null
             }
@@ -262,15 +279,15 @@ export default function Areas() {
         </div>
       ) : (
         <Card className="zebra mb-6 divide-y divide-line overflow-hidden">
-          {list.map((t) => (
+          {list.map((tag) => (
             <TagRow
-              key={t.id}
-              tag={t}
-              count={counts.get(t.id)}
+              key={tag.id}
+              tag={tag}
+              count={counts.get(tag.id)}
               countsFailed={Boolean(countsError)}
               canEdit={canEdit}
-              onEdit={() => openEdit(t)}
-              onDelete={() => setToDelete(t)}
+              onEdit={() => openEdit(tag)}
+              onDelete={() => setToDelete(tag)}
             />
           ))}
         </Card>
@@ -281,21 +298,17 @@ export default function Areas() {
   return (
     <>
       <AppHeader
-        title="Bereiche"
-        subtitle="Zimmer und Personen mit Kuerzel und Farbe"
+        title={t('begriff.bereiche')}
+        subtitle={t('bereiche.untertitel')}
         back={`/app/p/${project.id}`}
       />
       <Page>
-        <Card className="t-sub mb-6 p-4">
-          Das Kuerzel steht vorne auf jeder Nummer. Wohnzimmer mit dem Kuerzel W ergibt Kisten wie
-          W-3-001. Jedes Kuerzel darf es in diesem Umzug nur einmal geben, egal ob Zimmer oder
-          Person.
-        </Card>
+        <Card className="t-sub mb-6 p-4">{t('bereiche.erklaerung')}</Card>
 
         {countsError ? (
           <div className="mb-6">
             <ErrorBox
-              error={`Die Anzahl der Kisten konnte nicht geladen werden. ${countsError}`}
+              error={t('bereiche.anzahl_fehler', { grund: countsError })}
               onRetry={retryCounts}
             />
           </div>
@@ -312,25 +325,25 @@ export default function Areas() {
         onClose={() => setDraft(null)}
         title={
           draft?.id
-            ? 'Bereich bearbeiten'
+            ? t('bereiche.dialog_bearbeiten')
             : draft?.kind === 'room'
-              ? 'Neues Zimmer'
-              : 'Neue Person'
+              ? t('bereiche.dialog_neues_zimmer')
+              : t('bereiche.dialog_neue_person')
         }
         footer={
           <>
             <Button variant="ghost" onClick={() => setDraft(null)}>
-              Abbrechen
+              {t('aktion.abbrechen')}
             </Button>
             <Button form="tag-form" type="submit" loading={busy}>
-              Speichern
+              {t('aktion.speichern')}
             </Button>
           </>
         }
       >
         {draft ? (
           <form id="tag-form" onSubmit={save} className="space-y-5">
-            <Field label="Name" required>
+            <Field label={t('begriff.name')} required>
               <Input
                 autoFocus
                 required
@@ -347,35 +360,38 @@ export default function Areas() {
                               ? d.short
                               : suggestShort(
                                   name,
-                                  tags.map((t) => t.short),
+                                  tags.map((x) => x.short),
                                 ),
                         }
                       : d,
                   )
                 }}
-                placeholder={draft.kind === 'room' ? 'Kinderzimmer' : 'Sara'}
+                placeholder={
+                  draft.kind === 'room'
+                    ? t('bereiche.name_platzhalter_zimmer')
+                    : t('bereiche.name_platzhalter_person')
+                }
                 className="text-lg font-bold"
               />
             </Field>
 
-            <Field
-              label="Kuerzel"
-              required
-              hint="1 bis 4 Zeichen. Steht vorne auf jeder Kistennummer."
-            >
+            <Field label={t('begriff.kuerzel')} required hint={t('bereiche.kuerzel_hinweis')}>
+              {/* Das Kuerzel ist immer lateinisch und gehoert zur Nummer,
+                  darum bleibt das Feld von links nach rechts. */}
               <Input
+                dir="ltr"
                 required
                 maxLength={4}
                 value={draft.short}
                 onChange={(e) =>
                   setDraft((d) => (d ? { ...d, short: e.target.value.toUpperCase() } : d))
                 }
-                placeholder="KZ"
+                placeholder={t('bereiche.kuerzel_platzhalter')}
                 className="w-32 font-mono text-2xl font-black uppercase"
               />
             </Field>
 
-            <Field label="Farbe" hint="Wird auf dem Etikett als Balken gedruckt.">
+            <Field label={t('begriff.farbe')} hint={t('bereiche.farbe_hinweis')}>
               <ColorGrid
                 value={draft.color}
                 onChange={(color) => setDraft((d) => (d ? { ...d, color } : d))}
@@ -384,14 +400,17 @@ export default function Areas() {
 
             <div className="rounded-2xl border-2 border-line bg-raised px-3 py-4 text-center">
               <p className="text-sm font-black uppercase tracking-wide text-muted">
-                So sieht die Nummer aus
+                {t('bereiche.vorschau')}
               </p>
               <div className="mt-2 flex justify-center">
-                <CodeChip code={`${(draft.short || 'KZ').toUpperCase()}-3-001`} size="xl" />
+                <CodeChip
+                  code={`${(draft.short || t('bereiche.kuerzel_platzhalter')).toUpperCase()}-3-001`}
+                  size="xl"
+                />
               </div>
             </div>
 
-            <Field label="Notiz" hint="Optional, zum Beispiel wohin es in der neuen Wohnung soll.">
+            <Field label={t('begriff.notiz')} hint={t('bereiche.notiz_hinweis')}>
               <Textarea
                 rows={2}
                 value={draft.note}
@@ -410,13 +429,15 @@ export default function Areas() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title={`${toDelete?.name ?? ''} loeschen`}
+        title={t('bereiche.loeschen_titel', { name: toDelete?.name ?? '' })}
         body={
           deleteCount === undefined
-            ? 'Wie viele Kisten zu diesem Bereich gehoeren, ist gerade nicht bekannt. Die Kisten bleiben bestehen, verlieren aber die Zuordnung und behalten ihren bisherigen Code. Wirklich loeschen?'
+            ? t('bereiche.loeschen_unbekannt')
             : deleteCount > 0
-              ? `Zu diesem Bereich gehoeren ${deleteCount} Kisten. Die Kisten bleiben bestehen, verlieren aber die Zuordnung und behalten ihren bisherigen Code. Wirklich loeschen?`
-              : 'Der Bereich wird entfernt. Das laesst sich nicht rueckgaengig machen.'
+              ? t('bereiche.loeschen_mit_kisten', {
+                  kisten: tn('begriff.kisten_anzahl', deleteCount),
+                })
+              : t('bereiche.loeschen_leer')
         }
         onClose={() => setToDelete(null)}
         onConfirm={async () => {
@@ -424,7 +445,7 @@ export default function Areas() {
           try {
             await deleteTag(toDelete.id)
             await reloadTags()
-            toast('Bereich geloescht', 'ok')
+            toast(t('bereiche.geloescht'), 'ok')
           } catch (err) {
             toast(err instanceof Error ? err.message : String(err), 'error')
           }

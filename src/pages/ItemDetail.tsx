@@ -31,7 +31,7 @@ import {
   Textarea,
   useToast,
 } from '../components/ui'
-import { SizePicker } from './Items'
+import { ARTEN, SizePicker } from './Items'
 import { useProject } from './ProjectLayout'
 import {
   addContent,
@@ -46,13 +46,11 @@ import {
   updateContent,
   updateItem,
 } from '../lib/api'
+import { useSprache } from '../lib/i18n'
 import { compressImage, signedUrls, uploadTo } from '../lib/media'
 import { notifyItemStatus } from '../lib/push'
 import {
-  KIND_LABEL,
-  SIZE_LABEL,
   STATUS_COLOR,
-  STATUS_LABEL,
   type Item,
   type ItemContent,
   type ItemKind,
@@ -66,6 +64,14 @@ import { displayNameOf } from '../lib/auth'
 
 function labelUrl(itemId: string): string {
   return appUrl(`s/${itemId}`)
+}
+
+const STATI: ItemStatus[] = ['open', 'transit', 'arrived']
+
+/** Ein Verlaufseintrag kann einen Status tragen, den diese Fassung noch
+ *  nicht kennt. Dann steht der rohe Wert da, nie ein nackter Schluessel. */
+function istStatus(wert: string): wert is ItemStatus {
+  return (STATI as string[]).includes(wert)
 }
 
 /** Die Nummer ist das groesste Element der Seite, muss aber auf ein schmales
@@ -103,6 +109,7 @@ function TagTile({ role, tag }: { role: string; tag: Tag }) {
 export default function ItemDetail() {
   const { iid = '' } = useParams()
   const { project, rooms, people, tagById, canEdit, members } = useProject()
+  const { t, tn } = useSprache()
   const toast = useToast()
   const nav = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -155,7 +162,11 @@ export default function ItemDetail() {
       setItem(next)
       events.reload()
       if (p.status === 'arrived' && before.status !== 'arrived') {
-        void notifyItemStatus(project.id, project.name, `${next.code} ist angekommen`)
+        void notifyItemStatus(
+          project.id,
+          project.name,
+          t('kisten.ist_angekommen', { code: next.code }),
+        )
       }
     } catch (err) {
       setItem(before)
@@ -186,12 +197,7 @@ export default function ItemDetail() {
       const skipped = all.length - images.length
       // Was kein Bild ist, wird gemeldet statt still verworfen.
       if (skipped > 0) {
-        toast(
-          skipped === 1
-            ? 'Eine Datei war kein Bild und wurde uebersprungen'
-            : `${skipped} Dateien waren kein Bild und wurden uebersprungen`,
-          'error',
-        )
+        toast(tn('kisten.kein_bild', skipped), 'error')
       }
       if (images.length === 0) return
 
@@ -209,15 +215,17 @@ export default function ItemDetail() {
           setUrls((m) => new Map([...m, ...u]))
           ok++
         } catch (err) {
-          failed.push(`${file.name || 'Bild'}: ${err instanceof Error ? err.message : String(err)}`)
+          failed.push(
+            `${file.name || t('kisten.bild')}: ${err instanceof Error ? err.message : String(err)}`,
+          )
         }
       }
       setUploading(false)
-      if (ok) toast(`${ok} Foto${ok > 1 ? 's' : ''} hinzugefuegt`, 'ok')
+      if (ok) toast(tn('kisten.fotos_hinzugefuegt', ok), 'ok')
       // Fehlgeschlagene Uploads werden gemeldet, nicht verschwiegen.
-      if (failed.length) toast(`Nicht hochgeladen: ${failed.join(' | ')}`, 'error')
+      if (failed.length) toast(t('kisten.upload_fehler', { liste: failed.join(' | ') }), 'error')
     },
-    [item, project.id, toast],
+    [item, project.id, toast, t, tn],
   )
 
   // Der Aufhaenger fuer das Einfuegen liegt auf dem Dokument, damit ein Bild
@@ -239,20 +247,25 @@ export default function ItemDetail() {
   async function copyLink(id: string) {
     try {
       await navigator.clipboard.writeText(labelUrl(id))
-      toast('Link kopiert', 'ok')
+      toast(t('kisten.link_kopiert'), 'ok')
     } catch (err) {
-      toast(`Kopieren nicht moeglich: ${err instanceof Error ? err.message : String(err)}`, 'error')
+      toast(
+        t('kisten.kopieren_fehler', {
+          grund: err instanceof Error ? err.message : String(err),
+        }),
+        'error',
+      )
     }
   }
 
-  if (loading) return <Loading label="Kiste wird geladen" />
+  if (loading) return <Loading label={t('kisten.kiste_laedt')} />
 
   if (error || !item)
     return (
       <Page>
-        <ErrorBox error={error ?? 'Diese Kiste gibt es nicht mehr.'} onRetry={() => void reload()} />
+        <ErrorBox error={error ?? t('kisten.nicht_gefunden')} onRetry={() => void reload()} />
         <Link to={`/app/p/${project.id}/kisten`} className="mt-4 inline-block">
-          <Button variant="outline">Zur Kistenliste</Button>
+          <Button variant="outline">{t('kisten.zur_liste')}</Button>
         </Link>
         <div className="h-6" />
       </Page>
@@ -264,7 +277,7 @@ export default function ItemDetail() {
   const seq = String(item.seq).padStart(3, '0')
   const serial = `${item.prefix}-${item.size}-${seq}`
   const nameOf = (id: string | null) =>
-    displayNameOf(members.find((m) => m.user_id === id)?.profile, 'Jemand')
+    displayNameOf(members.find((m) => m.user_id === id)?.profile, t('kisten.jemand'))
   const printHref = `/app/p/${project.id}/etiketten?item=${item.id}`
   // Eine signierte Adresse kann fehlen, ohne dass ein Fehler geworfen wird.
   // Ohne diese Zaehlung bliebe die Kachel stumm auf "laedt" stehen.
@@ -274,16 +287,16 @@ export default function ItemDetail() {
     <>
       <AppHeader
         title={item.code}
-        subtitle={item.title || KIND_LABEL[item.kind]}
+        subtitle={item.title || t(`art.${item.kind}`)}
         back={`/app/p/${project.id}/kisten`}
         actions={
           canEdit ? (
             <>
-              <IconButton label="Kiste bearbeiten" size="sm" onClick={() => setEditOpen(true)}>
+              <IconButton label={t('kisten.bearbeiten')} size="sm" onClick={() => setEditOpen(true)}>
                 <Pencil size={19} />
               </IconButton>
               <IconButton
-                label="Kiste loeschen"
+                label={t('kisten.loeschen')}
                 tone="danger"
                 size="sm"
                 onClick={() => setDelOpen(true)}
@@ -310,23 +323,27 @@ export default function ItemDetail() {
                 {seq}
               </p>
 
-              <p className="t-name-lg mt-3 break-words">{item.title || KIND_LABEL[item.kind]}</p>
+              <p className="t-name-lg mt-3 break-words">{item.title || t(`art.${item.kind}`)}</p>
               <p className="t-sub mt-1">
-                {KIND_LABEL[item.kind]}, Groesse {item.size} von 10, {SIZE_LABEL[item.size]}
+                {t('kisten.art_und_groesse', {
+                  art: t(`art.${item.kind}`),
+                  n: item.size,
+                  wort: t(`groesse.${item.size}`),
+                })}
               </p>
 
               <div className="mt-4 grid gap-2">
-                {room ? <TagTile role="Zimmer" tag={room} /> : null}
-                {person ? <TagTile role="Person" tag={person} /> : null}
+                {room ? <TagTile role={t('begriff.zimmer')} tag={room} /> : null}
+                {person ? <TagTile role={t('begriff.person')} tag={person} /> : null}
                 {!room && !person ? (
                   <div className="rounded-2xl border border-dashed border-line px-3 py-3">
-                    <p className="t-name">Ohne Zimmer und Person</p>
-                    <p className="t-sub">Beides laesst sich beim Bearbeiten setzen.</p>
+                    <p className="t-name">{t('kisten.ohne_zuordnung')}</p>
+                    <p className="t-sub">{t('kisten.ohne_zuordnung_hinweis')}</p>
                   </div>
                 ) : null}
                 {item.fragile ? (
                   <div className="t-name rounded-2xl bg-warn/15 px-3 py-3 text-warn">
-                    Zerbrechlich, bitte vorsichtig tragen
+                    {t('kisten.zerbrechlich_warnung')}
                   </div>
                 ) : null}
               </div>
@@ -336,11 +353,11 @@ export default function ItemDetail() {
               <QrPanel value={labelUrl(item.id)} code={item.code} size={168} />
               <div className="grid w-full gap-2">
                 <Button variant="soft" full onClick={() => void copyLink(item.id)}>
-                  <Copy size={18} /> Link kopieren
+                  <Copy size={18} /> {t('kisten.link_kopieren')}
                 </Button>
                 <Link to={printHref} className="block">
                   <Button full>
-                    <Printer size={18} /> Druckansicht
+                    <Printer size={18} /> {t('kisten.druckansicht')}
                   </Button>
                 </Link>
               </div>
@@ -349,9 +366,11 @@ export default function ItemDetail() {
 
           {/* Status */}
           <div className="border-t border-line p-4">
-            <p className="mb-2.5 text-sm font-black uppercase tracking-wider text-muted">Status</p>
+            <p className="mb-2.5 text-sm font-black uppercase tracking-wider text-muted">
+              {t('begriff.status')}
+            </p>
             <div className="grid gap-2 sm:grid-cols-3">
-              {(['open', 'transit', 'arrived'] as ItemStatus[]).map((s) => (
+              {STATI.map((s) => (
                 <Button
                   key={s}
                   full
@@ -363,12 +382,14 @@ export default function ItemDetail() {
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ background: STATUS_COLOR[s] }}
                   />
-                  <span className="truncate">{STATUS_LABEL[s]}</span>
+                  <span className="truncate">{t(`status.${s}`)}</span>
                 </Button>
               ))}
             </div>
             {item.arrived_at ? (
-              <p className="t-sub mt-2.5">Angekommen: {fmtDateTime(item.arrived_at)}</p>
+              <p className="t-sub mt-2.5">
+                {t('kisten.angekommen_am', { wann: fmtDateTime(item.arrived_at) })}
+              </p>
             ) : null}
           </div>
 
@@ -376,7 +397,7 @@ export default function ItemDetail() {
             <div className="border-t border-line p-4">
               {item.target_room ? (
                 <p className="break-words text-base">
-                  <span className="font-bold">Ziel: </span>
+                  <span className="font-bold">{t('begriff.ziel')}: </span>
                   {item.target_room}
                 </p>
               ) : null}
@@ -390,12 +411,13 @@ export default function ItemDetail() {
         </Card>
 
         {/* Inhalt */}
-        <SectionTitle>Inhalt {contents.length > 0 ? `(${contents.length})` : ''}</SectionTitle>
+        <SectionTitle>
+          {t('begriff.inhalt')}
+          {contents.length > 0 ? ` (${contents.length})` : ''}
+        </SectionTitle>
         <Card className="mb-5 overflow-hidden">
           {contents.length === 0 ? (
-            <p className="px-4 py-6 text-center text-base text-muted">
-              Noch nichts eingetragen. Was hier steht, landet auf Wunsch mit auf dem Etikett.
-            </p>
+            <p className="px-4 py-6 text-center text-base text-muted">{t('kisten.inhalt_leer')}</p>
           ) : (
             <ul className="zebra divide-y divide-line">
               {contents.map((c) => (
@@ -415,8 +437,8 @@ export default function ItemDetail() {
                         toast(err instanceof Error ? err.message : String(err), 'error')
                       })
                     }}
-                    aria-label={c.checked ? 'Haken entfernen' : 'Abhaken'}
-                    title={c.checked ? 'Haken entfernen' : 'Abhaken'}
+                    aria-label={c.checked ? t('kisten.haken_entfernen') : t('kisten.abhaken')}
+                    title={c.checked ? t('kisten.haken_entfernen') : t('kisten.abhaken')}
                     className={cx(
                       'grid h-9 w-9 shrink-0 place-items-center rounded-lg border-2 transition active:scale-95',
                       'disabled:cursor-not-allowed disabled:opacity-45',
@@ -438,7 +460,7 @@ export default function ItemDetail() {
 
                   {canEdit ? (
                     <IconButton
-                      label="Eintrag loeschen"
+                      label={t('kisten.eintrag_loeschen')}
                       tone="danger"
                       size="sm"
                       onClick={() => {
@@ -469,10 +491,10 @@ export default function ItemDetail() {
                     void onAddEntry()
                   }
                 }}
-                placeholder="Was ist drin?"
+                placeholder={t('kisten.inhalt_platzhalter')}
               />
               <IconButton
-                label="Eintrag hinzufuegen"
+                label={t('kisten.eintrag_hinzufuegen')}
                 disabled={!newEntry.trim()}
                 onClick={() => void onAddEntry()}
               >
@@ -492,12 +514,13 @@ export default function ItemDetail() {
                 loading={uploading}
                 onClick={() => fileRef.current?.click()}
               >
-                <ImagePlus size={16} /> Foto
+                <ImagePlus size={16} /> {t('kisten.foto')}
               </Button>
             ) : null
           }
         >
-          Fotos {photos.length > 0 ? `(${photos.length})` : ''}
+          {t('begriff.fotos')}
+          {photos.length > 0 ? ` (${photos.length})` : ''}
         </SectionTitle>
 
         <input
@@ -542,20 +565,18 @@ export default function ItemDetail() {
           {dragOver ? (
             <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl border-4 border-dashed border-ink bg-paper/92">
               <Upload size={34} />
-              <span className="t-name">Bilder hier ablegen</span>
+              <span className="t-name">{t('kisten.hier_ablegen')}</span>
             </div>
           ) : null}
 
           {photos.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-line px-4 py-8 text-center">
               <Camera size={28} className="text-muted" />
-              <p className="t-name">Noch kein Foto vom Inhalt</p>
-              <p className="t-sub max-w-xs">
-                Bilder lassen sich hierher ziehen oder mit Strg und V einfuegen.
-              </p>
+              <p className="t-name">{t('kisten.fotos_leer')}</p>
+              <p className="t-sub max-w-xs">{t('kisten.fotos_hinweis')}</p>
               {canEdit ? (
                 <Button variant="soft" loading={uploading} onClick={() => fileRef.current?.click()}>
-                  <ImagePlus size={18} /> Foto aufnehmen
+                  <ImagePlus size={18} /> {t('kisten.foto_aufnehmen')}
                 </Button>
               ) : null}
             </div>
@@ -564,11 +585,7 @@ export default function ItemDetail() {
               {missingPhotos > 0 ? (
                 <div className="mb-2">
                   <ErrorBox
-                    error={
-                      missingPhotos === 1
-                        ? 'Ein Foto laesst sich gerade nicht laden.'
-                        : `${missingPhotos} Fotos lassen sich gerade nicht laden.`
-                    }
+                    error={tn('kisten.fotos_fehlen', missingPhotos)}
                     onRetry={() => void reload()}
                   />
                 </div>
@@ -584,27 +601,27 @@ export default function ItemDetail() {
                       {url ? (
                         <img
                           src={url}
-                          alt={p.caption ?? 'Foto der Kiste'}
+                          alt={p.caption ?? t('kisten.foto_alt')}
                           loading="lazy"
                           className="h-full w-full cursor-zoom-in object-cover"
                           onClick={() => setLightbox(url)}
                         />
                       ) : uploading ? (
                         <div className="flex h-full items-center justify-center text-sm text-muted">
-                          laedt
+                          {t('zustand.laedt')}
                         </div>
                       ) : (
                         <div className="flex h-full items-center justify-center px-2 text-center text-sm font-bold text-danger">
-                          Bild nicht ladbar
+                          {t('kisten.bild_fehlt')}
                         </div>
                       )}
                       {canEdit ? (
                         // Immer sichtbar, denn auf dem Handy gibt es kein Ueberfahren
                         // mit der Maus und der Knopf waere sonst nicht erreichbar. Die
                         // dunkle Platte dahinter haelt ihn auf jedem Foto lesbar.
-                        <span className="absolute right-1.5 top-1.5 rounded-xl bg-black/60 p-0.5">
+                        <span className="absolute end-1.5 top-1.5 rounded-xl bg-black/60 p-0.5">
                           <IconButton
-                            label="Foto loeschen"
+                            label={t('kisten.foto_loeschen')}
                             tone="danger"
                             size="sm"
                             onClick={() => {
@@ -628,16 +645,16 @@ export default function ItemDetail() {
         </Card>
 
         {/* Verlauf */}
-        <SectionTitle>Verlauf</SectionTitle>
+        <SectionTitle>{t('begriff.verlauf')}</SectionTitle>
         <Card className="overflow-hidden">
           {events.loading ? (
-            <Loading label="Verlauf wird geladen" />
+            <Loading label={t('kisten.verlauf_laedt')} />
           ) : events.error ? (
             <div className="p-3">
               <ErrorBox error={events.error} onRetry={events.reload} />
             </div>
           ) : (events.data ?? []).length === 0 ? (
-            <p className="px-4 py-6 text-center text-base text-muted">Noch nichts passiert.</p>
+            <p className="px-4 py-6 text-center text-base text-muted">{t('kisten.verlauf_leer')}</p>
           ) : (
             <ul className="zebra divide-y divide-line">
               {(events.data ?? []).map((ev) => {
@@ -648,15 +665,27 @@ export default function ItemDetail() {
                     <span className="min-w-0 flex-1 break-words text-base">
                       <span className="font-bold">{nameOf(ev.user_id)}</span>{' '}
                       <span className="text-muted">
-                        {ev.type === 'created'
-                          ? 'hat die Kiste angelegt'
-                          : ev.type === 'status'
-                            ? `hat ${STATUS_LABEL[d.to as ItemStatus] ?? d.to} gesetzt`
-                            : ev.type === 'scan'
-                              ? 'hat gescannt'
-                              : ev.type === 'code'
-                                ? `hat den Code von ${d.from} auf ${d.to} geaendert`
-                                : ev.type}
+                        {ev.type === 'created' ? (
+                          t('kisten.ev_created')
+                        ) : ev.type === 'status' ? (
+                          t('kisten.ev_status', {
+                            status: istStatus(d.to) ? t(`status.${d.to}`) : d.to,
+                          })
+                        ) : ev.type === 'scan' ? (
+                          t('kisten.ev_scan')
+                        ) : ev.type === 'code' ? (
+                          <>
+                            {t('kisten.ev_code')}{' '}
+                            {/* Beide Nummern in einem Stueck von links nach rechts,
+                                damit der Pfeil auch im arabischen Satz vom alten
+                                auf den neuen Code zeigt. */}
+                            <span className="t-serial" dir="ltr">
+                              {d.from} &rarr; {d.to}
+                            </span>
+                          </>
+                        ) : (
+                          ev.type
+                        )}
                       </span>
                     </span>
                     <span className="shrink-0 text-sm text-muted">{relTime(ev.created_at)}</span>
@@ -675,17 +704,14 @@ export default function ItemDetail() {
       <Modal
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        title="Kiste bearbeiten"
+        title={t('kisten.bearbeiten')}
         wide
-        footer={<Button onClick={() => setEditOpen(false)}>Fertig</Button>}
+        footer={<Button onClick={() => setEditOpen(false)}>{t('aktion.fertig')}</Button>}
       >
         <div className="space-y-4">
-          <div className="rounded-xl bg-raised p-3 text-base">
-            Aenderst du Groesse oder Kuerzel, vergibt Kistly einen neuen Code. Der alte bleibt
-            gespeichert, damit ein schon geklebtes Etikett weiter gefunden wird.
-          </div>
+          <div className="rounded-xl bg-raised p-3 text-base">{t('kisten.code_hinweis')}</div>
 
-          <Field label="Titel">
+          <Field label={t('begriff.titel')}>
             <Input
               defaultValue={item.title ?? ''}
               onBlur={(e) => void patch({ title: e.target.value.trim() || null })}
@@ -693,12 +719,12 @@ export default function ItemDetail() {
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Zimmer">
+            <Field label={t('begriff.zimmer')}>
               <Select
                 value={item.room_id ?? ''}
                 onChange={(e) => void patch({ room_id: e.target.value || null })}
               >
-                <option value="">kein Zimmer</option>
+                <option value="">{t('kisten.kein_zimmer')}</option>
                 {rooms.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.short} . {r.name}
@@ -706,12 +732,12 @@ export default function ItemDetail() {
                 ))}
               </Select>
             </Field>
-            <Field label="Person">
+            <Field label={t('begriff.person')}>
               <Select
                 value={item.person_id ?? ''}
                 onChange={(e) => void patch({ person_id: e.target.value || null })}
               >
-                <option value="">keine Person</option>
+                <option value="">{t('kisten.keine_person')}</option>
                 {people.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.short} . {p.name}
@@ -722,42 +748,46 @@ export default function ItemDetail() {
           </div>
 
           {item.room_id && item.person_id ? (
-            <Field label="Kuerzel im Code">
+            <Field label={t('kisten.kuerzel_im_code')}>
               <Select
                 value={item.code_source}
                 onChange={(e) => void patch({ code_source: e.target.value as TagKind })}
               >
-                <option value="room">Zimmer ({room?.short})</option>
-                <option value="person">Person ({person?.short})</option>
+                <option value="room">
+                  {t('kisten.kuerzel_option_zimmer', { kuerzel: room?.short ?? '' })}
+                </option>
+                <option value="person">
+                  {t('kisten.kuerzel_option_person', { kuerzel: person?.short ?? '' })}
+                </option>
               </Select>
             </Field>
           ) : null}
 
-          <Field label="Groesse">
+          <Field label={t('begriff.groesse')}>
             <SizePicker value={item.size} onChange={(size) => void patch({ size })} />
           </Field>
 
-          <Field label="Art">
+          <Field label={t('kisten.art')}>
             <Select
               value={item.kind}
               onChange={(e) => void patch({ kind: e.target.value as ItemKind })}
             >
-              {(Object.keys(KIND_LABEL) as ItemKind[]).map((k) => (
+              {ARTEN.map((k) => (
                 <option key={k} value={k}>
-                  {KIND_LABEL[k]}
+                  {t(`art.${k}`)}
                 </option>
               ))}
             </Select>
           </Field>
 
-          <Field label="Ziel in der neuen Wohnung">
+          <Field label={t('kisten.ziel')}>
             <Input
               defaultValue={item.target_room ?? ''}
               onBlur={(e) => void patch({ target_room: e.target.value.trim() || null })}
             />
           </Field>
 
-          <Field label="Notiz">
+          <Field label={t('begriff.notiz')}>
             <Textarea
               rows={3}
               defaultValue={item.note ?? ''}
@@ -768,20 +798,20 @@ export default function ItemDetail() {
           <Switch
             checked={item.fragile}
             onChange={(fragile) => void patch({ fragile })}
-            label="Zerbrechlich"
+            label={t('begriff.zerbrechlich')}
           />
         </div>
       </Modal>
 
       <ConfirmDialog
         open={delOpen}
-        title={`${item.code} loeschen`}
-        body="Die Kiste, ihr Inhalt, die Fotos und der Verlauf werden geloescht. Das laesst sich nicht rueckgaengig machen."
+        title={t('kisten.loeschen_titel', { code: item.code })}
+        body={t('kisten.loeschen_text')}
         onClose={() => setDelOpen(false)}
         onConfirm={async () => {
           try {
             await deleteItem(item.id)
-            toast('Kiste geloescht', 'ok')
+            toast(t('kisten.geloescht'), 'ok')
             nav(`/app/p/${project.id}/kisten`)
           } catch (err) {
             toast(err instanceof Error ? err.message : String(err), 'error')
@@ -796,12 +826,12 @@ export default function ItemDetail() {
         >
           <img
             src={lightbox}
-            alt="Foto der Kiste"
+            alt={t('kisten.foto_alt')}
             className="max-h-full max-w-full rounded-xl object-contain"
           />
           <IconButton
-            label="Schliessen"
-            className="absolute right-4 top-4"
+            label={t('aktion.schliessen')}
+            className="absolute end-4 top-4"
             onClick={() => setLightbox(null)}
           >
             <X size={20} />

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { Outlet, useLocation } from 'react-router-dom'
 import { Boxes, MessageCircle, ScanLine, User, Warehouse } from 'lucide-react'
 import { BottomNav, NavTab } from '../components/AppShell'
+import { useT } from '../lib/i18n'
 import { countUnread, listMembers } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -30,6 +31,7 @@ export function useAppShell(): AppShellValue {
 
 export default function AppLayout() {
   const { user } = useAuth()
+  const t = useT()
   const loc = useLocation()
   const [lastProject, setLast] = useState<string | null>(() => getLastProject())
   const [unread, setUnread] = useState(0)
@@ -127,33 +129,33 @@ export default function AppLayout() {
           <NavTab
             to="/app"
             icon={<Warehouse size={21} />}
-            label="Umzuege"
+            label={t('nav.umzuege')}
             active={path === '/app'}
           />
           <NavTab
             to={itemsTo}
             icon={<Boxes size={21} />}
-            label="Kisten"
+            label={t('nav.kisten')}
             active={inProject && path.includes('/kisten')}
           />
           <NavTab
             to="/app/scan"
             icon={<ScanLine size={26} />}
-            label="Scannen"
+            label={t('nav.scannen')}
             active={path === '/app/scan' || path.endsWith('/scan')}
             raised
           />
           <NavTab
             to={chatTo}
             icon={<MessageCircle size={21} />}
-            label="Chat"
+            label={t('nav.chat')}
             active={inChat}
             badge={unread}
           />
           <NavTab
             to="/app/einstellungen"
             icon={<User size={21} />}
-            label="Profil"
+            label={t('nav.profil')}
             active={path === '/app/einstellungen'}
           />
         </BottomNav>

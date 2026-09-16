@@ -1,10 +1,15 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { tg } from './i18n'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
 /* Fehlt die Konfiguration, wird das sichtbar gemeldet statt als leere
- * weisse Seite zu enden. Stiller Fehlschlag ist hier verboten. */
+ * weisse Seite zu enden. Stiller Fehlschlag ist hier verboten.
+ *
+ * Dieser eine Satz bleibt deutsch. Er wird beim Laden des Moduls berechnet,
+ * also bevor die Sprachwahl feststeht, und er richtet sich ohnehin an den,
+ * der die Datei .env.local anlegt, nicht an den Nutzer. */
 export const configError: string | null =
   !url || !key
     ? 'VITE_SUPABASE_URL oder VITE_SUPABASE_ANON_KEY fehlt. Lege .env.local nach dem Muster von .env.example an.'
@@ -27,9 +32,13 @@ export const supabase: SupabaseClient = createClient(
 export const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined) ?? ''
 export const SUPABASE_URL = url ?? ''
 
-/** Supabase-Fehler in einen Satz uebersetzen, den man lesen kann. */
+/** Supabase-Fehler in einen Satz uebersetzen, den man lesen kann.
+ *
+ *  Laeuft ausserhalb von React, darum tg und nicht useT. Die englischen
+ *  Originalmeldungen bleiben als Erkennungsmerkmal stehen, uebersetzt wird
+ *  nur, was danach herauskommt. */
 export function errText(err: unknown): string {
-  if (!err) return 'Unbekannter Fehler'
+  if (!err) return tg('zustand.unbekannter_fehler')
   if (typeof err === 'string') return err
   const e = err as {
     message?: string
@@ -46,38 +55,30 @@ export function errText(err: unknown): string {
    * Mailversand ist dabei auf wenige Mails pro Stunde begrenzt. Die
    * englische Originalmeldung sagt niemandem, was zu tun ist. */
   if (code === 'over_email_send_rate_limit' || raw.toLowerCase().includes('email rate limit')) {
-    return (
-      'Supabase wollte eine Bestaetigungsmail verschicken und hat das Stundenlimit erreicht. ' +
-      'Abhilfe: in der Projektverwaltung unter Authentication, Sign In, Email die Option ' +
-      '"Confirm email" ausschalten. Dann wird gar keine Mail mehr verschickt und die ' +
-      'Registrierung geht sofort durch.'
-    )
+    return tg('fehler.mail_limit')
   }
   if (code === 'over_request_rate_limit' || raw.includes('For security purposes')) {
-    return 'Zu viele Versuche kurz hintereinander. Warte einen Moment und probier es noch einmal.'
+    return tg('fehler.zu_viele_versuche')
   }
   if (code === 'signup_disabled' || raw.includes('Signups not allowed')) {
-    return 'Registrierung ist in diesem Projekt abgeschaltet.'
+    return tg('fehler.registrierung_aus')
   }
 
+  /* Die Tabelle bildet die englische Meldung auf einen Schluessel ab. Der
+   * Satz selbst steht im Woerterbuch, hier steht nur, welcher es ist. */
   const map: Record<string, string> = {
-    'Invalid login credentials': 'E-Mail oder Passwort stimmt nicht.',
-    'User already registered': 'Diese E-Mail ist schon registriert.',
-    'Email not confirmed':
-      'Das Konto wartet noch auf eine Bestaetigung. Sag Bescheid, dann wird es freigeschaltet.',
-    'Password should be at least 6 characters':
-      'Das Passwort braucht mindestens 6 Zeichen.',
-    'New password should be different from the old password':
-      'Das neue Passwort muss sich vom alten unterscheiden.',
-    'Auth session missing!': 'Die Sitzung ist abgelaufen. Bitte neu anmelden.',
+    'Invalid login credentials': 'fehler.login_falsch',
+    'User already registered': 'fehler.mail_vergeben',
+    'Email not confirmed': 'fehler.mail_unbestaetigt',
+    'Password should be at least 6 characters': 'fehler.passwort_kurz',
+    'New password should be different from the old password': 'fehler.passwort_gleich',
+    'Auth session missing!': 'fehler.sitzung_weg',
   }
-  if (map[raw]) return map[raw]
+  if (map[raw]) return tg(map[raw])
   if (raw.includes('duplicate key') && raw.includes('tags_project_short_key'))
-    return 'Dieses Kuerzel ist in diesem Umzug schon vergeben.'
-  if (raw.includes('duplicate key')) return 'Der Eintrag existiert schon.'
-  if (raw.includes('row-level security'))
-    return 'Dafuer fehlt dir die Berechtigung in diesem Umzug.'
-  if (raw.includes('Failed to fetch'))
-    return 'Keine Verbindung zum Server. Internet pruefen.'
-  return raw || 'Unbekannter Fehler'
+    return tg('fehler.kuerzel_vergeben')
+  if (raw.includes('duplicate key')) return tg('fehler.eintrag_doppelt')
+  if (raw.includes('row-level security')) return tg('fehler.keine_berechtigung')
+  if (raw.includes('Failed to fetch')) return tg('fehler.keine_verbindung')
+  return raw || tg('zustand.unbekannter_fehler')
 }

@@ -53,6 +53,43 @@ W - 3 - 007
 | Anrufe | Sprach- und Videoanruf ueber WebRTC, Klingelton, wiederholte Benachrichtigung solange es klingelt |
 | App | installierbar, Offline-Huelle, Push, hell und dunkel, untere Leiste mit den fuenf wichtigsten Bereichen |
 | Export | CSV aller Kisten |
+| Sprache | Deutsch und Arabisch, mit vollstaendiger Rechts-nach-links-Ansicht |
+
+## Sprachen
+
+Deutsch und Arabisch. Umgeschaltet wird in der Kopfzeile der Startseite oder
+in den Einstellungen, die Wahl bleibt gespeichert. Ohne gespeicherte Wahl
+entscheidet die Sprache des Geraets.
+
+Bei Arabisch bekommt das Dokument `dir="rtl"`, damit dreht der Browser die
+gesamte Oberflaeche um, auf dem Handy wie am Laptop. Damit das aufgeht,
+benutzt die Oberflaeche keine richtungsabhaengigen Klassen (kein `ml-`,
+`pl-`, `left-`, `text-left`), sondern Flexbox mit Abstaenden und die
+logischen Formen `ms-`, `me-`, `ps-`, `pe-`, `text-start`. Pfeile, die eine
+Richtung meinen, tragen die Klasse `spiegeln`.
+
+**Seriennummern bleiben in jeder Sprache gleich** und immer von links nach
+rechts. Die Klasse `t-serial` setzt dafuer `direction: ltr` und
+`unicode-bidi: isolate`. Ohne das Isolieren wuerde `W-3-007` im arabischen
+Satz auseinanderfallen, weil der Bindestrich ein richtungsneutrales Zeichen
+ist und die Bloecke umsortiert wuerden.
+
+Uebersetzt wird nur, was zum Programm gehoert: Knoepfe, Beschriftungen,
+Hinweise, Fehlermeldungen. Was der Nutzer eingetippt hat, bleibt unveraendert
+stehen: Zimmernamen, Kistentitel, Notizen, Nachrichten.
+
+Das Woerterbuch liegt in [`src/lib/i18n`](src/lib/i18n). Jeder Eintrag
+traegt beide Sprachen nebeneinander, damit man beim Aendern keine vergisst:
+
+```ts
+'kisten.neu': { de: 'Neue Kiste', ar: 'صندوق جديد' },
+```
+
+Die Teile liegen nach Seiten getrennt in `bausteine/`. Fehlt ein Schluessel
+oder eine Sprache, nimmt die App den deutschen Text und meldet es einmal in
+der Konsole. Es erscheint nie ein nackter Schluessel und nie eine Luecke.
+
+In Komponenten `useT()`, ausserhalb von React (etwa in `api.ts`) `tg()`.
 
 ## Technik
 

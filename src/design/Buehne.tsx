@@ -1,17 +1,19 @@
 import { useEffect } from 'react'
 import './buehne.css'
+import { Karton, Plastikkiste, Stapel } from './Kisten'
 
 /* Der Hintergrund der Startseite.
  *
- * Reine Optik. Loescht man diese Datei und die eine Zeile <Buehne /> in
- * Landing.tsx, sieht die Seite schlicht aus und funktioniert unveraendert.
+ * Reine Optik. Loescht man diese Datei, Kisten.tsx, buehne.css und die eine
+ * Zeile <Buehne /> in Landing.tsx, sieht die Seite schlicht aus und
+ * funktioniert unveraendert.
  *
  * Der Eindruck "der Hintergrund bleibt stehen, nur der Vordergrund wandert"
  * entsteht nicht durch Rechnerei, sondern weil die Schicht fest im Fenster
  * verankert ist (position: fixed in buehne.css). Die Scrollhoehe wird
- * zusaetzlich als Variable --sy gesetzt, damit einzelne Ebenen
- * unterschiedlich weit mitgehen und Tiefe entsteht. Faellt das aus, steht
- * alles still und es sieht trotzdem ordentlich aus.
+ * zusaetzlich als Variable --sy gesetzt, damit die Kisten unterschiedlich
+ * weit mitgehen und Tiefe entsteht. Faellt das aus, steht alles still und
+ * sieht trotzdem ordentlich aus.
  */
 export function Buehne() {
   useEffect(() => {
@@ -48,13 +50,16 @@ export function Buehne() {
 
   return (
     <div className="buehne" aria-hidden="true">
-      <div className="buehne-raster" />
-      <div className="buehne-licht buehne-licht-1" />
-      <div className="buehne-licht buehne-licht-2" />
-      <div className="buehne-licht buehne-licht-3" />
-      <div className="buehne-kiste buehne-kiste-1" />
-      <div className="buehne-kiste buehne-kiste-2" />
-      <div className="buehne-kiste buehne-kiste-3" />
+      <div className="buehne-rand" />
+      <div className="buehne-kiste buehne-kiste-1">
+        <Stapel />
+      </div>
+      <div className="buehne-kiste buehne-kiste-2">
+        <Plastikkiste />
+      </div>
+      <div className="buehne-kiste buehne-kiste-3">
+        <Karton />
+      </div>
     </div>
   )
 }

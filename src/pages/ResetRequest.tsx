@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell'
 import { Button, ErrorBox, Field, Input } from '../components/ui'
 import { useAuth } from '../lib/auth'
+import { useT } from '../lib/i18n'
 
 export default function ResetRequest() {
   const { sendReset } = useAuth()
+  const t = useT()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,39 +29,38 @@ export default function ResetRequest() {
 
   return (
     <AuthShell
-      title="Passwort zuruecksetzen"
-      subtitle="Wir schicken dir einen Link, mit dem du ein neues Passwort setzt."
+      title={t('konto.reset_titel')}
+      subtitle={t('konto.reset_unter')}
       footer={
         <Link to="/login" className="inline-block">
           <Button type="button" variant="outline" size="lg">
-            Zurueck zur Anmeldung
+            {t('konto.zurueck_anmeldung')}
           </Button>
         </Link>
       }
     >
       {sent ? (
         <div className="rounded-2xl border border-ok/30 bg-ok/10 p-4">
-          <p className="t-name">Link verschickt</p>
-          <p className="mt-1.5 text-base text-ink/80">
-            Falls es zu dieser Adresse ein Konto gibt, liegt gleich eine Mail im Postfach.
-            Der Link fuehrt direkt auf die Seite fuer das neue Passwort.
-          </p>
+          <p className="t-name">{t('konto.link_verschickt')}</p>
+          <p className="mt-1.5 text-base text-ink/80">{t('konto.link_verschickt_text')}</p>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-5">
-          <Field label="E-Mail">
+          <Field label={t('konto.email')}>
+            {/* Die Adresse bleibt in jeder Sprache von links nach rechts. */}
             <Input
               type="email"
+              dir="ltr"
               required
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="du@beispiel.de"
+              placeholder={t('konto.email_platzhalter')}
             />
           </Field>
           {error ? <ErrorBox error={error} /> : null}
           <Button type="submit" full size="lg" loading={busy}>
-            Link schicken
+            {t('konto.link_schicken')}
           </Button>
         </form>
       )}

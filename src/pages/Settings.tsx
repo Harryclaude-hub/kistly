@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Bell, BellOff, LogOut, ShieldCheck } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
 import { InstallCard } from '../components/InstallCard'
-import { useTheme } from '../components/ThemeToggle'
+import { MODE_KEY, useTheme } from '../components/ThemeToggle'
+import { SpracheWahl } from '../components/SpracheToggle'
 import {
   Avatar,
   Button,
@@ -16,19 +17,30 @@ import {
   Switch,
   useToast,
 } from '../components/ui'
-import { STUFEN, STUFE_SYMBOL, STUFE_TEXT, useMotion } from '../design/motion'
+import { STUFEN, STUFE_SYMBOL, useMotion, type Stufe } from '../design/motion'
 import { displayNameOf, useAuth } from '../lib/auth'
 import { getPrefs, setPrefs } from '../lib/api'
+import { useT } from '../lib/i18n'
 import { disablePush, enablePush, pushState, type PushState } from '../lib/push'
 import type { NotificationPrefs } from '../lib/types'
 
-const PUSH_TEXT: Record<PushState, string> = {
-  unsupported: 'Dieser Browser kann keine Push-Benachrichtigungen. Auf dem iPhone geht es erst, wenn Kistly auf dem Startbildschirm liegt.',
-  'no-key': 'Auf dem Server ist kein VAPID-Schluessel hinterlegt. Ohne den kann nichts verschickt werden.',
-  denied: 'Benachrichtigungen sind im Browser blockiert. Das musst du in den Seiteneinstellungen wieder erlauben.',
-  default: 'Noch nicht erlaubt.',
-  'granted-off': 'Erlaubt, aber dieses Geraet ist nicht angemeldet.',
-  'granted-on': 'Dieses Geraet bekommt Benachrichtigungen.',
+/* Nicht der fertige Satz, sondern der Schluessel dazu. So steht der Text
+ * im Woerterbuch und wechselt mit der Sprache mit. */
+const PUSH_KEY: Record<PushState, string> = {
+  unsupported: 'einstellungen.push_unsupported',
+  'no-key': 'einstellungen.push_no_key',
+  denied: 'einstellungen.push_denied',
+  default: 'einstellungen.push_default',
+  'granted-off': 'einstellungen.push_granted_off',
+  'granted-on': 'einstellungen.push_granted_on',
+}
+
+/* Die Namen der Bewegungsstufen stehen hier und nicht in motion.tsx, damit
+ * die Designschicht ohne Woerterbuch auskommt und loeschbar bleibt. */
+const BEWEGUNG_KEY: Record<Stufe, string> = {
+  ruhig: 'einstellungen.bewegung_ruhig',
+  normal: 'einstellungen.bewegung_normal',
+  voll: 'einstellungen.bewegung_voll',
 }
 
 /* Eigene Abschnittsueberschrift, weil die Einstellungen die einzige Seite
@@ -44,6 +56,7 @@ export default function Settings() {
   const { stufe, setStufe } = useMotion()
   const toast = useToast()
   const nav = useNavigate()
+  const t = useT()
 
   const [name, setName] = useState(profile?.display_name ?? '')
   const [password, setPassword] = useState('')
@@ -94,22 +107,35 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <AppHeader title="Einstellungen" back="/app" />
+      <AppHeader title={t('einstellungen.titel')} back="/app" />
       <Page>
         {/* Profil */}
-        <Abschnitt>Profil</Abschnitt>
+        <Abschnitt>{t('einstellungen.profil')}</Abschnitt>
         <Card className="mb-8 p-4">
           <div className="mb-5 flex items-center gap-3">
             <Avatar name={displayNameOf(profile, user?.email ?? '?')} size={56} />
             <div className="min-w-0">
-              <p className="t-name-lg truncate">{displayNameOf(profile, 'Ohne Namen')}</p>
-              <p className="t-sub truncate">{user?.email}</p>
+              <p className="t-name-lg truncate">
+                {displayNameOf(profile, t('einstellungen.ohne_namen'))}
+              </p>
+              {/* Die Adresse selbst bleibt von links nach rechts, auch im
+                  arabischen Satz. */}
+              <p className="t-sub truncate" dir="ltr">
+                {user?.email}
+              </p>
             </div>
           </div>
 
-          <Field label="Anzeigename" hint="So sehen dich die anderen in Umzuegen und im Chat.">
+          <Field
+            label={t('einstellungen.anzeigename')}
+            hint={t('einstellungen.anzeigename_hinweis')}
+          >
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" />
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('einstellungen.name_platzhalter')}
+              />
               <Button
                 size="lg"
                 className="w-full justify-center sm:w-auto"
@@ -119,7 +145,7 @@ export default function Settings() {
                   setBusyName(true)
                   try {
                     await updateProfile({ display_name: name.trim() || null })
-                    toast('Name gespeichert', 'ok')
+                    toast(t('einstellungen.name_gespeichert'), 'ok')
                   } catch (err) {
                     toast(err instanceof Error ? err.message : String(err), 'error')
                   } finally {
@@ -127,22 +153,25 @@ export default function Settings() {
                   }
                 }}
               >
-                Speichern
+                {t('aktion.speichern')}
               </Button>
             </div>
           </Field>
         </Card>
 
         {/* Sicherheit */}
-        <Abschnitt>Passwort</Abschnitt>
+        <Abschnitt>{t('einstellungen.passwort')}</Abschnitt>
         <Card className="mb-8 p-4">
-          <Field label="Neues Passwort" hint="Mindestens 8 Zeichen. Mit dem Auge kannst du es anzeigen.">
+          <Field
+            label={t('einstellungen.neues_passwort')}
+            hint={t('einstellungen.passwort_hinweis')}
+          >
             <div className="flex flex-col gap-2 sm:flex-row">
               <PasswordInput
                 value={password}
                 autoComplete="new-password"
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Neues Passwort"
+                placeholder={t('einstellungen.neues_passwort')}
               />
               <Button
                 size="lg"
@@ -154,7 +183,7 @@ export default function Settings() {
                   try {
                     await updatePassword(password)
                     setPassword('')
-                    toast('Passwort geaendert', 'ok')
+                    toast(t('einstellungen.passwort_geaendert'), 'ok')
                   } catch (err) {
                     toast(err instanceof Error ? err.message : String(err), 'error')
                   } finally {
@@ -162,23 +191,22 @@ export default function Settings() {
                   }
                 }}
               >
-                Aendern
+                {t('einstellungen.aendern')}
               </Button>
             </div>
           </Field>
           <p className="mt-4 flex items-start gap-2 text-sm text-muted">
             <ShieldCheck size={16} className="mt-0.5 shrink-0" />
-            Die Verbindung laeuft verschluesselt, Passwoerter liegen nur als Hash beim
-            Anbieter. Deine Daten sieht nur, wer im jeweiligen Umzug eingetragen ist.
+            {t('einstellungen.sicherheit_hinweis')}
           </p>
         </Card>
 
         {/* Benachrichtigungen */}
-        <Abschnitt>Benachrichtigungen</Abschnitt>
+        <Abschnitt>{t('einstellungen.benachrichtigungen')}</Abschnitt>
         <Card className="mb-8 p-4">
           <div className="mb-4">
-            <p className="t-name">Auf diesem Geraet</p>
-            <p className="t-sub mt-1">{PUSH_TEXT[push]}</p>
+            <p className="t-name">{t('einstellungen.dieses_geraet')}</p>
+            <p className="t-sub mt-1">{t(PUSH_KEY[push])}</p>
             <div className="mt-3">
               {push === 'granted-on' ? (
                 <Button
@@ -188,13 +216,13 @@ export default function Settings() {
                   onClick={async () => {
                     try {
                       setPush(await disablePush())
-                      toast('Auf diesem Geraet aus', 'ok')
+                      toast(t('einstellungen.push_aus'), 'ok')
                     } catch (err) {
                       toast(err instanceof Error ? err.message : String(err), 'error')
                     }
                   }}
                 >
-                  <BellOff size={18} /> Ausschalten
+                  <BellOff size={18} /> {t('einstellungen.ausschalten')}
                 </Button>
               ) : (
                 <Button
@@ -204,13 +232,13 @@ export default function Settings() {
                   onClick={async () => {
                     try {
                       setPush(await enablePush())
-                      toast('Benachrichtigungen an', 'ok')
+                      toast(t('einstellungen.push_an'), 'ok')
                     } catch (err) {
                       toast(err instanceof Error ? err.message : String(err), 'error')
                     }
                   }}
                 >
-                  <Bell size={18} /> Einschalten
+                  <Bell size={18} /> {t('einstellungen.einschalten')}
                 </Button>
               )}
             </div>
@@ -219,7 +247,7 @@ export default function Settings() {
           {/* Laedt, Fehler, Daten. Ein leerer Block waere hier nicht zu deuten. */}
           <div className="border-t border-line pt-1">
             {prefsLoading ? (
-              <Loading label="Einstellungen werden geladen" />
+              <Loading label={t('einstellungen.laedt')} />
             ) : prefsError ? (
               <div className="py-3">
                 <ErrorBox error={prefsError} onRetry={loadPrefs} />
@@ -229,28 +257,34 @@ export default function Settings() {
                 <Switch
                   checked={prefs.chat}
                   onChange={(v) => void savePrefs({ chat: v })}
-                  label="Chatnachrichten"
-                  hint="Einmal pro Nachricht."
+                  label={t('einstellungen.chat')}
+                  hint={t('einstellungen.chat_hinweis')}
                 />
                 <Switch
                   checked={prefs.calls}
                   onChange={(v) => void savePrefs({ calls: v })}
-                  label="Anrufe"
-                  hint="Wiederholt sich, solange es klingelt."
+                  label={t('einstellungen.anrufe')}
+                  hint={t('einstellungen.anrufe_hinweis')}
                 />
                 <Switch
                   checked={prefs.items}
                   onChange={(v) => void savePrefs({ items: v })}
-                  label="Kisten und Status"
-                  hint="Wenn jemand etwas scannt oder auf angekommen setzt."
+                  label={t('einstellungen.kisten')}
+                  hint={t('einstellungen.kisten_hinweis')}
                 />
               </>
             ) : null}
           </div>
         </Card>
 
+        {/* Sprache. Die Wahl dreht auch die Leserichtung der ganzen App. */}
+        <Abschnitt>{t('einstellungen.sprache')}</Abschnitt>
+        <Card className="mb-8 p-4">
+          <SpracheWahl />
+        </Card>
+
         {/* Darstellung */}
-        <Abschnitt>Darstellung</Abschnitt>
+        <Abschnitt>{t('einstellungen.darstellung')}</Abschnitt>
         <Card className="mb-8 p-4">
           <div className="flex gap-2">
             {(['system', 'light', 'dark'] as const).map((m) => (
@@ -263,15 +297,15 @@ export default function Settings() {
                   mode === m ? 'border-ink bg-ink text-paper' : 'border-line hover:bg-raised'
                 }`}
               >
-                {m === 'system' ? 'System' : m === 'light' ? 'Hell' : 'Dunkel'}
+                {t(MODE_KEY[m])}
               </button>
             ))}
           </div>
 
           {/* Bewegung. Reine Optik, kostet aber Akku, darum abschaltbar. */}
           <div className="mt-5 border-t-2 border-line pt-4">
-            <p className="t-name">Bewegung</p>
-            <p className="t-sub mt-1">{STUFE_TEXT[stufe].hinweis}</p>
+            <p className="t-name">{t('einstellungen.bewegung')}</p>
+            <p className="t-sub mt-1">{t(`${BEWEGUNG_KEY[stufe]}_hinweis`)}</p>
             <div className="mt-3 flex gap-2">
               {STUFEN.map((s) => {
                 const Symbol = STUFE_SYMBOL[s]
@@ -286,7 +320,7 @@ export default function Settings() {
                     }`}
                   >
                     <Symbol size={20} />
-                    {STUFE_TEXT[s].name}
+                    {t(BEWEGUNG_KEY[s])}
                   </button>
                 )
               })}
@@ -295,7 +329,7 @@ export default function Settings() {
         </Card>
 
         {/* App */}
-        <Abschnitt>App</Abschnitt>
+        <Abschnitt>{t('einstellungen.app')}</Abschnitt>
         <div className="mb-8">
           <InstallCard />
         </div>
@@ -309,12 +343,10 @@ export default function Settings() {
             nav('/')
           }}
         >
-          <LogOut size={18} /> Abmelden
+          <LogOut size={18} /> {t('einstellungen.abmelden')}
         </Button>
 
-        <p className="mt-8 text-center text-sm text-muted">
-          Kistly . gebaut fuer den eigenen Umzug
-        </p>
+        <p className="mt-8 text-center text-sm text-muted">{t('einstellungen.fusszeile')}</p>
         {/* Luft fuer die untere Navigationsleiste */}
         <div className="h-10" />
       </Page>

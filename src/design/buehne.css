@@ -5,10 +5,14 @@
  * die Startseite nackt aus und funktioniert unveraendert weiter.
  * Hier steht keine Berechnung, keine Abfrage, keine Reihenfolge.
  *
+ * Ruhiger warmer Grund, dazu gezeichnete Umzugskisten. Kein Raster, kein
+ * Neon. Der Grund ist fest im Fenster verankert, darum steht er still,
+ * waehrend der Vordergrund darueber wandert.
+ *
  * Bewegung haengt an data-motion auf dem html-Element:
- *   ruhig   nichts bewegt sich, der Hintergrund steht
- *   normal  der Hintergrund steht fest, der Vordergrund scrollt darueber
- *   voll    zusaetzlich driftende Kisten und atmende Lichter
+ *   ruhig   nichts bewegt sich
+ *   normal  Grund steht fest, Ebenen gehen unterschiedlich weit mit
+ *   voll    zusaetzlich langsames Schweben
  * Ohne das Attribut gilt normal.
  *
  * --sy ist die Scrollhoehe in Pixeln, gesetzt von Buehne.tsx. Fehlt sie,
@@ -17,8 +21,46 @@
 
 :root {
   --sy: 0;
-  --buehne-blau: 37, 99, 235;
-  --buehne-rot: 239, 68, 68;
+
+  /* Grund */
+  --buehne-warm: rgba(196, 160, 106, 0.16);
+  --buehne-kuehl: rgba(120, 146, 160, 0.12);
+  --buehne-tief: #e9e3d6;
+
+  /* Kisten */
+  --kiste-schatten: rgba(61, 52, 38, 0.1);
+  --karton: #cfa572;
+  --karton-hell: #dcb684;
+  --karton-klappe: #dbb686;
+  --karton-klappe-2: #c69a66;
+  --karton-schatten: #b98e5b;
+  --karton-band: #eddcc1;
+  --karton-schlitz: #9d7547;
+  --plastik: #7f9fb0;
+  --plastik-rand: #94b3c2;
+  --plastik-rippe: #6d8d9e;
+  --plastik-griff: #5e7e8f;
+  --kiste-deckung: 0.72;
+}
+
+.dark {
+  --buehne-warm: rgba(180, 138, 84, 0.16);
+  --buehne-kuehl: rgba(96, 124, 140, 0.14);
+  --buehne-tief: #0f0d09;
+
+  --kiste-schatten: rgba(0, 0, 0, 0.3);
+  --karton: #8a6a45;
+  --karton-hell: #9a7850;
+  --karton-klappe: #97744c;
+  --karton-klappe-2: #7e603e;
+  --karton-schatten: #6f5537;
+  --karton-band: #b49a74;
+  --karton-schlitz: #5b452c;
+  --plastik: #4e6775;
+  --plastik-rand: #5d7a8a;
+  --plastik-rippe: #445b67;
+  --plastik-griff: #3b505b;
+  --kiste-deckung: 0.5;
 }
 
 /* ------------------------------------------------------------- Grundlage */
@@ -29,148 +71,76 @@
   z-index: -10;
   overflow: hidden;
   pointer-events: none;
-  /* Der Grund liegt fest. Genau das erzeugt den Eindruck, dass nur der
-     Vordergrund wandert. */
+  /* Weicher warmer Verlauf. Kein Raster, keine harten Kanten. */
   background:
-    radial-gradient(120% 80% at 50% -10%, var(--buehne-oben) 0%, transparent 60%),
+    radial-gradient(90% 60% at 18% 0%, var(--buehne-warm) 0%, transparent 62%),
+    radial-gradient(80% 55% at 88% 22%, var(--buehne-kuehl) 0%, transparent 60%),
     linear-gradient(180deg, var(--paper) 0%, var(--buehne-tief) 100%);
 }
 
-:root {
-  --buehne-oben: rgba(37, 99, 235, 0.1);
-  --buehne-tief: #e9ecf2;
-  --buehne-raster: rgba(7, 8, 10, 0.07);
-  --buehne-strich: rgba(7, 8, 10, 0.16);
-  --buehne-licht-a: 0.2;
-  --buehne-licht-b: 0.14;
-}
-
-.dark {
-  --buehne-oben: rgba(37, 99, 235, 0.22);
-  --buehne-tief: #04050a;
-  --buehne-raster: rgba(255, 255, 255, 0.07);
-  --buehne-strich: rgba(255, 255, 255, 0.2);
-  --buehne-licht-a: 0.3;
-  --buehne-licht-b: 0.22;
-}
-
-/* ---------------------------------------------------------------- Raster */
-/* Millimeterpapier, passt zum Thema Packen und Ausmessen. Nach unten
-   ausgeblendet, damit der Text darueber ruhig bleibt. */
-.buehne-raster {
+/* Ganz schwacher Abdunkler an den Raendern, damit die Mitte ruhiger wirkt. */
+.buehne-rand {
   position: absolute;
-  inset: -10% -10% 0 -10%;
-  background-image:
-    repeating-linear-gradient(
-      to right,
-      var(--buehne-raster) 0 1px,
-      transparent 1px 72px
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      var(--buehne-raster) 0 1px,
-      transparent 1px 72px
-    );
-  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 85%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 85%);
-  transform: translate3d(0, calc(var(--sy) * -0.04px), 0);
-}
-
-/* ---------------------------------------------------------------- Lichter */
-
-.buehne-licht {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(90px);
-  will-change: transform;
-}
-
-.buehne-licht-1 {
-  top: -14rem;
-  left: -10rem;
-  width: 40rem;
-  height: 40rem;
-  background: rgba(var(--buehne-blau), var(--buehne-licht-a));
-  transform: translate3d(0, calc(var(--sy) * -0.1px), 0);
-}
-
-.buehne-licht-2 {
-  top: 8rem;
-  right: -14rem;
-  width: 34rem;
-  height: 34rem;
-  background: rgba(var(--buehne-rot), var(--buehne-licht-b));
-  transform: translate3d(0, calc(var(--sy) * -0.16px), 0);
-}
-
-.buehne-licht-3 {
-  bottom: -18rem;
-  left: 30%;
-  width: 36rem;
-  height: 36rem;
-  background: rgba(var(--buehne-blau), var(--buehne-licht-b));
-  transform: translate3d(0, calc(var(--sy) * 0.08px), 0);
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 40%, transparent 55%, var(--schatten) 140%);
+  opacity: 0.35;
 }
 
 /* ---------------------------------------------------------------- Kisten */
-/* Umrisse der Kistenmarke, weit hinten, als Tiefenhinweis. */
 
 .buehne-kiste {
   position: absolute;
-  border: 2px solid var(--buehne-strich);
-  border-radius: 1rem;
-  opacity: 0.55;
+  opacity: var(--kiste-deckung);
   will-change: transform;
 }
 
-.buehne-kiste::before {
-  content: '';
-  position: absolute;
-  inset: 26% 0 auto 0;
-  border-top: 2px solid var(--buehne-strich);
+.buehne-kiste svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 18px 22px var(--schatten));
 }
 
 .buehne-kiste-1 {
-  top: 18%;
-  left: 6%;
-  width: 7rem;
-  height: 6rem;
-  transform: translate3d(0, calc(var(--sy) * -0.22px), 0) rotate(-9deg);
+  top: 12%;
+  inset-inline-start: 4%;
+  width: 13rem;
+  transform: translate3d(0, calc(var(--sy) * -0.16px), 0) rotate(-5deg);
 }
 
 .buehne-kiste-2 {
-  top: 52%;
-  right: 9%;
-  width: 9rem;
-  height: 7.5rem;
-  transform: translate3d(0, calc(var(--sy) * -0.34px), 0) rotate(7deg);
+  top: 46%;
+  inset-inline-end: 5%;
+  width: 15rem;
+  transform: translate3d(0, calc(var(--sy) * -0.28px), 0) rotate(4deg);
 }
 
 .buehne-kiste-3 {
-  bottom: 12%;
-  left: 18%;
-  width: 5.5rem;
-  height: 4.5rem;
-  transform: translate3d(0, calc(var(--sy) * -0.15px), 0) rotate(14deg);
+  bottom: 6%;
+  inset-inline-start: 22%;
+  width: 11rem;
+  transform: translate3d(0, calc(var(--sy) * -0.1px), 0) rotate(8deg);
 }
 
 @media (max-width: 640px) {
-  /* Auf dem Handy nur eine Kiste, sonst wird es unruhig und kostet
-     unnoetig Rechenzeit. */
+  /* Auf dem Handy nur eine Kiste. Mehr wird unruhig und kostet Rechenzeit. */
   .buehne-kiste-2,
   .buehne-kiste-3 {
     display: none;
   }
-  .buehne-licht {
-    filter: blur(70px);
+  .buehne-kiste-1 {
+    /* Untere Ecke, halb aus dem Bild. Dort steht kein Text, die Kiste
+       stoert also nichts und ist trotzdem deutlich zu sehen. */
+    top: auto;
+    bottom: -2.5rem;
+    inset-inline-start: auto;
+    inset-inline-end: -3rem;
+    width: 13rem;
   }
 }
 
 /* ------------------------------------------------------- Stufe: ruhig */
-/* Alles steht. Kein transform, keine Animation, kein will-change. */
 
-[data-motion='ruhig'] .buehne-raster,
-[data-motion='ruhig'] .buehne-licht,
 [data-motion='ruhig'] .buehne-kiste {
   transform: none;
   will-change: auto;
@@ -189,41 +159,23 @@
     translate: 0 0;
   }
   50% {
-    translate: 0 -14px;
-  }
-}
-
-@keyframes buehne-atmen {
-  0%,
-  100% {
-    opacity: 0.75;
-  }
-  50% {
-    opacity: 1;
+    translate: 0 -12px;
   }
 }
 
 [data-motion='voll'] .buehne-kiste-1 {
-  animation: buehne-schweben 11s ease-in-out infinite;
+  animation: buehne-schweben 13s ease-in-out infinite;
 }
 [data-motion='voll'] .buehne-kiste-2 {
-  animation: buehne-schweben 14s ease-in-out infinite 1.5s;
+  animation: buehne-schweben 16s ease-in-out infinite 2s;
 }
 [data-motion='voll'] .buehne-kiste-3 {
-  animation: buehne-schweben 9s ease-in-out infinite 0.8s;
-}
-[data-motion='voll'] .buehne-licht-1 {
-  animation: buehne-atmen 9s ease-in-out infinite;
-}
-[data-motion='voll'] .buehne-licht-2 {
-  animation: buehne-atmen 12s ease-in-out infinite 2s;
+  animation: buehne-schweben 11s ease-in-out infinite 1s;
 }
 
 /* Wer im Betriebssystem weniger Bewegung eingestellt hat, bekommt sie
    nicht, egal welche Stufe gewaehlt ist. */
 @media (prefers-reduced-motion: reduce) {
-  .buehne-raster,
-  .buehne-licht,
   .buehne-kiste {
     transform: none !important;
     animation: none !important;
@@ -242,7 +194,7 @@
   isolation: isolate;
   box-shadow:
     0 1px 0 0 var(--glanz) inset,
-    0 10px 24px -12px var(--schatten);
+    0 10px 24px -14px var(--schatten);
 }
 
 .kn-glanz::after {
@@ -250,9 +202,9 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(115deg, transparent 30%, var(--glanz) 48%, transparent 66%);
+  background: linear-gradient(115deg, transparent 32%, var(--glanz) 48%, transparent 64%);
   translate: -120% 0;
-  transition: translate 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: translate 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .kn-glanz:hover::after,
@@ -274,39 +226,40 @@
 .kn-pfeil:hover svg:last-child {
   translate: 4px 0;
 }
+/* Im arabischen Satz zeigt der Pfeil nach links, also wandert er auch
+   dorthin. */
+[dir='rtl'] .kn-pfeil:hover svg:last-child {
+  translate: -4px 0;
+}
 [data-motion='ruhig'] .kn-pfeil svg:last-child {
   transition: none;
 }
 
 /* =====================================================================
  * Karten auf der Startseite
- * Durchscheinend, damit die Buehne dahinter sichtbar bleibt, aber mit
- * genug Deckung, dass Text ruhig lesbar ist.
  * ===================================================================== */
 
 .karte-glas {
   background: var(--glas);
-  backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(16px) saturate(1.06);
+  -webkit-backdrop-filter: blur(16px) saturate(1.06);
   border: 1px solid var(--line);
-  box-shadow: 0 18px 40px -28px var(--schatten);
+  box-shadow: 0 20px 44px -30px var(--schatten);
 }
 
 :root {
-  --glas: rgba(255, 255, 255, 0.82);
+  --glas: rgba(251, 248, 242, 0.84);
+  --glas-stark: rgba(251, 248, 242, 0.96);
+  --band: rgba(242, 238, 230, 0.78);
 }
 .dark {
-  --glas: rgba(20, 23, 28, 0.72);
+  --glas: rgba(33, 30, 24, 0.76);
+  --glas-stark: rgba(33, 30, 24, 0.93);
+  --band: rgba(22, 20, 15, 0.72);
 }
 
 .karte-glas-stark {
   background: var(--glas-stark);
-}
-:root {
-  --glas-stark: rgba(255, 255, 255, 0.95);
-}
-.dark {
-  --glas-stark: rgba(20, 23, 28, 0.9);
 }
 
 /* Trennband zwischen den Abschnitten, damit die Buehne nicht durchgehend
@@ -314,12 +267,6 @@
 .band {
   background: var(--band);
   border-block: 1px solid var(--line);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-:root {
-  --band: rgba(255, 255, 255, 0.72);
-}
-.dark {
-  --band: rgba(7, 8, 11, 0.66);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

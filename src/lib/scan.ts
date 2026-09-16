@@ -10,6 +10,7 @@
  */
 import { logScan } from './api'
 import { errText, supabase } from './supabase'
+import { tg } from './i18n'
 import type { Item, ItemContent, Project, Tag } from './types'
 import { normalizeCodeInput } from './util'
 
@@ -48,7 +49,7 @@ export function parseScanInput(text: string): ScanInput {
 
 async function itemById(id: string): Promise<Item | null> {
   const res = await supabase.from('items').select('*').eq('id', id).maybeSingle()
-  if (res.error) throw new Error(`Kiste suchen: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.kiste_suchen', { grund: errText(res.error) }))
   return (res.data as Item | null) ?? null
 }
 
@@ -64,7 +65,7 @@ async function itemsByCode(code: string): Promise<Item[]> {
     .eq('code', code)
     .order('updated_at', { ascending: false })
     .limit(5)
-  if (res.error) throw new Error(`Code suchen: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.code_suchen', { grund: errText(res.error) }))
   return (res.data ?? []) as Item[]
 }
 
@@ -77,15 +78,15 @@ async function itemIdByOldCode(code: string): Promise<string | null> {
     .eq('code', code)
     .order('replaced_at', { ascending: false })
     .limit(1)
-  if (res.error) throw new Error(`Alten Code suchen: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.alter_code_suchen', { grund: errText(res.error) }))
   const row = (res.data ?? [])[0] as { item_id: string } | undefined
   return row?.item_id ?? null
 }
 
 async function projectOf(id: string): Promise<Project> {
   const res = await supabase.from('projects').select('*').eq('id', id).maybeSingle()
-  if (res.error) throw new Error(`Umzug laden: ${errText(res.error)}`)
-  if (!res.data) throw new Error('Der Umzug zu dieser Kiste ist fuer dich nicht sichtbar.')
+  if (res.error) throw new Error(tg('fehler.umzug_laden', { grund: errText(res.error) }))
+  if (!res.data) throw new Error(tg('fehler.umzug_unsichtbar'))
   return res.data as Project
 }
 
@@ -94,7 +95,7 @@ async function tagsOf(ids: Array<string | null>): Promise<Map<string, Tag>> {
   const wanted = [...new Set(ids.filter((v): v is string => Boolean(v)))]
   if (wanted.length === 0) return map
   const res = await supabase.from('tags').select('*').in('id', wanted)
-  if (res.error) throw new Error(`Zimmer und Person laden: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.zimmer_person_laden', { grund: errText(res.error) }))
   for (const t of (res.data ?? []) as Tag[]) map.set(t.id, t)
   return map
 }
@@ -106,7 +107,7 @@ async function contentsOf(itemId: string): Promise<ItemContent[]> {
     .eq('item_id', itemId)
     .order('sort')
     .order('created_at')
-  if (res.error) throw new Error(`Inhalt laden: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.inhalt_laden', { grund: errText(res.error) }))
   return (res.data ?? []) as ItemContent[]
 }
 
@@ -116,7 +117,7 @@ async function photoPathsOf(itemId: string): Promise<string[]> {
     .select('path')
     .eq('item_id', itemId)
     .order('created_at')
-  if (res.error) throw new Error(`Fotos laden: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.fotos_laden', { grund: errText(res.error) }))
   return ((res.data ?? []) as Array<{ path: string }>).map((r) => r.path)
 }
 

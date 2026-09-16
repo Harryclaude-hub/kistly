@@ -16,7 +16,8 @@ import {
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
 import { listAllItems, listContentsForItems } from '../lib/api'
-import { STATUS_LABEL, type Item, type ItemContent, type ItemStatus } from '../lib/types'
+import { useSprache, useT } from '../lib/i18n'
+import type { Item, ItemContent, ItemStatus } from '../lib/types'
 import { appUrl, useLocalState } from '../lib/util'
 
 /* ------------------------------------------------------- Papier und Raster */
@@ -30,9 +31,9 @@ const MM = 96 / 25.4
 const MIN_MM = 2.6
 
 const PAPERS = {
-  A5: { w: 148, h: 210, name: 'A5', label: 'A5 . 148 x 210 mm' },
-  A4: { w: 210, h: 297, name: 'A4', label: 'A4 . 210 x 297 mm' },
-  A3: { w: 297, h: 420, name: 'A3', label: 'A3 . 297 x 420 mm' },
+  A5: { w: 148, h: 210, name: 'A5' },
+  A4: { w: 210, h: 297, name: 'A4' },
+  A3: { w: 297, h: 420, name: 'A3' },
 } as const
 type PaperKey = keyof typeof PAPERS
 const PAPER_KEYS = ['A5', 'A4', 'A3'] as const
@@ -51,12 +52,14 @@ const GRIDS = {
 type PerPage = keyof typeof GRIDS
 const PER_PAGE_KEYS = [1, 2, 4, 6, 8, 12] as const
 
-const MODES = {
-  nummer: 'Nur die Seriennummer, sehr gross',
-  qr: 'Seriennummer und QR-Code',
-  tabelle: 'Seriennummer, QR-Code und Inhaltstabelle',
+/** Jeder Modus zeigt auf seinen Schluessel im Woerterbuch, damit die
+ *  Beschriftung der Sprache folgt und nicht fest im Code steht. */
+const MODE_TEXT = {
+  nummer: 'etiketten.modus.nummer',
+  qr: 'etiketten.modus.qr',
+  tabelle: 'etiketten.modus.tabelle',
 } as const
-type Mode = keyof typeof MODES
+type Mode = keyof typeof MODE_TEXT
 const MODE_KEYS = ['nummer', 'qr', 'tabelle'] as const
 
 const COPIES = [1, 2, 3, 4] as const
@@ -193,6 +196,7 @@ function QrFrame({ value, code, sizeMm }: { value: string; code: string; sizeMm:
       <QrCode value={value} size={512} className="block h-auto w-full" />
       <div
         className="t-serial text-center"
+        dir="ltr"
         style={{
           fontSize: fs(sizeMm * 0.13),
           lineHeight: 1.1,
@@ -207,24 +211,32 @@ function QrFrame({ value, code, sizeMm }: { value: string; code: string; sizeMm:
 }
 
 /** Seriennummer. Schriftart und Fettung kommen aus t-serial, damit die Nummer
- *  auf Papier genauso aussieht wie in der App. Die Groessenziffer in der Mitte
- *  bleibt rot. */
+ *  auf Papier genauso aussieht wie in der App. Die Klasse haelt die Nummer
+ *  auch von links nach rechts, in jeder Sprache.
+ *
+ *  Wo der Block steht, richtet sich dagegen nach der Sprache des Bogens. Darum
+ *  liegt die Ausrichtung im Rahmen aussen herum und nicht auf der Nummer
+ *  selbst: saesse sie auf der Nummer, wuerde start dort immer links heissen
+ *  und die Nummer stuende auf dem arabischen Etikett an der anderen Kante als
+ *  der Titel darunter. Die Groessenziffer in der Mitte bleibt rot. */
 function Serial({ item, sizeMm, center }: { item: Item; sizeMm: number; center?: boolean }) {
   return (
-    <div
-      className="t-serial"
-      style={{
-        fontSize: `${sizeMm.toFixed(2)}mm`,
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
-        textAlign: center ? 'center' : 'left',
-      }}
-    >
-      {item.prefix}
-      <span style={{ opacity: 0.35 }}>-</span>
-      <span style={{ color: '#E11D48' }}>{item.size}</span>
-      <span style={{ opacity: 0.35 }}>-</span>
-      {String(item.seq).padStart(3, '0')}
+    <div style={{ display: 'flex', justifyContent: center ? 'center' : 'flex-start' }}>
+      <span
+        className="t-serial"
+        dir="ltr"
+        style={{
+          fontSize: `${sizeMm.toFixed(2)}mm`,
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {item.prefix}
+        <span style={{ opacity: 0.35 }}>-</span>
+        <span style={{ color: '#E11D48' }}>{item.size}</span>
+        <span style={{ opacity: 0.35 }}>-</span>
+        {String(item.seq).padStart(3, '0')}
+      </span>
     </div>
   )
 }
@@ -248,6 +260,7 @@ function Label({
   color: string
   projectName: string
 }) {
+  const t = useT()
   const s = tile.s
   const pad = 3 * s
   const bar = cfg.colorBar ? 2.6 * s : 0
@@ -378,11 +391,13 @@ function Label({
               fontSize: fs(2.9 * s),
             }}
           >
-            {cfg.showSizeWord ? <span>Groesse {item.size} von 10</span> : null}
-            {item.fragile ? (
-              <span style={{ fontWeight: 900, color: '#E11D48' }}>ZERBRECHLICH</span>
+            {cfg.showSizeWord ? (
+              <span>{t('etiketten.groesse_von_zehn', { n: item.size })}</span>
             ) : null}
-            {cfg.showStatus ? <span>{STATUS_LABEL[item.status]}</span> : null}
+            {item.fragile ? (
+              <span style={{ fontWeight: 900, color: '#E11D48' }}>{t('etiketten.zerbrechlich')}</span>
+            ) : null}
+            {cfg.showStatus ? <span>{t(`status.${item.status}`)}</span> : null}
           </div>
         ) : null}
 
@@ -392,7 +407,7 @@ function Label({
             style={{ marginTop: `${(1.6 * s).toFixed(2)}mm` }}
           >
             {contents.length === 0 ? (
-              <p style={{ fontSize: fs(3 * s), opacity: 0.6 }}>Kein Inhalt eingetragen</p>
+              <p style={{ fontSize: fs(3 * s), opacity: 0.6 }}>{t('etiketten.kein_inhalt')}</p>
             ) : (
               <table
                 style={{
@@ -414,17 +429,17 @@ function Label({
                         background: '#eeeeee',
                       }}
                     >
-                      Menge
+                      {t('etiketten.menge')}
                     </th>
                     <th
                       style={{
                         ...cell,
-                        textAlign: 'left',
+                        textAlign: 'start',
                         fontWeight: 800,
                         background: '#eeeeee',
                       }}
                     >
-                      Bezeichnung
+                      {t('etiketten.bezeichnung')}
                     </th>
                   </tr>
                 </thead>
@@ -438,7 +453,9 @@ function Label({
                   {rest > 0 ? (
                     <tr>
                       <td style={{ ...cell, textAlign: 'center', fontWeight: 800 }}>{rest}</td>
-                      <td style={{ ...cell, opacity: 0.6 }}>weitere, hier nicht gedruckt</td>
+                      <td style={{ ...cell, opacity: 0.6 }}>
+                        {t('etiketten.weitere_nicht_gedruckt')}
+                      </td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -463,7 +480,7 @@ function Label({
             <span className="min-w-0 truncate">{cfg.showProject ? projectName : ''}</span>
             {cfg.showTarget && item.target_room ? (
               <span className="min-w-0 shrink-0 truncate" style={{ fontWeight: 800 }}>
-                nach {item.target_room}
+                {t('etiketten.nach_ziel', { ziel: item.target_room })}
               </span>
             ) : null}
           </div>
@@ -477,6 +494,7 @@ function Label({
 
 export default function Labels() {
   const { project, rooms, people, tagById } = useProject()
+  const { t, tn, dir, rtl } = useSprache()
   const [params] = useSearchParams()
   const singleId = params.get('item')
 
@@ -603,37 +621,40 @@ export default function Labels() {
   const paper = PAPERS[cfg.paper]
   const summary =
     selected.length === 0
-      ? 'Noch keine Etiketten ausgewaehlt.'
-      : `${selected.length} ${selected.length === 1 ? 'Etikett' : 'Etiketten'} auf ` +
-        `${pages.length} ${pages.length === 1 ? 'Seite' : 'Seiten'} ${paper.name}, ` +
-        `jedes Etikett ${Math.round(L.w)} x ${Math.round(L.h)} mm.`
+      ? t('etiketten.keine_auswahl')
+      : t('etiketten.vorschau_satz', {
+          etiketten: tn('etiketten.anzahl', selected.length),
+          seiten: tn('etiketten.seiten', pages.length),
+          format: paper.name,
+          b: Math.round(L.w),
+          h: Math.round(L.h),
+        })
 
   return (
     <>
       <AppHeader
-        title="Etiketten"
-        subtitle={`${paper.name} . ${cfg.perPage} pro Seite . ${MODES[cfg.mode]}`}
+        title={t('etiketten.titel')}
+        subtitle={`${paper.name} . ${t('etiketten.pro_seite', { n: cfg.perPage })} . ${t(
+          MODE_TEXT[cfg.mode],
+        )}`}
         back={`/app/p/${project.id}`}
         actions={
           <Button size="sm" onClick={() => window.print()} disabled={pages.length === 0}>
-            <Printer size={16} /> Drucken
+            <Printer size={16} /> {t('aktion.drucken')}
           </Button>
         }
       />
 
       <Page wide className="no-print">
         <Card className="mb-4 p-4">
-          <SectionTitle>Welche Kisten</SectionTitle>
+          <SectionTitle>{t('etiketten.welche_kisten')}</SectionTitle>
           {singleId ? (
-            <p className="text-base text-muted">
-              Es wird nur diese eine Kiste gedruckt. Ohne den Link oben kommst du zur
-              vollstaendigen Auswahl.
-            </p>
+            <p className="text-base text-muted">{t('etiketten.nur_eine_kiste')}</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Zimmer">
+              <Field label={t('begriff.zimmer')}>
                 <Select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-                  <option value="all">Alle Zimmer</option>
+                  <option value="all">{t('etiketten.alle_zimmer')}</option>
                   {rooms.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.short} . {r.name}
@@ -641,9 +662,9 @@ export default function Labels() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Person">
+              <Field label={t('begriff.person')}>
                 <Select value={personId} onChange={(e) => setPersonId(e.target.value)}>
-                  <option value="all">Alle Personen</option>
+                  <option value="all">{t('etiketten.alle_personen')}</option>
                   {people.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.short} . {p.name}
@@ -651,15 +672,15 @@ export default function Labels() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Status">
+              <Field label={t('begriff.status')}>
                 <Select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as ItemStatus | 'all')}
                 >
-                  <option value="all">Alle</option>
-                  <option value="open">{STATUS_LABEL.open}</option>
-                  <option value="transit">{STATUS_LABEL.transit}</option>
-                  <option value="arrived">{STATUS_LABEL.arrived}</option>
+                  <option value="all">{t('aktion.alle')}</option>
+                  <option value="open">{t('status.open')}</option>
+                  <option value="transit">{t('status.transit')}</option>
+                  <option value="arrived">{t('status.arrived')}</option>
                 </Select>
               </Field>
             </div>
@@ -667,33 +688,43 @@ export default function Labels() {
         </Card>
 
         <Card className="mb-4 p-4">
-          <SectionTitle>Papier und Inhalt</SectionTitle>
+          <SectionTitle>{t('etiketten.papier_und_inhalt')}</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Papierformat" hint="Dieses Format wird auch wirklich gedruckt.">
+            <Field
+              label={t('etiketten.papierformat')}
+              hint={t('etiketten.papierformat_hinweis')}
+            >
               <Select
                 value={cfg.paper}
                 onChange={(e) => patch({ paper: pick(e.target.value, PAPER_KEYS, cfg.paper) })}
               >
                 {PAPER_KEYS.map((k) => (
                   <option key={k} value={k}>
-                    {PAPERS[k].label}
+                    {t('etiketten.papier_mass', {
+                      name: PAPERS[k].name,
+                      b: PAPERS[k].w,
+                      h: PAPERS[k].h,
+                    })}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Was steht auf dem Etikett">
+            <Field label={t('etiketten.was_steht_drauf')}>
               <Select
                 value={cfg.mode}
                 onChange={(e) => patch({ mode: pick(e.target.value, MODE_KEYS, cfg.mode) })}
               >
                 {MODE_KEYS.map((k) => (
                   <option key={k} value={k}>
-                    {MODES[k]}
+                    {t(MODE_TEXT[k])}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Etiketten pro Seite" hint="Dahinter steht die Kachelgroesse.">
+            <Field
+              label={t('etiketten.pro_seite_label')}
+              hint={t('etiketten.pro_seite_hinweis')}
+            >
               <Select
                 value={String(cfg.perPage)}
                 onChange={(e) =>
@@ -701,10 +732,14 @@ export default function Labels() {
                 }
               >
                 {PER_PAGE_KEYS.map((n) => {
-                  const t = layoutOf(cfg.paper, n)
+                  const kachel = layoutOf(cfg.paper, n)
                   return (
                     <option key={n} value={n}>
-                      {n} pro Seite . {Math.round(t.w)} x {Math.round(t.h)} mm
+                      {t('etiketten.pro_seite_mass', {
+                        n,
+                        b: Math.round(kachel.w),
+                        h: Math.round(kachel.h),
+                      })}
                     </option>
                   )
                 })}
@@ -717,14 +752,14 @@ export default function Labels() {
           <SectionTitle
             action={
               <Button size="sm" variant="ghost" onClick={() => setStored(DEFAULT_CONFIG)}>
-                <RefreshCw size={14} /> Standard
+                <RefreshCw size={14} /> {t('etiketten.standard')}
               </Button>
             }
           >
-            Feinheiten
+            {t('etiketten.feinheiten')}
           </SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Exemplare je Kiste" hint="Zwei Etiketten kleben auf zwei Seiten.">
+            <Field label={t('etiketten.exemplare')} hint={t('etiketten.exemplare_hinweis')}>
               <Select
                 value={String(cfg.copies)}
                 onChange={(e) => patch({ copies: pick(Number(e.target.value), COPIES, cfg.copies) })}
@@ -737,7 +772,7 @@ export default function Labels() {
               </Select>
             </Field>
             {cfg.mode === 'tabelle' ? (
-              <Field label="Zeilen Inhalt">
+              <Field label={t('etiketten.zeilen_inhalt')}>
                 <Select
                   value={String(cfg.contentLines)}
                   onChange={(e) =>
@@ -748,7 +783,7 @@ export default function Labels() {
                 >
                   {CONTENT_LINES.map((n) => (
                     <option key={n} value={n}>
-                      {n === 99 ? 'Alles anzeigen' : `${n} Zeilen`}
+                      {n === 99 ? t('etiketten.alles_anzeigen') : t('etiketten.zeilen_n', { n })}
                     </option>
                   ))}
                 </Select>
@@ -760,56 +795,52 @@ export default function Labels() {
             <Switch
               checked={cfg.showRoom}
               onChange={(v) => patch({ showRoom: v })}
-              label="Zimmername"
+              label={t('etiketten.schalter_zimmername')}
             />
             <Switch
               checked={cfg.showPerson}
               onChange={(v) => patch({ showPerson: v })}
-              label="Person"
+              label={t('begriff.person')}
             />
             <Switch
               checked={cfg.colorBar}
               onChange={(v) => patch({ colorBar: v })}
-              label="Farbbalken"
+              label={t('etiketten.schalter_farbbalken')}
             />
             <Switch
               checked={cfg.showSizeWord}
               onChange={(v) => patch({ showSizeWord: v })}
-              label="Groesse als Text"
+              label={t('etiketten.schalter_groesse')}
             />
             <Switch
               checked={cfg.showTarget}
               onChange={(v) => patch({ showTarget: v })}
-              label="Ziel"
+              label={t('begriff.ziel')}
             />
             <Switch
               checked={cfg.showProject}
               onChange={(v) => patch({ showProject: v })}
-              label="Name des Umzugs"
+              label={t('etiketten.schalter_umzugsname')}
             />
             <Switch
               checked={cfg.showStatus}
               onChange={(v) => patch({ showStatus: v })}
-              label="Status"
+              label={t('begriff.status')}
             />
             <Switch
               checked={cfg.cutLines}
               onChange={(v) => patch({ cutLines: v })}
-              label="Schnittlinien"
+              label={t('etiketten.schalter_schnittlinien')}
             />
           </div>
         </Card>
 
         {error ? <ErrorBox error={error} onRetry={() => setNonce((n) => n + 1)} /> : null}
-        {loading ? <Loading label="Kisten werden geladen" /> : null}
+        {loading ? <Loading label={t('etiketten.kisten_laden')} /> : null}
         {ready && selected.length === 0 ? (
           <Empty
-            title="Nichts zu drucken"
-            hint={
-              singleId
-                ? 'Diese Kiste gibt es nicht mehr. Oeffne die Etiketten ueber den Umzug, dann siehst du alle Kisten.'
-                : 'Zu dieser Auswahl gibt es keine Kisten. Aendere den Filter oder lege zuerst Kisten an.'
-            }
+            title={t('etiketten.nichts_zu_drucken')}
+            hint={t(singleId ? 'etiketten.leer_einzeln' : 'etiketten.leer_filter')}
           />
         ) : null}
       </Page>
@@ -820,13 +851,10 @@ export default function Labels() {
           <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="t-name">{summary}</p>
-              <p className="t-sub">
-                Im Druckfenster ist {paper.name} schon vorgegeben. Hintergrundgrafiken
-                einschalten, damit Farbbalken und rote Ziffer mitkommen.
-              </p>
+              <p className="t-sub">{t('etiketten.druck_hinweis', { format: paper.name })}</p>
             </div>
             <Button size="lg" onClick={() => window.print()}>
-              <Printer size={20} /> Drucken
+              <Printer size={20} /> {t('aktion.drucken')}
             </Button>
           </div>
         ) : null}
@@ -842,13 +870,19 @@ export default function Labels() {
               width: `${L.paperW}mm`,
               gap: 16,
               transform: `scale(${zoom})`,
-              transformOrigin: 'top left',
+              // Der Stapel haengt am Anfang der Zeile. Im arabischen Satz ist
+              // das die rechte Kante, sonst rutscht die Vorschau beim
+              // Verkleinern aus dem Bild.
+              transformOrigin: rtl ? 'top right' : 'top left',
             }}
           >
             {pages.map((page, pi) => (
               <div
                 key={pi}
                 className="kistly-sheet"
+                /* Der Bogen wird in der gewaehlten Sprache gelesen. Arabische
+                 * Etiketten fangen darum rechts an. */
+                dir={dir}
                 style={{
                   width: `${L.paperW}mm`,
                   height: `${L.paperH}mm`,

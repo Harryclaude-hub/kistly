@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { cx } from '../lib/util'
 import { Avatar } from './ui'
 import { displayNameOf, useAuth } from '../lib/auth'
+import { useT } from '../lib/i18n'
 
 /** Kopfzeile. Rechts steht immer das eigene Profil, so wie bei den grossen
  *  Messengern. Zusaetzliche Knoepfe kommen links daneben. */
@@ -24,6 +25,7 @@ export function AppHeader({
 }) {
   const nav = useNavigate()
   const { profile, user } = useAuth()
+  const t = useT()
   return (
     <header
       className={cx(
@@ -35,11 +37,11 @@ export function AppHeader({
         {back ? (
           <button
             onClick={() => (typeof back === 'string' ? nav(back) : nav(-1))}
-            aria-label="Zurueck"
-            title="Zurueck"
+            aria-label={t('aktion.zurueck')}
+            title={t('aktion.zurueck')}
             className="-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-transparent text-ink transition hover:border-line hover:bg-raised active:scale-95"
           >
-            <ArrowLeft size={22} />
+            <ArrowLeft size={22} className="spiegeln" />
           </button>
         ) : null}
 
@@ -53,8 +55,8 @@ export function AppHeader({
           {showProfile ? (
             <Link
               to="/app/einstellungen"
-              aria-label="Profil und Einstellungen"
-              title="Profil und Einstellungen"
+              aria-label={t('kopf.profil')}
+              title={t('kopf.profil')}
               className="ml-0.5 rounded-full ring-2 ring-transparent transition hover:ring-line active:scale-95"
             >
               <Avatar name={displayNameOf(profile, user?.email ?? '?')} size={40} />
@@ -149,8 +151,32 @@ export function NavTab({
 }
 
 export function BottomNav({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLElement>(null)
+
+  /* Die Leiste meldet ihre eigene Hoehe als --nav-h. Seiten, die den
+   * ganzen Bildschirm fuellen (der Chat), rechnen damit, statt eine feste
+   * Zahl zu raten. Vorher stand im Chat 5.5rem, die Leiste war aber 6rem
+   * hoch, und die Eingabezeile lag neun Pixel unter der Leiste. */
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const melden = () => {
+      document.documentElement.style.setProperty('--nav-h', `${el.offsetHeight}px`)
+    }
+    melden()
+    const beobachter = new ResizeObserver(melden)
+    beobachter.observe(el)
+    return () => {
+      beobachter.disconnect()
+      document.documentElement.style.removeProperty('--nav-h')
+    }
+  }, [])
+
   return (
-    <nav className="no-print safe-bottom sticky bottom-0 z-40 border-t-2 border-line bg-paper/98 backdrop-blur">
+    <nav
+      ref={ref}
+      className="no-print safe-bottom sticky bottom-0 z-40 border-t-2 border-line bg-paper/98 backdrop-blur"
+    >
       <div className="mx-auto flex max-w-5xl items-end px-2 pt-2">{children}</div>
     </nav>
   )

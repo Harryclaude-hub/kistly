@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ToastProvider, Loading, Wordmark } from './components/ui'
 import { configError } from './lib/supabase'
+import { SpracheProvider } from './lib/i18n'
 
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -56,8 +57,9 @@ export default function App() {
   if (configError) return <SetupHint />
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <AuthProvider>
-        <ToastProvider>
+      <SpracheProvider>
+        <AuthProvider>
+          <ToastProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
@@ -99,8 +101,9 @@ export default function App() {
 
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </ToastProvider>
-      </AuthProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </SpracheProvider>
     </BrowserRouter>
   )
 }

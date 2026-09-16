@@ -28,10 +28,11 @@ import {
   useToast,
 } from '../components/ui'
 import { setItemStatus } from '../lib/api'
+import { useSprache, useT } from '../lib/i18n'
 import { signedUrls } from '../lib/media'
 import { notifyItemStatus } from '../lib/push'
 import { resolveScan, type ScanResult } from '../lib/scan'
-import { SIZE_LABEL, STATUS_LABEL, type ItemStatus, type Tag } from '../lib/types'
+import { type ItemStatus, type Tag } from '../lib/types'
 import { contrastOn, fmtTime, useLocalState } from '../lib/util'
 import { useAppShell } from './AppLayout'
 
@@ -48,6 +49,7 @@ interface LogRow {
 
 /** Farbige Kachel fuer Zimmer oder Person. Kuerzel gross, Name daneben. */
 function TagTile({ label, tag, icon }: { label: string; tag: Tag | null; icon: ReactNode }) {
+  const t = useT()
   if (!tag) {
     return (
       <div className="min-w-0 rounded-xl border-2 border-dashed border-line px-3.5 py-3">
@@ -55,7 +57,7 @@ function TagTile({ label, tag, icon }: { label: string; tag: Tag | null; icon: R
           {icon}
           {label}
         </div>
-        <div className="t-name mt-0.5">nicht gesetzt</div>
+        <div className="t-name mt-0.5">{t('scannen.nicht_gesetzt')}</div>
       </div>
     )
   }
@@ -79,6 +81,7 @@ function TagTile({ label, tag, icon }: { label: string; tag: Tag | null; icon: R
 export default function ScanHub() {
   const { rememberProject } = useAppShell()
   const toast = useToast()
+  const { t, tn } = useSprache()
 
   /* Derselbe Schluessel wie beim Scannen innerhalb eines Umzugs, damit die
    * Einstellung nicht an zwei Orten auseinanderlaeuft. */
@@ -117,6 +120,14 @@ export default function ScanHub() {
     autoRef.current = auto
   }, [auto])
 
+  /* Aus demselben Grund liegt auch die Uebersetzung hinter einem Verweis.
+   * Haenge run direkt an t, wuerde beim Umschalten der Sprache die Kamera
+   * neu starten, mitten im Tragen. */
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
+
   /* Eine leere Kachel heisst zweierlei: noch unterwegs oder endgueltig
    * nicht da. photosFor haelt fest, fuer welche Kiste die Adressen schon
    * durch sind, damit die Kachel das eine vom anderen unterscheiden kann. */
@@ -152,6 +163,7 @@ export default function ScanHub() {
     async (text: string) => {
       const input = text.trim()
       if (!input || busyRef.current) return
+      const tt = tRef.current
       busyRef.current = true
       setBusy(true)
       setPaused(true)
@@ -174,23 +186,28 @@ export default function ScanHub() {
           try {
             const updated = await setItemStatus(res.item.id, want)
             current = { ...res, item: updated }
-            toast(`${updated.code} auf ${STATUS_LABEL[want]} gesetzt`, 'ok')
+            toast(
+              tt('scannen.status_gesetzt', { code: updated.code, wert: tt(`status.${want}`) }),
+              'ok',
+            )
             if (want === 'arrived') {
               void notifyItemStatus(
                 res.project.id,
                 res.project.name,
-                `${updated.code} ist angekommen`,
+                tt('scannen.ist_angekommen', { code: updated.code }),
               )
             }
           } catch (err) {
             // Der Treffer bleibt stehen, nur das Setzen ist misslungen.
             toast(
-              `Status nicht geaendert: ${err instanceof Error ? err.message : String(err)}`,
+              tt('scannen.status_nicht_geaendert', {
+                grund: err instanceof Error ? err.message : String(err),
+              }),
               'error',
             )
           }
         } else {
-          toast(`${res.item.code} gefunden`, 'ok')
+          toast(tt('scannen.gefunden', { code: res.item.code }), 'ok')
         }
 
         setHit(current)
@@ -228,9 +245,13 @@ export default function ScanHub() {
           r.hit.item.id === updated.id ? { ...r, hit: { ...r.hit, item: updated } } : r,
         ),
       )
-      toast(`${updated.code} auf ${STATUS_LABEL[next]} gesetzt`, 'ok')
+      toast(t('scannen.status_gesetzt', { code: updated.code, wert: t(`status.${next}`) }), 'ok')
       if (next === 'arrived') {
-        void notifyItemStatus(hit.project.id, hit.project.name, `${updated.code} ist angekommen`)
+        void notifyItemStatus(
+          hit.project.id,
+          hit.project.name,
+          t('scannen.ist_angekommen', { code: updated.code }),
+        )
       }
     } catch (err) {
       toast(err instanceof Error ? err.message : String(err), 'error')
@@ -249,21 +270,32 @@ export default function ScanHub() {
     setManual('')
   }
 
+  /* Groesse 3 von 10, klein. Ein Satz, damit die Zahl und das Wort dazu in
+   * beiden Sprachen in der richtigen Reihenfolge stehen. */
+  const groesseText = hit
+    ? t('groesse.von_zehn', { n: hit.item.size, wort: t(`groesse.${hit.item.size}`) })
+    : ''
+
   return (
     <>
-      <AppHeader title="Scannen" subtitle="Jede Kiste, jeder Umzug" />
+      <AppHeader title={t('nav.scannen')} subtitle={t('scannen.untertitel_alle')} />
       <Page>
         <div className="mb-4">
           <Scanner onResult={onScanned} paused={paused || busy} />
         </div>
 
         <Card className="mb-4 p-3.5">
-          <Field label="Code von Hand eingeben" hint="Falls der QR-Code beschaedigt oder weg ist.">
+          <Field label={t('scannen.von_hand')} hint={t('scannen.von_hand_hinweis')}>
             <div className="flex gap-2">
-              <div className="relative min-w-0 flex-1">
+              {/* Das Feld haelt eine Seriennummer und laeuft darum immer von
+                  links nach rechts, das macht schon t-serial. Dann muss aber
+                  auch die Lupe links bleiben, sonst sitzt sie im Arabischen
+                  rechts und der Platz dafuer waere links frei. Darum steht
+                  die Richtung am Rahmen und nicht an einzelnen Klassen. */}
+              <div dir="ltr" className="relative min-w-0 flex-1">
                 <Search
                   size={18}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+                  className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted"
                 />
                 <Input
                   value={manual}
@@ -275,11 +307,11 @@ export default function ScanHub() {
                   autoCapitalize="characters"
                   autoCorrect="off"
                   spellCheck={false}
-                  className="t-serial pl-10 text-lg uppercase"
+                  className="t-serial ps-10 text-lg uppercase"
                 />
               </div>
               <Button disabled={!manual.trim() || busy} onClick={submitManual}>
-                Suchen
+                {t('aktion.suchen')}
               </Button>
             </div>
           </Field>
@@ -288,7 +320,7 @@ export default function ScanHub() {
         {busy ? (
           <Card className="mb-4 flex items-center gap-3 p-4">
             <Spinner />
-            <span className="t-name">Kiste wird gesucht</span>
+            <span className="t-name">{t('scannen.wird_gesucht')}</span>
           </Card>
         ) : null}
 
@@ -300,12 +332,9 @@ export default function ScanHub() {
 
         {notFound && !busy ? (
           <Card className="mb-4 border-2 border-danger/30 p-5">
-            <p className="t-name">Dazu gibt es nichts</p>
+            <p className="t-name">{t('scannen.nichts_dazu')}</p>
             <p className="t-serial mt-2 break-words text-2xl">{notFound}</p>
-            <p className="t-sub mt-2">
-              Das steckt in keinem deiner Umzuege. Vielleicht gehoert das Etikett zu einem Umzug, in
-              dem du noch nicht bist. Lass dir einen Einladungscode geben.
-            </p>
+            <p className="t-sub mt-2">{t('scannen.nichts_dazu_hinweis')}</p>
           </Card>
         ) : null}
 
@@ -320,30 +349,41 @@ export default function ScanHub() {
                 {hit.isOldCode ? (
                   <div className="mb-3 flex items-start gap-2 rounded-xl border-2 border-warn/40 bg-warn/10 px-3 py-3 text-warn">
                     <AlertTriangle size={20} className="mt-0.5 shrink-0" />
-                    <span className="min-w-0 text-base font-bold">
-                      Dieses Etikett ist veraltet. Die Kiste heisst jetzt {hit.item.code}. Am besten
-                      neu bekleben.
-                    </span>
+                    {/* Der neue Code steht als eigener Baustein daneben, nicht
+                        mitten im Satz. So bleibt er auch im arabischen Text
+                        von links nach rechts lesbar. */}
+                    <div className="min-w-0 text-base font-bold">
+                      <p>{t('scannen.etikett_veraltet')}</p>
+                      <p className="mt-1 flex flex-wrap items-baseline gap-1.5">
+                        <span>{t('scannen.heisst_jetzt')}</span>
+                        <span className="t-serial">{hit.item.code}</span>
+                      </p>
+                    </div>
                   </div>
                 ) : null}
 
                 <CodeChip code={hit.item.code} size="xl" className="break-words" />
                 <p className="t-name-lg mt-3 break-words">
-                  {hit.item.title || hit.room?.name || hit.person?.name || 'Kiste ohne Namen'}
+                  {hit.item.title || hit.room?.name || hit.person?.name || t('scannen.ohne_namen')}
                 </p>
                 <p className="t-sub mt-0.5">
-                  Groesse {hit.item.size} von 10, {SIZE_LABEL[hit.item.size]}
-                  {hit.item.fragile ? ', zerbrechlich' : ''}
+                  {hit.item.fragile
+                    ? t('scannen.groesse_zerbrechlich', { groesse: groesseText })
+                    : groesseText}
                 </p>
                 {hit.moreMatches > 0 ? (
                   <p className="mt-1.5 text-base font-bold text-warn">
-                    Denselben Code tragen noch {hit.moreMatches} weitere Kisten in anderen Umzuegen.
+                    {tn('scannen.mehrfach', hit.moreMatches)}
                   </p>
                 ) : null}
 
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <TagTile label="Zimmer" tag={hit.room} icon={<DoorOpen size={15} />} />
-                  <TagTile label="Person" tag={hit.person} icon={<User size={15} />} />
+                  <TagTile
+                    label={t('begriff.zimmer')}
+                    tag={hit.room}
+                    icon={<DoorOpen size={15} />}
+                  />
+                  <TagTile label={t('begriff.person')} tag={hit.person} icon={<User size={15} />} />
                 </div>
 
                 <div className="mt-3 flex min-w-0 items-center gap-2 rounded-xl bg-raised px-3.5 py-3">
@@ -353,7 +393,7 @@ export default function ScanHub() {
 
                 <div className="mt-4 flex min-w-0 items-center gap-2">
                   <StatusPill status={hit.item.status} />
-                  <span className="t-sub truncate">so steht die Kiste gerade</span>
+                  <span className="t-sub truncate">{t('scannen.status_jetzt')}</span>
                 </div>
                 <div className="mt-2 grid gap-2 sm:grid-cols-3">
                   {(['open', 'transit', 'arrived'] as ItemStatus[]).map((s) => (
@@ -366,14 +406,16 @@ export default function ScanHub() {
                       disabled={saving !== null}
                       onClick={() => void changeStatus(s)}
                     >
-                      {STATUS_LABEL[s]}
+                      {t(`status.${s}`)}
                     </Button>
                   ))}
                 </div>
 
                 {hit.contents.length > 0 ? (
                   <div className="mt-4">
-                    <SectionTitle>Inhalt ({hit.contents.length})</SectionTitle>
+                    <SectionTitle>
+                      {t('begriff.inhalt')} ({hit.contents.length})
+                    </SectionTitle>
                     <div className="zebra divide-y divide-line overflow-hidden rounded-xl border border-line">
                       {hit.contents.map((c) => (
                         <div key={c.id} className="flex items-center gap-3 px-3.5 py-2.5">
@@ -386,7 +428,7 @@ export default function ScanHub() {
                           </span>
                           {c.qty > 1 ? (
                             <span className="shrink-0 text-sm font-bold text-muted">
-                              {c.qty} Stueck
+                              {t('scannen.stueck', { n: c.qty })}
                             </span>
                           ) : null}
                         </div>
@@ -397,7 +439,9 @@ export default function ScanHub() {
 
                 {hit.photoPaths.length > 0 ? (
                   <div className="mt-4">
-                    <SectionTitle>Fotos ({hit.photoPaths.length})</SectionTitle>
+                    <SectionTitle>
+                      {t('begriff.fotos')} ({hit.photoPaths.length})
+                    </SectionTitle>
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                       {hit.photoPaths.map((p) => {
                         const url = urls.get(p)
@@ -409,7 +453,7 @@ export default function ScanHub() {
                             {url ? (
                               <img
                                 src={url}
-                                alt="Foto der Kiste"
+                                alt={t('scannen.foto_alt')}
                                 loading="lazy"
                                 className="h-full w-full object-cover"
                               />
@@ -419,7 +463,7 @@ export default function ScanHub() {
                               </div>
                             ) : (
                               <div className="flex h-full items-center justify-center px-1 text-center text-sm font-bold text-muted">
-                                nicht ladbar
+                                {t('scannen.foto_fehlt')}
                               </div>
                             )}
                           </div>
@@ -434,19 +478,19 @@ export default function ScanHub() {
             <div className="mb-5 grid gap-2 sm:grid-cols-3">
               <Link to={`/app/p/${hit.project.id}/kisten/${hit.item.id}`} className="block">
                 <Button size="lg" full>
-                  <Boxes size={20} /> Zur Kiste
+                  <Boxes size={20} /> {t('scannen.zur_kiste')}
                 </Button>
               </Link>
               {hit.room ? (
                 <Link to={`/app/p/${hit.project.id}/kisten?room=${hit.room.id}`} className="block">
                   <Button size="lg" full variant="outline">
-                    <DoorOpen size={20} /> Zum Zimmer
+                    <DoorOpen size={20} /> {t('scannen.zum_zimmer')}
                   </Button>
                 </Link>
               ) : null}
               <Link to={`/app/p/${hit.project.id}`} className="block">
                 <Button size="lg" full variant="outline">
-                  <Warehouse size={20} /> Zum Umzug
+                  <Warehouse size={20} /> {t('scannen.zum_umzug')}
                 </Button>
               </Link>
             </div>
@@ -457,11 +501,11 @@ export default function ScanHub() {
           <Switch
             checked={auto !== null}
             onChange={(v) => setAutoStatus(v ? 'arrived' : 'off')}
-            label="Beim Scannen direkt auf Angekommen setzen"
+            label={t('scannen.auto_label')}
             hint={
               auto && auto !== 'arrived'
-                ? `Gerade eingestellt: ${STATUS_LABEL[auto]}`
-                : 'Scannen, gruen, naechste Kiste. Ohne Haken wird nur nachgeschlagen.'
+                ? t('scannen.auto_eingestellt', { wert: t(`status.${auto}`) })
+                : t('scannen.auto_hinweis')
             }
           />
         </Card>
@@ -470,19 +514,19 @@ export default function ScanHub() {
           action={
             log.length > 0 ? (
               <Button variant="outline" size="sm" onClick={() => setLog([])}>
-                Liste leeren
+                {t('scannen.liste_leeren')}
               </Button>
             ) : null
           }
         >
-          In dieser Sitzung gescannt ({log.length})
+          {t('scannen.sitzung', { n: log.length })}
         </SectionTitle>
 
         {log.length === 0 ? (
           <Empty
             icon={<ScanLine size={30} />}
-            title="Noch nichts gescannt"
-            hint="Halte den QR-Code vom Etikett in den Rahmen. Jede Kiste landet hier, egal zu welchem Umzug sie gehoert."
+            title={t('scannen.leer_titel')}
+            hint={t('scannen.leer_hinweis_alle')}
           />
         ) : (
           <Card className="zebra divide-y divide-line overflow-hidden">
@@ -520,7 +564,7 @@ export default function ScanHub() {
                       <span className="shrink-0 text-sm text-muted">{fmtTime(row.at)}</span>
                     </span>
                   </span>
-                  <ArrowRight size={18} className="shrink-0 text-muted" />
+                  <ArrowRight size={18} className="spiegeln shrink-0 text-muted" />
                 </Link>
               )
             })}

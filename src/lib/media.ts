@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, errText } from './supabase'
+import { tg } from './i18n'
 
 export type Bucket = 'item-photos' | 'chat-media' | 'avatars'
 
@@ -44,7 +45,7 @@ export async function uploadTo(
     upsert: false,
     cacheControl: '3600',
   })
-  if (error) throw new Error(`Hochladen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.hochladen', { grund: errText(error) }))
   return path
 }
 
@@ -166,7 +167,7 @@ export class VoiceRecorder {
 
   async stop(): Promise<Recording> {
     const rec = this.rec
-    if (!rec) throw new Error('Es laeuft keine Aufnahme')
+    if (!rec) throw new Error(tg('fehler.keine_aufnahme'))
     const seconds = this.seconds
     const done = new Promise<void>((resolve) => {
       rec.onstop = () => resolve()
@@ -179,7 +180,7 @@ export class VoiceRecorder {
     this.rec = null
     this.stream = null
     this.chunks = []
-    if (blob.size === 0) throw new Error('Die Aufnahme ist leer geblieben')
+    if (blob.size === 0) throw new Error(tg('fehler.aufnahme_leer'))
     return { blob, seconds, mimeType }
   }
 

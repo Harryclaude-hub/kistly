@@ -3,10 +3,12 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell'
 import { Button, ErrorBox, Field, Input, PasswordInput } from '../components/ui'
 import { useAuth } from '../lib/auth'
+import { useT } from '../lib/i18n'
 
 export default function Register() {
   const { signUp, session, ready } = useAuth()
   const nav = useNavigate()
+  const t = useT()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -25,7 +27,7 @@ export default function Register() {
     setError(null)
     setInfo(null)
     if (password.length < 8) {
-      setError('Nimm mindestens 8 Zeichen.')
+      setError(t('konto.passwort_kurz'))
       return
     }
     setBusy(true)
@@ -33,9 +35,7 @@ export default function Register() {
       const { needsConfirm } = await signUp(email, password, name)
       if (needsConfirm) {
         // Nicht so tun als waere alles fertig. Der Hinweis muss sichtbar sein.
-        setInfo(
-          'Konto angelegt. Dieses Supabase-Projekt verlangt noch eine Bestaetigung per E-Mail. Schau in dein Postfach, dann kannst du dich anmelden.',
-        )
+        setInfo(t('konto.bestaetigung_noetig'))
       } else {
         nav('/app', { replace: true })
       }
@@ -48,63 +48,65 @@ export default function Register() {
 
   return (
     <AuthShell
-      title="Konto anlegen"
-      subtitle="Name ist freiwillig. E-Mail und Passwort brauchst du."
+      title={t('konto.konto_anlegen')}
+      subtitle={t('konto.konto_anlegen_unter')}
       footer={
         <>
-          <p>Schon ein Konto?</p>
+          <p>{t('konto.schon_konto')}</p>
           <Link to="/login" className="mt-3 inline-block">
             <Button type="button" variant="outline" size="lg">
-              Anmelden
+              {t('konto.anmelden')}
             </Button>
           </Link>
         </>
       }
     >
       <form onSubmit={onSubmit} className="space-y-5">
-        <Field label="Name" hint="Optional. So sehen dich die anderen im Umzug.">
+        <Field label={t('begriff.name')} hint={t('konto.name_hinweis')}>
           <Input
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Karam"
+            placeholder={t('konto.name_platzhalter')}
           />
         </Field>
-        <Field label="E-Mail" required>
+        <Field label={t('konto.email')} required>
+          {/* Die Adresse bleibt in jeder Sprache von links nach rechts. */}
           <Input
             type="email"
+            dir="ltr"
             autoComplete="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="du@beispiel.de"
+            placeholder={t('konto.email_platzhalter')}
           />
         </Field>
         <Field
-          label="Passwort"
+          label={t('konto.passwort')}
           required
-          error={weak ? 'Mindestens 8 Zeichen.' : null}
-          hint="Mindestens 8 Zeichen. Mit dem Auge rechts kannst du es anzeigen."
+          error={weak ? t('konto.passwort_min') : null}
+          hint={t('konto.passwort_hinweis')}
         >
           <PasswordInput
             autoComplete="new-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Neues Passwort"
+            placeholder={t('konto.neues_passwort_platzhalter')}
           />
         </Field>
 
         {error ? <ErrorBox error={error} /> : null}
         {info ? (
           <div className="rounded-2xl border border-warn/40 bg-warn/10 p-4">
-            <p className="font-bold">Fast fertig</p>
+            <p className="font-bold">{t('konto.fast_fertig')}</p>
             <p className="mt-1 text-base text-ink/80">{info}</p>
           </div>
         ) : null}
 
         <Button type="submit" full size="lg" loading={busy}>
-          Konto anlegen
+          {t('konto.konto_anlegen')}
         </Button>
       </form>
 
@@ -112,7 +114,7 @@ export default function Register() {
         <div className="mt-3">
           <Link to="/login" className="block">
             <Button type="button" variant="outline" size="lg" full>
-              Zur Anmeldung
+              {t('konto.zur_anmeldung')}
             </Button>
           </Link>
         </div>

@@ -9,6 +9,7 @@
  */
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { tg } from './i18n'
 
 export const ICE_SERVERS: RTCIceServer[] = [
   { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
@@ -84,8 +85,10 @@ export class CallSession {
     } catch (err) {
       const msg =
         err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Zugriff auf Mikrofon wurde abgelehnt. Ohne Mikrofon geht kein Anruf.'
-          : `Mikrofon nicht verfuegbar: ${err instanceof Error ? err.message : String(err)}`
+          ? tg('fehler.mikrofon_abgelehnt')
+          : tg('fehler.mikrofon_fehlt', {
+              grund: err instanceof Error ? err.message : String(err),
+            })
       this.handlers.error?.(msg)
       throw new Error(msg)
     }
@@ -99,8 +102,7 @@ export class CallSession {
     })
     await this.channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') this.send({ kind: 'hello', from: this.selfId })
-      if (status === 'CHANNEL_ERROR')
-        this.handlers.error?.('Der Signalkanal ist abgebrochen. Anruf neu starten.')
+      if (status === 'CHANNEL_ERROR') this.handlers.error?.(tg('fehler.signalkanal'))
     })
   }
 
@@ -136,9 +138,7 @@ export class CallSession {
       if (s === 'connected') this.setState(id, 'connected')
       else if (s === 'failed') {
         this.setState(id, 'failed')
-        this.handlers.error?.(
-          'Die direkte Verbindung kam nicht zustande. Das passiert in manchen Mobilfunknetzen ohne TURN-Server.',
-        )
+        this.handlers.error?.(tg('fehler.verbindung_direkt'))
       } else if (s === 'disconnected' || s === 'closed') this.setState(id, 'closed')
     }
     return pc

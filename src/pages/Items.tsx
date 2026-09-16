@@ -23,12 +23,10 @@ import {
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
 import { createItem, listItems, setItemStatus, listAllItems } from '../lib/api'
+import { useSprache, useT } from '../lib/i18n'
 import { notifyItemStatus } from '../lib/push'
 import { supabase } from '../lib/supabase'
 import {
-  KIND_LABEL,
-  SIZE_LABEL,
-  STATUS_LABEL,
   type Item,
   type ItemKind,
   type ItemStatus,
@@ -43,6 +41,10 @@ const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
   arrived: 'open',
 }
 
+/* Die Kistenarten in fester Reihenfolge. Die Woerter dazu stehen im
+ * Woerterbuch unter art.box und so weiter, nicht mehr in types.ts. */
+export const ARTEN: ItemKind[] = ['box', 'furniture', 'bag', 'other']
+
 export function SizePicker({
   value,
   onChange,
@@ -50,6 +52,7 @@ export function SizePicker({
   value: number
   onChange: (v: number) => void
 }) {
+  const t = useT()
   return (
     <div>
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
@@ -58,7 +61,7 @@ export function SizePicker({
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            aria-label={`Groesse ${n}, ${SIZE_LABEL[n]}`}
+            aria-label={t('kisten.groesse_knopf', { n, wort: t(`groesse.${n}`) })}
             aria-pressed={value === n}
             className={`h-12 w-full min-w-0 rounded-xl border-2 font-mono text-lg font-black transition active:scale-95 ${
               value === n
@@ -71,7 +74,8 @@ export function SizePicker({
         ))}
       </div>
       <p className="t-sub mt-2.5">
-        Groesse {value} von 10, also {SIZE_LABEL[value]}. Die Ziffer steht rot mitten in der Nummer.
+        {t('groesse.von_zehn', { n: value, wort: t(`groesse.${value}`) })}.{' '}
+        {t('kisten.groesse_hinweis')}
       </p>
     </div>
   )
@@ -106,6 +110,7 @@ interface Draft {
 
 export default function Items() {
   const { project, rooms, people, tagById, canEdit } = useProject()
+  const { t, tn } = useSprache()
   const toast = useToast()
   const [params, setParams] = useSearchParams()
 
@@ -201,7 +206,7 @@ export default function Items() {
     e.preventDefault()
     setFormError(null)
     if (!draft.room_id && !draft.person_id) {
-      setFormError('Waehle mindestens ein Zimmer oder eine Person.')
+      setFormError(t('kisten.fehler_kein_tag'))
       return
     }
     setBusy(true)
@@ -225,8 +230,12 @@ export default function Items() {
       }
       toast(
         created.length === 1
-          ? `${created[0].code} angelegt`
-          : `${created.length} Kisten angelegt, ${created[0].code} bis ${created[created.length - 1].code}`,
+          ? t('kisten.angelegt', { code: created[0].code })
+          : t('kisten.mehrere_angelegt', {
+              n: created.length,
+              von: created[0].code,
+              bis: created[created.length - 1].code,
+            }),
         'ok',
       )
       setOpen(false)
@@ -248,7 +257,11 @@ export default function Items() {
     try {
       await setItemStatus(item.id, next)
       if (next === 'arrived') {
-        void notifyItemStatus(project.id, project.name, `${item.code} ist angekommen`)
+        void notifyItemStatus(
+          project.id,
+          project.name,
+          t('kisten.ist_angekommen', { code: item.code }),
+        )
       }
     } catch (err) {
       setRows((prev) => prev.map((r) => (r.id === item.id ? { ...r, status: item.status } : r)))
@@ -263,24 +276,24 @@ export default function Items() {
       const all = await listAllItems(project.id)
       const csv = toCsv(
         all.map((i) => ({
-          Code: i.code,
-          Art: KIND_LABEL[i.kind],
-          Titel: i.title ?? '',
-          Zimmer: tagById(i.room_id)?.name ?? '',
-          Person: tagById(i.person_id)?.name ?? '',
-          Groesse: i.size,
-          Status: STATUS_LABEL[i.status],
-          Ziel: i.target_room ?? '',
-          Zerbrechlich: i.fragile ? 'ja' : 'nein',
-          Notiz: i.note ?? '',
+          [t('kisten.csv_code')]: i.code,
+          [t('kisten.art')]: t(`art.${i.kind}`),
+          [t('begriff.titel')]: i.title ?? '',
+          [t('begriff.zimmer')]: tagById(i.room_id)?.name ?? '',
+          [t('begriff.person')]: tagById(i.person_id)?.name ?? '',
+          [t('begriff.groesse')]: i.size,
+          [t('begriff.status')]: t(`status.${i.status}`),
+          [t('begriff.ziel')]: i.target_room ?? '',
+          [t('begriff.zerbrechlich')]: i.fragile ? t('kisten.ja') : t('kisten.nein'),
+          [t('begriff.notiz')]: i.note ?? '',
         })),
       )
       if (!csv) {
-        toast('Es gibt noch nichts zu exportieren.', 'info')
+        toast(t('kisten.nichts_zu_exportieren'), 'info')
         return
       }
       download(`kistly-${project.name.replace(/\W+/g, '-').toLowerCase()}.csv`, csv)
-      toast(`${all.length} Kisten exportiert`, 'ok')
+      toast(t('kisten.exportiert', { n: all.length }), 'ok')
     } catch (err) {
       toast(err instanceof Error ? err.message : String(err), 'error')
     } finally {
@@ -305,13 +318,13 @@ export default function Items() {
   return (
     <>
       <AppHeader
-        title="Kisten"
-        subtitle={`${total} Eintraege`}
+        title={t('nav.kisten')}
+        subtitle={tn('begriff.eintraege', total)}
         back={`/app/p/${project.id}`}
         actions={
           <>
             <IconButton
-              label="Als CSV exportieren"
+              label={t('aktion.exportieren')}
               size="sm"
               disabled={exporting}
               onClick={() => void exportCsv()}
@@ -320,7 +333,7 @@ export default function Items() {
             </IconButton>
             {canEdit ? (
               <Button size="sm" onClick={() => setOpen(true)}>
-                <Plus size={16} /> Neu
+                <Plus size={16} /> {t('aktion.neu')}
               </Button>
             ) : null}
           </>
@@ -331,18 +344,18 @@ export default function Items() {
         {/* Suche */}
         <div className="mb-3 flex gap-2">
           <div className="relative min-w-0 flex-1">
-            <Search size={19} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <Search size={19} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Code, Titel oder Notiz"
-              className={search ? 'pl-10 pr-14' : 'pl-10'}
+              placeholder={t('kisten.suche_platzhalter')}
+              className={search ? 'ps-10 pe-14' : 'ps-10'}
             />
             {search ? (
               <IconButton
-                label="Suche leeren"
+                label={t('kisten.suche_leeren')}
                 size="sm"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2"
+                className="absolute end-1.5 top-1/2 -translate-y-1/2"
                 onClick={() => setSearch('')}
               >
                 <X size={17} />
@@ -352,17 +365,17 @@ export default function Items() {
           <IconButton
             label={
               activeFilters > 0
-                ? `Filter, ${activeFilters} gesetzt`
+                ? t('kisten.filter_gesetzt', { n: activeFilters })
                 : showFilter
-                  ? 'Filter schliessen'
-                  : 'Filter oeffnen'
+                  ? t('kisten.filter_schliessen')
+                  : t('kisten.filter_oeffnen')
             }
             className="relative"
             onClick={() => setShowFilter((v) => !v)}
           >
             <Filter size={19} />
             {activeFilters > 0 ? (
-              <span className="absolute -right-2 -top-2 min-w-[1.5rem] rounded-full bg-danger px-1 text-sm font-black leading-6 text-white">
+              <span className="absolute -end-2 -top-2 min-w-[1.5rem] rounded-full bg-danger px-1 text-sm font-black leading-6 text-white">
                 {activeFilters}
               </span>
             ) : null}
@@ -372,20 +385,20 @@ export default function Items() {
         {/* Statusleiste. Sie darf waagerecht rollen, die Seite nicht. */}
         <div className="-mx-3 mb-3 flex flex-nowrap gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
           <Chip active={status === 'all'} onClick={() => setParam('status', 'all')}>
-            Alle
+            {t('aktion.alle')}
           </Chip>
           {(['open', 'transit', 'arrived'] as ItemStatus[]).map((s) => (
             <Chip key={s} active={status === s} onClick={() => setParam('status', s)}>
-              {STATUS_LABEL[s]}
+              {t(`status.${s}`)}
             </Chip>
           ))}
         </div>
 
         {showFilter ? (
           <Card className="animate-in mb-3 space-y-4 p-4">
-            <Field label="Zimmer">
+            <Field label={t('begriff.zimmer')}>
               <Select value={roomId} onChange={(e) => setParam('room', e.target.value)}>
-                <option value="all">Alle Zimmer</option>
+                <option value="all">{t('kisten.alle_zimmer')}</option>
                 {rooms.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.short} . {r.name}
@@ -393,9 +406,9 @@ export default function Items() {
                 ))}
               </Select>
             </Field>
-            <Field label="Person">
+            <Field label={t('begriff.person')}>
               <Select value={personId} onChange={(e) => setParam('person', e.target.value)}>
-                <option value="all">Alle Personen</option>
+                <option value="all">{t('kisten.alle_personen')}</option>
                 {people.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.short} . {p.name}
@@ -403,16 +416,16 @@ export default function Items() {
                 ))}
               </Select>
             </Field>
-            <Field label="Sortierung">
+            <Field label={t('kisten.sortierung')}>
               <Select value={sort} onChange={(e) => setParam('sort', e.target.value)}>
-                <option value="code">Nach Nummer</option>
-                <option value="newest">Neueste zuerst</option>
-                <option value="size">Groesste zuerst</option>
+                <option value="code">{t('kisten.sort_code')}</option>
+                <option value="newest">{t('kisten.sort_neueste')}</option>
+                <option value="size">{t('kisten.sort_groesste')}</option>
               </Select>
             </Field>
             {activeFilters > 0 ? (
               <Button variant="soft" full onClick={resetFilters}>
-                <X size={16} /> Filter zuruecksetzen
+                <X size={16} /> {t('kisten.filter_zuruecksetzen')}
               </Button>
             ) : null}
           </Card>
@@ -422,30 +435,32 @@ export default function Items() {
         {error && rows.length === 0 ? (
           <ErrorBox error={error} onRetry={() => void load(0, false)} />
         ) : loading && rows.length === 0 ? (
-          <Loading label="Kisten werden geladen" />
+          <Loading label={t('kisten.laedt')} />
         ) : rows.length === 0 ? (
           <Empty
             icon={<Boxes size={28} />}
-            title={activeFilters || debounced ? 'Nichts gefunden' : 'Noch keine Kiste'}
+            title={
+              activeFilters || debounced ? t('zustand.nichts_gefunden') : t('kisten.leer_titel')
+            }
             hint={
               activeFilters
-                ? 'Zu diesem Filter passt gerade nichts. Setz den Filter zurueck.'
+                ? t('kisten.leer_filter')
                 : debounced
-                  ? 'Zu dieser Suche passt gerade keine Kiste. Leere die Suche.'
-                  : 'Lege die erste Kiste an. Die Nummer vergibt Kistly selbst.'
+                  ? t('kisten.leer_suche')
+                  : t('kisten.leer_hinweis')
             }
             action={
               activeFilters ? (
                 <Button variant="outline" onClick={resetFilters}>
-                  <X size={16} /> Filter zuruecksetzen
+                  <X size={16} /> {t('kisten.filter_zuruecksetzen')}
                 </Button>
               ) : debounced ? (
                 <Button variant="outline" onClick={() => setSearch('')}>
-                  <X size={16} /> Suche leeren
+                  <X size={16} /> {t('kisten.suche_leeren')}
                 </Button>
               ) : canEdit ? (
                 <Button onClick={() => setOpen(true)}>
-                  <Plus size={16} /> Erste Kiste
+                  <Plus size={16} /> {t('kisten.erste')}
                 </Button>
               ) : null
             }
@@ -480,24 +495,26 @@ export default function Items() {
                         <CodeChip code={item.code} size="md" />
                         {item.fragile ? (
                           <span className="rounded-lg border-2 border-warn/40 bg-warn/10 px-2 py-0.5 text-sm font-black text-warn">
-                            zerbrechlich
+                            {t('begriff.zerbrechlich')}
                           </span>
                         ) : null}
                       </span>
                       <span className="t-name block truncate">
-                        {item.title || KIND_LABEL[item.kind]}
+                        {item.title || t(`art.${item.kind}`)}
                       </span>
                       {room || person || item.target_room ? (
                         <span className="flex flex-wrap items-center gap-1.5">
                           {room ? <TagTile tag={room} icon={<DoorOpen size={14} />} /> : null}
                           {person ? <TagTile tag={person} icon={<User size={14} />} /> : null}
                           {item.target_room ? (
-                            <span className="t-sub min-w-0 truncate">nach {item.target_room}</span>
+                            <span className="t-sub min-w-0 truncate">
+                              {t('kisten.nach_ziel', { ziel: item.target_room })}
+                            </span>
                           ) : null}
                         </span>
                       ) : null}
                     </Link>
-                    <span className="flex shrink-0 items-center py-3 pr-3">
+                    <span className="flex shrink-0 items-center py-3 pe-3">
                       <StatusPill
                         status={item.status}
                         onClick={canEdit ? () => void cycleStatus(item) : undefined}
@@ -516,14 +533,12 @@ export default function Items() {
                   loading={loading}
                   onClick={() => void load(page + 1, true)}
                 >
-                  Weitere laden
+                  {t('aktion.mehr_laden')}
                 </Button>
-                <p className="t-sub">
-                  {rows.length} von {total} geladen
-                </p>
+                <p className="t-sub">{t('kisten.geladen_von', { a: rows.length, b: total })}</p>
               </div>
             ) : (
-              <p className="t-sub mt-5 text-center">Alle {total} Kisten geladen</p>
+              <p className="t-sub mt-5 text-center">{t('kisten.alle_geladen', { n: total })}</p>
             )}
           </>
         )}
@@ -534,22 +549,26 @@ export default function Items() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Neue Kiste"
+        title={t('kisten.neu')}
         wide
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Abbrechen
+              {t('aktion.abbrechen')}
             </Button>
             <Button form="item-form" type="submit" loading={busy}>
-              {draft.count > 1 ? `${draft.count} anlegen` : 'Anlegen'}
+              {draft.count > 1
+                ? t('kisten.anzahl_anlegen', { n: draft.count })
+                : t('aktion.anlegen')}
             </Button>
           </>
         }
       >
         <form id="item-form" onSubmit={onCreate} className="space-y-5">
           <div className="rounded-2xl border-2 border-line bg-raised px-3 py-4 text-center">
-            <p className="text-sm font-black uppercase tracking-wide text-muted">Die Nummer wird</p>
+            <p className="text-sm font-black uppercase tracking-wide text-muted">
+              {t('kisten.nummer_wird')}
+            </p>
             <p className="t-serial mt-2 text-4xl leading-none sm:text-5xl">
               {previewPrefix}
               <span className="opacity-40">-</span>
@@ -557,16 +576,16 @@ export default function Items() {
               <span className="opacity-40">-</span>
               <span className="opacity-60">###</span>
             </p>
-            <p className="t-sub mt-2">Die letzten drei Ziffern vergibt Kistly selbst.</p>
+            <p className="t-sub mt-2">{t('kisten.nummer_hinweis')}</p>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Zimmer">
+            <Field label={t('begriff.zimmer')}>
               <Select
                 value={draft.room_id}
                 onChange={(e) => setDraft((d) => ({ ...d, room_id: e.target.value }))}
               >
-                <option value="">kein Zimmer</option>
+                <option value="">{t('kisten.kein_zimmer')}</option>
                 {rooms.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.short} . {r.name}
@@ -574,12 +593,12 @@ export default function Items() {
                 ))}
               </Select>
             </Field>
-            <Field label="Person">
+            <Field label={t('begriff.person')}>
               <Select
                 value={draft.person_id}
                 onChange={(e) => setDraft((d) => ({ ...d, person_id: e.target.value }))}
               >
-                <option value="">keine Person</option>
+                <option value="">{t('kisten.keine_person')}</option>
                 {people.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.short} . {p.name}
@@ -590,47 +609,44 @@ export default function Items() {
           </div>
 
           {draft.room_id && draft.person_id ? (
-            <Field
-              label="Welches Kuerzel steht vorne?"
-              hint="Eine Kiste kann zu einem Zimmer und einer Person gehoeren. Die Nummer beginnt aber mit genau einem Kuerzel."
-            >
+            <Field label={t('kisten.kuerzel_frage')} hint={t('kisten.kuerzel_hinweis')}>
               <div className="flex flex-wrap gap-2">
                 <Chip
                   active={draft.code_source === 'room'}
                   onClick={() => setDraft((d) => ({ ...d, code_source: 'room' }))}
                   color={tagById(draft.room_id)?.color}
                 >
-                  {tagById(draft.room_id)?.short} . Zimmer
+                  {t('kisten.kuerzel_zimmer', { kuerzel: tagById(draft.room_id)?.short ?? '' })}
                 </Chip>
                 <Chip
                   active={draft.code_source === 'person'}
                   onClick={() => setDraft((d) => ({ ...d, code_source: 'person' }))}
                   color={tagById(draft.person_id)?.color}
                 >
-                  {tagById(draft.person_id)?.short} . Person
+                  {t('kisten.kuerzel_person', { kuerzel: tagById(draft.person_id)?.short ?? '' })}
                 </Chip>
               </div>
             </Field>
           ) : null}
 
-          <Field label="Groesse" required>
+          <Field label={t('begriff.groesse')} required>
             <SizePicker value={draft.size} onChange={(size) => setDraft((d) => ({ ...d, size }))} />
           </Field>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Art">
+            <Field label={t('kisten.art')}>
               <Select
                 value={draft.kind}
                 onChange={(e) => setDraft((d) => ({ ...d, kind: e.target.value as ItemKind }))}
               >
-                {(Object.keys(KIND_LABEL) as ItemKind[]).map((k) => (
+                {ARTEN.map((k) => (
                   <option key={k} value={k}>
-                    {KIND_LABEL[k]}
+                    {t(`art.${k}`)}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Titel" hint="Optional, zum Beispiel Buecher Regal links.">
+            <Field label={t('begriff.titel')} hint={t('kisten.titel_hinweis')}>
               <Input
                 value={draft.title}
                 onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
@@ -639,14 +655,14 @@ export default function Items() {
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Ziel in der neuen Wohnung" hint="Optional.">
+            <Field label={t('kisten.ziel')} hint={t('begriff.optional')}>
               <Input
                 value={draft.target_room}
                 onChange={(e) => setDraft((d) => ({ ...d, target_room: e.target.value }))}
-                placeholder="Arbeitszimmer oben"
+                placeholder={t('kisten.ziel_platzhalter')}
               />
             </Field>
-            <Field label="Anzahl" hint="Mehrere gleiche Kisten auf einmal anlegen, maximal 50.">
+            <Field label={t('kisten.anzahl')} hint={t('kisten.anzahl_hinweis')}>
               <Input
                 type="number"
                 min={1}
@@ -662,7 +678,7 @@ export default function Items() {
             </Field>
           </div>
 
-          <Field label="Notiz">
+          <Field label={t('begriff.notiz')}>
             <Textarea
               rows={2}
               value={draft.note}
@@ -673,8 +689,8 @@ export default function Items() {
           <Switch
             checked={draft.fragile}
             onChange={(fragile) => setDraft((d) => ({ ...d, fragile }))}
-            label="Zerbrechlich"
-            hint="Wird auf dem Etikett hervorgehoben."
+            label={t('begriff.zerbrechlich')}
+            hint={t('kisten.zerbrechlich_hinweis')}
           />
 
           {formError ? (

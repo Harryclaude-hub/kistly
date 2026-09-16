@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser'
 import { CameraOff, Flashlight, RefreshCw } from 'lucide-react'
-import { Button } from './ui'
+import { useT } from '../lib/i18n'
+import { Button, IconButton } from './ui'
 
 /** Kurzer Bestaetigungston. Ohne Datei, damit nichts nachgeladen wird. */
 function beep(ok = true) {
@@ -22,6 +23,16 @@ function beep(ok = true) {
   }
 }
 
+/* Gemerkt wird der Schluessel, nicht der fertige Satz. Sonst bliebe eine
+ * Meldung, die beim Starten der Kamera entstanden ist, in der Sprache von
+ * damals stehen, auch wenn der Nutzer danach umschaltet. Ausserdem haengt
+ * der Kamera-Start so nicht an der Uebersetzungsfunktion und startet bei
+ * einem Sprachwechsel nicht neu. */
+interface KameraFehler {
+  key: string
+  grund?: string
+}
+
 export function Scanner({
   onResult,
   paused = false,
@@ -29,13 +40,14 @@ export function Scanner({
   onResult: (text: string) => void
   paused?: boolean
 }) {
+  const t = useT()
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
   const lastRef = useRef<{ text: string; at: number }>({ text: '', at: 0 })
   const pausedRef = useRef(paused)
   pausedRef.current = paused
 
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<KameraFehler | null>(null)
   const [torchOn, setTorchOn] = useState(false)
   const [hasTorch, setHasTorch] = useState(false)
   const [nonce, setNonce] = useState(0)
@@ -50,7 +62,7 @@ export function Scanner({
     void (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) {
-          setError('Dieser Browser gibt keinen Zugriff auf die Kamera.')
+          setError({ key: 'scannen.kamera_kein_zugriff' })
           return
         }
         const controls = await reader.decodeFromConstraints(
@@ -82,10 +94,10 @@ export function Scanner({
         const e = err as DOMException
         setError(
           e.name === 'NotAllowedError'
-            ? 'Der Zugriff auf die Kamera wurde abgelehnt. In den Seiteneinstellungen des Browsers wieder erlauben.'
+            ? { key: 'scannen.kamera_abgelehnt' }
             : e.name === 'NotFoundError'
-              ? 'Es wurde keine Kamera gefunden.'
-              : `Kamera nicht verfuegbar: ${e.message || String(err)}`,
+              ? { key: 'scannen.kamera_nicht_gefunden' }
+              : { key: 'scannen.kamera_fehler', grund: e.message || String(err) },
         )
       }
     })()
@@ -115,17 +127,18 @@ export function Scanner({
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-line bg-raised p-8 text-center">
         <CameraOff size={28} className="text-muted" />
-        <p className="text-sm font-semibold">Kamera laeuft nicht</p>
-        <p className="max-w-xs text-sm text-muted">{error}</p>
+        <p className="t-name">{t('scannen.kamera_laeuft_nicht')}</p>
+        <p className="t-sub max-w-xs">
+          {t(error.key, error.grund ? { grund: error.grund } : undefined)}
+        </p>
         <Button
           variant="outline"
-          size="sm"
           onClick={() => {
             setError(null)
             setNonce((n) => n + 1)
           }}
         >
-          <RefreshCw size={14} /> Nochmal versuchen
+          <RefreshCw size={18} /> {t('aktion.nochmal')}
         </Button>
       </div>
     )
@@ -148,18 +161,18 @@ export function Scanner({
         />
       </div>
       {hasTorch ? (
-        <button
+        <IconButton
+          label={t(torchOn ? 'scannen.licht_aus' : 'scannen.licht_an')}
           onClick={() => void toggleTorch()}
-          aria-label="Licht"
-          className={`absolute bottom-3 right-3 rounded-full p-3 ${
-            torchOn ? 'bg-white text-black' : 'bg-black/50 text-white'
-          }`}
+          className="absolute bottom-3 end-3"
         >
-          <Flashlight size={18} />
-        </button>
+          {/* Die eigene Farbe am Symbol schlaegt die geerbte des Knopfes,
+              so sieht man im Dunkeln, dass das Licht gerade an ist. */}
+          <Flashlight size={20} className={torchOn ? 'text-warn' : undefined} />
+        </IconButton>
       ) : null}
-      <p className="absolute inset-x-0 bottom-3 text-center text-xs font-semibold text-white/85">
-        {paused ? 'Treffer' : 'QR-Code in den Rahmen halten'}
+      <p className="absolute inset-x-0 bottom-3 text-center text-sm font-bold text-white/90">
+        {paused ? t('scannen.treffer') : t('scannen.rahmen_hinweis')}
       </p>
     </div>
   )

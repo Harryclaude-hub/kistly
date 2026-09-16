@@ -27,6 +27,24 @@ try {
   document.documentElement.dataset.motion = 'normal'
 }
 
+/* Sprache und Leserichtung genauso frueh setzen wie Theme und Bewegung.
+   Die Werte stehen in src/lib/i18n. Hier absichtlich nur das Setzen der
+   Attribute, damit diese Datei nicht am Woerterbuch haengt. */
+try {
+  const gespeichert = localStorage.getItem('kistly.lang')
+  const l =
+    gespeichert === 'ar' || gespeichert === 'de'
+      ? gespeichert
+      : navigator.language?.toLowerCase().startsWith('ar')
+        ? 'ar'
+        : 'de'
+  document.documentElement.lang = l
+  document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr'
+} catch {
+  document.documentElement.lang = 'de'
+  document.documentElement.dir = 'ltr'
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { Link, Outlet, useParams } from 'react-router-dom'
 import { Button, ErrorBox, Loading } from '../components/ui'
 import { CallProvider } from '../components/CallLayer'
+import { useT } from '../lib/i18n'
 import { getProject, listMembers, listTags } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import type { MemberRole, Project, ProjectMember, Tag } from '../lib/types'
@@ -35,6 +36,7 @@ export function useProject(): ProjectCtxValue {
 export default function ProjectLayout() {
   const { pid = '' } = useParams()
   const { user } = useAuth()
+  const t = useT()
   const shell = useAppShell()
   const remember = shell.rememberProject
 
@@ -102,13 +104,13 @@ export default function ProjectLayout() {
     }
   }, [project, tags, members, me, reloadTags, reloadMembers, shell.unread, shell.clearUnread])
 
-  if (loading) return <Loading label="Umzug wird geladen" />
+  if (loading) return <Loading label={t('umzuege.umzug_laden')} />
   if (error || !value)
     return (
       <div className="mx-auto max-w-lg p-6">
-        <ErrorBox error={error ?? 'Unbekannter Fehler'} />
+        <ErrorBox error={error ?? t('zustand.unbekannter_fehler')} />
         <Link to="/app" className="mt-4 inline-block">
-          <Button variant="outline">Zur Uebersicht</Button>
+          <Button variant="outline">{t('umzuege.zur_uebersicht')}</Button>
         </Link>
       </div>
     )

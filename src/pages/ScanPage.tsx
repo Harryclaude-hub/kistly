@@ -17,19 +17,23 @@ import {
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
 import { getItem, logScan, resolveCode, setItemStatus } from '../lib/api'
+import { useT } from '../lib/i18n'
 import { notifyItemStatus } from '../lib/push'
-import { STATUS_LABEL, type Item, type ItemStatus } from '../lib/types'
+import { type Item, type ItemStatus } from '../lib/types'
 import { contrastOn, fmtTime, normalizeCodeInput, useLocalState } from '../lib/util'
 
 interface Hit {
   item: Item
   at: string
-  note?: string
+  /* Nur der alte Code wird gemerkt, nicht der fertige Satz. So steht der
+   * Hinweis in der Liste immer in der Sprache, die gerade gewaehlt ist. */
+  oldCode?: string
 }
 
 export default function ScanPage() {
   const { project, tagById, canEdit } = useProject()
   const toast = useToast()
+  const t = useT()
 
   const [autoStatus, setAutoStatus] = useLocalState<ItemStatus | 'off'>(
     'kistly.scanAuto',
@@ -41,25 +45,35 @@ export default function ScanPage() {
   const [busy, setBusy] = useState(false)
 
   const handleItem = useCallback(
-    async (itemId: string, note?: string) => {
+    async (itemId: string, oldCode?: string) => {
       setBusy(true)
       try {
         let item = await getItem(itemId)
         if (item.project_id !== project.id) {
-          toast('Diese Kiste gehoert zu einem anderen Umzug.', 'error')
+          toast(t('scannen.anderer_umzug'), 'error')
           return
         }
-        await logScan(project.id, item.id, note)
+        /* Die Notiz im Verlauf bleibt bewusst deutsch. Sie steht in der
+         * Datenbank und wird von allen im Umzug gelesen, egal in welcher
+         * Sprache sie gerade unterwegs sind. */
+        await logScan(project.id, item.id, oldCode ? `alter Code ${oldCode}` : undefined)
         if (canEdit && autoStatus !== 'off' && item.status !== autoStatus) {
           item = await setItemStatus(item.id, autoStatus)
-          toast(`${item.code} auf ${STATUS_LABEL[autoStatus]} gesetzt`, 'ok')
+          toast(
+            t('scannen.status_gesetzt', { code: item.code, wert: t(`status.${autoStatus}`) }),
+            'ok',
+          )
           if (autoStatus === 'arrived') {
-            void notifyItemStatus(project.id, project.name, `${item.code} ist angekommen`)
+            void notifyItemStatus(
+              project.id,
+              project.name,
+              t('scannen.ist_angekommen', { code: item.code }),
+            )
           }
         } else {
-          toast(`${item.code} gefunden`, 'ok')
+          toast(t('scannen.gefunden', { code: item.code }), 'ok')
         }
-        setHits((h) => [{ item, at: new Date().toISOString(), note }, ...h].slice(0, 40))
+        setHits((h) => [{ item, at: new Date().toISOString(), oldCode }, ...h].slice(0, 40))
       } catch (err) {
         toast(err instanceof Error ? err.message : String(err), 'error')
       } finally {
@@ -68,7 +82,7 @@ export default function ScanPage() {
         setTimeout(() => setPaused(false), 900)
       }
     },
-    [project.id, project.name, autoStatus, canEdit, toast],
+    [project.id, project.name, autoStatus, canEdit, toast, t],
   )
 
   /** Ein Scan kann eine Kistly-Adresse sein oder ein getippter Code. */
@@ -84,43 +98,43 @@ export default function ScanPage() {
       try {
         const rows = await resolveCode(project.id, code)
         if (rows.length === 0) {
-          toast(`Zu ${code} gibt es in diesem Umzug nichts.`, 'error')
+          toast(t('scannen.nichts_im_umzug', { code }), 'error')
           setPaused(true)
           setTimeout(() => setPaused(false), 1200)
           return
         }
         const old = rows.find((r) => r.is_old)
-        await handleItem(rows[0].item_id, old ? `alter Code ${old.code}` : undefined)
-        if (old) toast(`Achtung: ${old.code} ist ein alter Code, das Etikett ist veraltet.`, 'info')
+        await handleItem(rows[0].item_id, old?.code)
+        if (old) toast(t('scannen.alter_code', { code: old.code }), 'info')
       } catch (err) {
         toast(err instanceof Error ? err.message : String(err), 'error')
       }
     },
-    [handleItem, project.id, toast],
+    [handleItem, project.id, toast, t],
   )
 
   return (
     <>
       <AppHeader
-        title="Scannen"
+        title={t('nav.scannen')}
         subtitle={
           autoStatus === 'off'
-            ? 'Nur nachschlagen'
-            : `Setzt automatisch: ${STATUS_LABEL[autoStatus]}`
+            ? t('scannen.nur_nachschlagen')
+            : t('scannen.setzt_automatisch', { wert: t(`status.${autoStatus}`) })
         }
         back={`/app/p/${project.id}`}
       />
       <Page>
         <div className="mb-4">
-          <Scanner onResult={(t) => void onScan(t)} paused={paused || busy} />
+          <Scanner onResult={(text) => void onScan(text)} paused={paused || busy} />
         </div>
 
         <Card className="mb-4 p-4">
           <Switch
             checked={autoStatus !== 'off'}
             onChange={(v) => setAutoStatus(v ? 'arrived' : 'off')}
-            label="Beim Scannen Status setzen"
-            hint="So geht der Einzug schnell: scannen, gruen, naechste Kiste."
+            label={t('scannen.auto_label_kurz')}
+            hint={t('scannen.auto_hinweis_kurz')}
             disabled={!canEdit}
           />
           {/* Auf dem Handy untereinander, damit lange Namen wie Alte Wohnung
@@ -135,7 +149,7 @@ export default function ScanPage() {
                   aria-pressed={autoStatus === s}
                   onClick={() => setAutoStatus(s)}
                 >
-                  {STATUS_LABEL[s]}
+                  {t(`status.${s}`)}
                 </Button>
               ))}
             </div>
@@ -143,10 +157,18 @@ export default function ScanPage() {
         </Card>
 
         <Card className="mb-4 p-4">
-          <Field label="Code von Hand eingeben" hint="Falls der QR-Code beschaedigt ist.">
+          <Field label={t('scannen.von_hand')} hint={t('scannen.von_hand_hinweis')}>
             <div className="flex gap-2">
-              <div className="relative min-w-0 flex-1">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              {/* Das Feld haelt eine Seriennummer und laeuft darum immer von
+                  links nach rechts, das macht schon t-serial. Dann muss aber
+                  auch die Lupe links bleiben, sonst sitzt sie im Arabischen
+                  rechts und der Platz dafuer waere links frei. Darum steht
+                  die Richtung am Rahmen und nicht an einzelnen Klassen. */}
+              <div dir="ltr" className="relative min-w-0 flex-1">
+                <Search
+                  size={18}
+                  className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted"
+                />
                 <Input
                   value={manual}
                   onChange={(e) => setManual(e.target.value.toUpperCase())}
@@ -157,7 +179,7 @@ export default function ScanPage() {
                     }
                   }}
                   placeholder="W-3-007"
-                  className="t-serial pl-10 uppercase"
+                  className="t-serial ps-10 uppercase"
                 />
               </div>
               <Button
@@ -167,7 +189,7 @@ export default function ScanPage() {
                   setManual('')
                 }}
               >
-                Suchen
+                {t('aktion.suchen')}
               </Button>
             </div>
           </Field>
@@ -176,14 +198,13 @@ export default function ScanPage() {
         {/* Dieser Scanner sucht nur in diesem Umzug. Wer ein fremdes Etikett in
             der Hand haelt, kommt hier zum Scanner ueber alle Umzuege. */}
         <Card className="mb-5 p-4">
-          <p className="t-name">Etikett aus einem anderen Umzug?</p>
+          <p className="t-name">{t('scannen.fremdes_etikett')}</p>
           <p className="t-sub mt-1.5 break-words">
-            Hier wird nur in {project.name} gesucht. Der grosse Scan-Bereich zeigt Treffer aus allen
-            deinen Umzuegen.
+            {t('scannen.nur_dieser_umzug', { name: project.name })}
           </p>
           <Link to="/app/scan" className="mt-4 block sm:inline-block">
             <Button variant="soft" size="lg" full className="sm:w-auto">
-              <Warehouse size={20} /> Ueber alle Umzuege scannen
+              <Warehouse size={20} /> {t('scannen.alle_umzuege')}
             </Button>
           </Link>
         </Card>
@@ -192,19 +213,19 @@ export default function ScanPage() {
           action={
             hits.length > 0 ? (
               <Button variant="outline" size="sm" onClick={() => setHits([])}>
-                Liste leeren
+                {t('scannen.liste_leeren')}
               </Button>
             ) : null
           }
         >
-          In dieser Sitzung gescannt ({hits.length})
+          {t('scannen.sitzung', { n: hits.length })}
         </SectionTitle>
 
         {hits.length === 0 ? (
           <Empty
             icon={<ScanLine size={30} />}
-            title="Noch nichts gescannt"
-            hint="Halte den QR-Code vom Etikett in den Rahmen. Jeder Treffer landet hier in der Liste."
+            title={t('scannen.leer_titel')}
+            hint={t('scannen.leer_hinweis_umzug')}
           />
         ) : (
           <Card className="zebra divide-y divide-line overflow-hidden">
@@ -220,13 +241,14 @@ export default function ScanPage() {
                   <Check size={20} className="shrink-0 text-ok" />
                   <span className="min-w-0 flex-1">
                     <span className="t-name block truncate">
-                      {h.item.title || room?.name || person?.name || 'Kiste'}
+                      {h.item.title || room?.name || person?.name || t('begriff.kiste')}
                     </span>
                     <span className="mt-1.5 flex flex-wrap items-center gap-2">
                       <CodeChip code={h.item.code} />
                       <StatusPill status={h.item.status} size="sm" />
                       {room ? (
                         <span
+                          dir="ltr"
                           className="rounded-lg px-2 py-1 text-sm font-black"
                           style={{ background: room.color, color: contrastOn(room.color) }}
                         >
@@ -235,11 +257,19 @@ export default function ScanPage() {
                       ) : null}
                     </span>
                     <span className="t-sub mt-1.5 block truncate">
-                      Gescannt um {fmtTime(h.at)}
-                      {h.note ? <span className="font-bold text-warn">, {h.note}</span> : null}
+                      {t('scannen.gescannt_um', { zeit: fmtTime(h.at) })}
                     </span>
+                    {/* Der alte Code steht neben der Beschriftung, nicht
+                        mitten im Satz. So bleibt die Nummer auch im
+                        arabischen Text von links nach rechts. */}
+                    {h.oldCode ? (
+                      <span className="mt-1 flex flex-wrap items-baseline gap-1.5 text-sm font-bold text-warn">
+                        <span>{t('scannen.note_alter_code')}</span>
+                        <span className="t-serial">{h.oldCode}</span>
+                      </span>
+                    ) : null}
                   </span>
-                  <ArrowRight size={20} className="shrink-0 text-muted" />
+                  <ArrowRight size={20} className="spiegeln shrink-0 text-muted" />
                 </Link>
               )
             })}

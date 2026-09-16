@@ -3,6 +3,7 @@
  * verschickt wird ueber die Edge Function push-send.
  */
 import { supabase, VAPID_PUBLIC_KEY, errText } from './supabase'
+import { tg } from './i18n'
 
 export type PushState =
   | 'unsupported'
@@ -42,18 +43,13 @@ export async function pushState(): Promise<PushState> {
 }
 
 export async function enablePush(): Promise<PushState> {
-  if (!pushSupported()) throw new Error('Dieser Browser kann keine Push-Benachrichtigungen.')
-  if (!VAPID_PUBLIC_KEY)
-    throw new Error(
-      'Es ist kein VAPID-Schluessel hinterlegt. Ohne den kann der Server nichts schicken.',
-    )
+  if (!pushSupported()) throw new Error(tg('fehler.push_nicht_moeglich'))
+  if (!VAPID_PUBLIC_KEY) throw new Error(tg('fehler.push_kein_schluessel'))
 
   const perm = await Notification.requestPermission()
   if (perm !== 'granted') {
     throw new Error(
-      perm === 'denied'
-        ? 'Benachrichtigungen wurden im Browser blockiert. Das musst du in den Seiteneinstellungen wieder erlauben.'
-        : 'Ohne Erlaubnis gibt es keine Benachrichtigungen.',
+      tg(perm === 'denied' ? 'fehler.push_blockiert' : 'fehler.push_keine_erlaubnis'),
     )
   }
 
@@ -68,9 +64,9 @@ export async function enablePush(): Promise<PushState> {
 
   const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
   const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) throw new Error('Nicht angemeldet')
+  if (!auth.user) throw new Error(tg('fehler.nicht_angemeldet'))
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth)
-    throw new Error('Das Abo des Browsers war unvollstaendig.')
+    throw new Error(tg('fehler.push_abo_unvollstaendig'))
 
   const { error } = await supabase.from('push_subscriptions').upsert(
     {
@@ -83,7 +79,7 @@ export async function enablePush(): Promise<PushState> {
     },
     { onConflict: 'endpoint' },
   )
-  if (error) throw new Error(`Abo speichern: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.push_abo_speichern', { grund: errText(error) }))
   return 'granted-on'
 }
 

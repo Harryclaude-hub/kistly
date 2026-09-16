@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell'
 import { Button, ErrorBox, Field, Input, PasswordInput } from '../components/ui'
 import { useAuth } from '../lib/auth'
+import { useT } from '../lib/i18n'
 import { getLastProject } from '../lib/lastProject'
 
 /* Wohin nach dem Anmelden. Wichtig ist, dass man sofort wieder im Chat des
@@ -18,6 +19,7 @@ export default function Login() {
   const { signIn, session, ready } = useAuth()
   const nav = useNavigate()
   const loc = useLocation()
+  const t = useT()
   const from = (loc.state as { from?: string } | null)?.from ?? null
 
   const [email, setEmail] = useState('')
@@ -43,51 +45,53 @@ export default function Login() {
 
   return (
     <AuthShell
-      title="Anmelden"
-      subtitle="Mit E-Mail und Passwort."
+      title={t('konto.anmelden')}
+      subtitle={t('konto.anmelden_unter')}
       footer={
         <>
-          <p>Noch kein Konto?</p>
+          <p>{t('konto.noch_kein_konto')}</p>
           <Link to="/registrieren" className="mt-3 inline-block">
             <Button type="button" variant="outline" size="lg">
-              Jetzt anlegen
+              {t('konto.jetzt_anlegen')}
             </Button>
           </Link>
         </>
       }
     >
       <form onSubmit={onSubmit} className="space-y-5">
-        <Field label="E-Mail">
+        <Field label={t('konto.email')}>
+          {/* Die Adresse bleibt in jeder Sprache von links nach rechts. */}
           <Input
             type="email"
+            dir="ltr"
             autoComplete="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="du@beispiel.de"
+            placeholder={t('konto.email_platzhalter')}
           />
         </Field>
-        <Field label="Passwort">
+        <Field label={t('konto.passwort')}>
           <PasswordInput
             autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Dein Passwort"
+            placeholder={t('konto.passwort_platzhalter')}
           />
         </Field>
 
         {error ? <ErrorBox error={error} /> : null}
 
         <Button type="submit" full size="lg" loading={busy}>
-          Anmelden
+          {t('konto.anmelden')}
         </Button>
       </form>
 
       <div className="mt-3">
         <Link to="/passwort-vergessen" className="block">
           <Button type="button" variant="soft" size="lg" full>
-            Passwort vergessen
+            {t('konto.passwort_vergessen')}
           </Button>
         </Link>
       </div>

@@ -4,6 +4,7 @@
  * auseinanderlaeuft.
  */
 import { supabase, errText } from './supabase'
+import { tg } from './i18n'
 import type {
   Call,
   CallParticipant,
@@ -25,10 +26,11 @@ import type {
 } from './types'
 import { inviteCode } from './util'
 
-/** Wirft mit lesbarer Meldung, statt still null zurueckzugeben. */
-function unwrap<T>(res: { data: T | null; error: unknown }, what: string): T {
-  if (res.error) throw new Error(`${what}: ${errText(res.error)}`)
-  if (res.data === null) throw new Error(`${what}: keine Daten erhalten`)
+/** Wirft mit lesbarer Meldung, statt still null zurueckzugeben.
+ *  Der Schluessel zeigt auf einen Satz der Form 'Kisten laden: {grund}'. */
+function unwrap<T>(res: { data: T | null; error: unknown }, key: string): T {
+  if (res.error) throw new Error(tg(key, { grund: errText(res.error) }))
+  if (res.data === null) throw new Error(tg(key, { grund: tg('fehler.keine_daten') }))
   return res.data
 }
 
@@ -52,7 +54,7 @@ const EMPTY_STATS = (id: string): ProjectStats => ({
 export async function listProjects(): Promise<ProjectWithStats[]> {
   const projects = unwrap(
     await supabase.from('projects').select('*').order('created_at', { ascending: false }),
-    'Umzuege laden',
+    'fehler.umzuege_laden',
   ) as Project[]
   if (projects.length === 0) return []
 
@@ -61,8 +63,10 @@ export async function listProjects(): Promise<ProjectWithStats[]> {
     supabase.from('project_stats').select('*').in('project_id', ids),
     supabase.from('project_members').select('project_id, user_id, role').in('project_id', ids),
   ])
-  if (statsRes.error) throw new Error(`Zaehlwerte laden: ${errText(statsRes.error)}`)
-  if (memberRes.error) throw new Error(`Mitglieder laden: ${errText(memberRes.error)}`)
+  if (statsRes.error)
+    throw new Error(tg('fehler.zaehlwerte_laden', { grund: errText(statsRes.error) }))
+  if (memberRes.error)
+    throw new Error(tg('fehler.mitglieder_laden', { grund: errText(memberRes.error) }))
 
   const { data: auth } = await supabase.auth.getUser()
   const uid = auth.user?.id
@@ -79,8 +83,8 @@ export async function listProjects(): Promise<ProjectWithStats[]> {
 
 export async function getProject(id: string): Promise<Project> {
   const res = await supabase.from('projects').select('*').eq('id', id).maybeSingle()
-  if (res.error) throw new Error(`Umzug laden: ${errText(res.error)}`)
-  if (!res.data) throw new Error('Dieser Umzug existiert nicht oder du bist nicht eingeladen.')
+  if (res.error) throw new Error(tg('fehler.umzug_laden', { grund: errText(res.error) }))
+  if (!res.data) throw new Error(tg('fehler.umzug_fehlt'))
   return res.data as Project
 }
 
@@ -90,7 +94,7 @@ export async function getStats(projectId: string): Promise<ProjectStats> {
     .select('*')
     .eq('project_id', projectId)
     .maybeSingle()
-  if (res.error) throw new Error(`Zaehlwerte laden: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.zaehlwerte_laden', { grund: errText(res.error) }))
   return (res.data as ProjectStats) ?? EMPTY_STATS(projectId)
 }
 
@@ -104,22 +108,22 @@ export async function createProject(
     p_note: note ?? null,
     p_with_defaults: withDefaults,
   })
-  return unwrap(res, 'Umzug anlegen') as Project
+  return unwrap(res, 'fehler.umzug_anlegen') as Project
 }
 
 export async function updateProject(id: string, patch: Partial<Project>): Promise<Project> {
   const res = await supabase.from('projects').update(patch).eq('id', id).select('*').single()
-  return unwrap(res, 'Umzug speichern') as Project
+  return unwrap(res, 'fehler.umzug_speichern') as Project
 }
 
 export async function deleteProject(id: string): Promise<void> {
   const { error } = await supabase.from('projects').delete().eq('id', id)
-  if (error) throw new Error(`Umzug loeschen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.umzug_loeschen', { grund: errText(error) }))
 }
 
 export async function joinProject(code: string): Promise<Project> {
   const res = await supabase.rpc('join_project', { p_code: code })
-  return unwrap(res, 'Beitreten') as Project
+  return unwrap(res, 'fehler.beitreten') as Project
 }
 
 /* ============================================================ Mitglieder */
@@ -136,7 +140,7 @@ export async function listMembers(projectId: string): Promise<ProjectMember[]> {
     .select('*')
     .eq('project_id', projectId)
     .order('created_at')
-  const rows = unwrap(res, 'Mitglieder laden') as ProjectMember[]
+  const rows = unwrap(res, 'fehler.mitglieder_laden') as ProjectMember[]
   if (rows.length === 0) return rows
 
   const profiles = await listProfiles(rows.map((r) => r.user_id))
@@ -153,7 +157,7 @@ export async function setMemberRole(
     .update({ role })
     .eq('project_id', projectId)
     .eq('user_id', userId)
-  if (error) throw new Error(`Rolle aendern: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.rolle_aendern', { grund: errText(error) }))
 }
 
 export async function removeMember(projectId: string, userId: string): Promise<void> {
@@ -162,7 +166,7 @@ export async function removeMember(projectId: string, userId: string): Promise<v
     .delete()
     .eq('project_id', projectId)
     .eq('user_id', userId)
-  if (error) throw new Error(`Mitglied entfernen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.mitglied_entfernen', { grund: errText(error) }))
 }
 
 export async function markRead(projectId: string, userId: string): Promise<void> {
@@ -182,7 +186,7 @@ export async function listInvites(projectId: string): Promise<ProjectInvite[]> {
     .select('*')
     .eq('project_id', projectId)
     .order('created_at', { ascending: false })
-  return unwrap(res, 'Einladungen laden') as ProjectInvite[]
+  return unwrap(res, 'fehler.einladungen_laden') as ProjectInvite[]
 }
 
 export async function createInvite(
@@ -200,12 +204,12 @@ export async function createInvite(
     })
     .select('*')
     .single()
-  return unwrap(res, 'Einladung anlegen') as ProjectInvite
+  return unwrap(res, 'fehler.einladung_anlegen') as ProjectInvite
 }
 
 export async function setInviteActive(id: string, active: boolean): Promise<void> {
   const { error } = await supabase.from('project_invites').update({ active }).eq('id', id)
-  if (error) throw new Error(`Einladung aendern: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.einladung_aendern', { grund: errText(error) }))
 }
 
 /* ============================================================== Bereiche */
@@ -218,7 +222,7 @@ export async function listTags(projectId: string): Promise<Tag[]> {
     .order('kind')
     .order('sort')
     .order('name')
-  return unwrap(res, 'Bereiche laden') as Tag[]
+  return unwrap(res, 'fehler.bereiche_laden') as Tag[]
 }
 
 export async function createTag(input: {
@@ -234,19 +238,19 @@ export async function createTag(input: {
     .insert({ ...input, short: input.short.toUpperCase() })
     .select('*')
     .single()
-  return unwrap(res, 'Bereich anlegen') as Tag
+  return unwrap(res, 'fehler.bereich_anlegen') as Tag
 }
 
 export async function updateTag(id: string, patch: Partial<Tag>): Promise<Tag> {
   const clean = { ...patch }
   if (clean.short) clean.short = clean.short.toUpperCase()
   const res = await supabase.from('tags').update(clean).eq('id', id).select('*').single()
-  return unwrap(res, 'Bereich speichern') as Tag
+  return unwrap(res, 'fehler.bereich_speichern') as Tag
 }
 
 export async function deleteTag(id: string): Promise<void> {
   const { error } = await supabase.from('tags').delete().eq('id', id)
-  if (error) throw new Error(`Bereich loeschen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.bereich_loeschen', { grund: errText(error) }))
 }
 
 export interface TagStat {
@@ -257,7 +261,7 @@ export interface TagStat {
 /** Zaehlwerte fuer alle Bereiche eines Projekts in einer Abfrage. */
 export async function listTagStats(projectId: string): Promise<Map<string, TagStat>> {
   const res = await supabase.rpc('tag_stats', { p_project: projectId })
-  if (res.error) throw new Error(`Zaehlwerte je Bereich: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.zaehlwerte_bereich', { grund: errText(res.error) }))
   const map = new Map<string, TagStat>()
   for (const row of (res.data ?? []) as Array<{ tag_id: string; total: number; arrived: number }>) {
     map.set(row.tag_id, { total: Number(row.total), arrived: Number(row.arrived) })
@@ -305,7 +309,7 @@ export async function listItems(projectId: string, f: ItemFilter = {}): Promise<
   else q = q.order('prefix').order('seq')
 
   const { data, error, count } = await q
-  if (error) throw new Error(`Kisten laden: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.kisten_laden', { grund: errText(error) }))
   return { rows: (data ?? []) as Item[], total: count ?? 0 }
 }
 
@@ -324,8 +328,8 @@ export async function listAllItems(projectId: string): Promise<Item[]> {
 
 export async function getItem(id: string): Promise<Item> {
   const res = await supabase.from('items').select('*').eq('id', id).maybeSingle()
-  if (res.error) throw new Error(`Kiste laden: ${errText(res.error)}`)
-  if (!res.data) throw new Error('Diese Kiste gibt es nicht mehr.')
+  if (res.error) throw new Error(tg('fehler.kiste_laden', { grund: errText(res.error) }))
+  if (!res.data) throw new Error(tg('fehler.kiste_fehlt'))
   return res.data as Item
 }
 
@@ -343,12 +347,12 @@ export async function createItem(input: {
   status?: ItemStatus
 }): Promise<Item> {
   const res = await supabase.from('items').insert(input).select('*').single()
-  return unwrap(res, 'Kiste anlegen') as Item
+  return unwrap(res, 'fehler.kiste_anlegen') as Item
 }
 
 export async function updateItem(id: string, patch: Partial<Item>): Promise<Item> {
   const res = await supabase.from('items').update(patch).eq('id', id).select('*').single()
-  return unwrap(res, 'Kiste speichern') as Item
+  return unwrap(res, 'fehler.kiste_speichern') as Item
 }
 
 export async function setItemStatus(id: string, status: ItemStatus): Promise<Item> {
@@ -357,7 +361,7 @@ export async function setItemStatus(id: string, status: ItemStatus): Promise<Ite
 
 export async function deleteItem(id: string): Promise<void> {
   const { error } = await supabase.from('items').delete().eq('id', id)
-  if (error) throw new Error(`Kiste loeschen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.kiste_loeschen', { grund: errText(error) }))
 }
 
 export async function getItemsByIds(ids: string[]): Promise<Map<string, Item>> {
@@ -378,7 +382,7 @@ export async function resolveCode(
   code: string,
 ): Promise<Array<{ item_id: string; code: string; is_old: boolean }>> {
   const res = await supabase.rpc('resolve_code', { p_project: projectId, p_code: code })
-  if (res.error) throw new Error(`Code suchen: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.code_suchen', { grund: errText(res.error) }))
   return (res.data ?? []) as Array<{ item_id: string; code: string; is_old: boolean }>
 }
 
@@ -391,7 +395,7 @@ export async function listContents(itemId: string): Promise<ItemContent[]> {
     .eq('item_id', itemId)
     .order('sort')
     .order('created_at')
-  return unwrap(res, 'Inhalt laden') as ItemContent[]
+  return unwrap(res, 'fehler.inhalt_laden') as ItemContent[]
 }
 
 export async function listContentsForItems(itemIds: string[]): Promise<Map<string, ItemContent[]>> {
@@ -405,7 +409,7 @@ export async function listContentsForItems(itemIds: string[]): Promise<Map<strin
       .select('*')
       .in('item_id', slice)
       .order('sort')
-    if (res.error) throw new Error(`Inhalte laden: ${errText(res.error)}`)
+    if (res.error) throw new Error(tg('fehler.inhalte_laden', { grund: errText(res.error) }))
     for (const row of (res.data ?? []) as ItemContent[]) {
       const list = map.get(row.item_id) ?? []
       list.push(row)
@@ -428,17 +432,17 @@ export async function addContent(
     .insert({ item_id: itemId, project_id: projectId, text: text.trim(), qty })
     .select('*')
     .single()
-  return unwrap(res, 'Eintrag anlegen') as ItemContent
+  return unwrap(res, 'fehler.eintrag_anlegen') as ItemContent
 }
 
 export async function updateContent(id: string, patch: Partial<ItemContent>): Promise<void> {
   const { error } = await supabase.from('item_contents').update(patch).eq('id', id)
-  if (error) throw new Error(`Eintrag speichern: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.eintrag_speichern', { grund: errText(error) }))
 }
 
 export async function deleteContent(id: string): Promise<void> {
   const { error } = await supabase.from('item_contents').delete().eq('id', id)
-  if (error) throw new Error(`Eintrag loeschen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.eintrag_loeschen', { grund: errText(error) }))
 }
 
 /* --------------------------------------------------------------- Fotos */
@@ -449,7 +453,7 @@ export async function listPhotos(itemId: string): Promise<ItemPhoto[]> {
     .select('*')
     .eq('item_id', itemId)
     .order('created_at')
-  return unwrap(res, 'Fotos laden') as ItemPhoto[]
+  return unwrap(res, 'fehler.fotos_laden') as ItemPhoto[]
 }
 
 export async function addPhotoRecord(
@@ -470,12 +474,12 @@ export async function addPhotoRecord(
     })
     .select('*')
     .single()
-  return unwrap(res, 'Foto speichern') as ItemPhoto
+  return unwrap(res, 'fehler.foto_speichern') as ItemPhoto
 }
 
 export async function deletePhoto(photo: ItemPhoto): Promise<void> {
   const { error } = await supabase.from('item_photos').delete().eq('id', photo.id)
-  if (error) throw new Error(`Foto loeschen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.foto_loeschen', { grund: errText(error) }))
   const rm = await supabase.storage.from('item-photos').remove([photo.path])
   if (rm.error) console.warn('[storage] Datei blieb liegen:', rm.error.message)
 }
@@ -489,7 +493,7 @@ export async function listItemEvents(itemId: string, limit = 50): Promise<ItemEv
     .eq('item_id', itemId)
     .order('created_at', { ascending: false })
     .limit(limit)
-  return unwrap(res, 'Verlauf laden') as ItemEvent[]
+  return unwrap(res, 'fehler.verlauf_laden') as ItemEvent[]
 }
 
 export async function listProjectEvents(projectId: string, limit = 40): Promise<ItemEvent[]> {
@@ -499,7 +503,7 @@ export async function listProjectEvents(projectId: string, limit = 40): Promise<
     .eq('project_id', projectId)
     .order('created_at', { ascending: false })
     .limit(limit)
-  return unwrap(res, 'Verlauf laden') as ItemEvent[]
+  return unwrap(res, 'fehler.verlauf_laden') as ItemEvent[]
 }
 
 export async function logScan(projectId: string, itemId: string, note?: string): Promise<void> {
@@ -534,7 +538,7 @@ export async function listMessages(
     .limit(limit)
   if (before) q = q.lt('created_at', before)
   const { data, error } = await q
-  if (error) throw new Error(`Nachrichten laden: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.nachrichten_laden', { grund: errText(error) }))
 
   const msgs = ((data ?? []) as Message[]).reverse()
   if (msgs.length === 0) return []
@@ -578,14 +582,14 @@ export async function sendMessage(input: {
   links?: Array<{ target_type: 'item' | 'tag'; target_id: string; label?: string }>
 }): Promise<Message> {
   const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) throw new Error('Nicht angemeldet')
+  if (!auth.user) throw new Error(tg('fehler.nicht_angemeldet'))
   const { links, ...rest } = input
   const res = await supabase
     .from('messages')
     .insert({ ...rest, sender_id: auth.user.id })
     .select('*')
     .single()
-  const msg = unwrap(res, 'Nachricht senden') as Message
+  const msg = unwrap(res, 'fehler.nachricht_senden') as Message
 
   if (links?.length) {
     const { error } = await supabase.from('message_links').insert(
@@ -607,7 +611,7 @@ export async function deleteMessage(id: string): Promise<void> {
     .from('messages')
     .update({ deleted_at: new Date().toISOString(), body: null })
     .eq('id', id)
-  if (error) throw new Error(`Nachricht loeschen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.nachricht_loeschen', { grund: errText(error) }))
 }
 
 export async function editMessage(id: string, body: string): Promise<void> {
@@ -615,7 +619,7 @@ export async function editMessage(id: string, body: string): Promise<void> {
     .from('messages')
     .update({ body, edited_at: new Date().toISOString() })
     .eq('id', id)
-  if (error) throw new Error(`Nachricht aendern: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.nachricht_aendern', { grund: errText(error) }))
 }
 
 export async function toggleReaction(
@@ -625,13 +629,13 @@ export async function toggleReaction(
   on: boolean,
 ): Promise<void> {
   const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) throw new Error('Nicht angemeldet')
+  if (!auth.user) throw new Error(tg('fehler.nicht_angemeldet'))
   if (on) {
     const { error } = await supabase
       .from('message_reactions')
       .insert({ message_id: messageId, user_id: auth.user.id, emoji, project_id: projectId })
     if (error && !String(error.message).includes('duplicate'))
-      throw new Error(`Reaktion setzen: ${errText(error)}`)
+      throw new Error(tg('fehler.reaktion_setzen', { grund: errText(error) }))
   } else {
     const { error } = await supabase
       .from('message_reactions')
@@ -639,7 +643,7 @@ export async function toggleReaction(
       .eq('message_id', messageId)
       .eq('user_id', auth.user.id)
       .eq('emoji', emoji)
-    if (error) throw new Error(`Reaktion entfernen: ${errText(error)}`)
+    if (error) throw new Error(tg('fehler.reaktion_entfernen', { grund: errText(error) }))
   }
 }
 
@@ -660,13 +664,13 @@ export async function countUnread(projectId: string, since: string): Promise<num
 
 export async function createCall(projectId: string, video: boolean, invitees: string[]): Promise<Call> {
   const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) throw new Error('Nicht angemeldet')
+  if (!auth.user) throw new Error(tg('fehler.nicht_angemeldet'))
   const res = await supabase
     .from('calls')
     .insert({ project_id: projectId, video, created_by: auth.user.id })
     .select('*')
     .single()
-  const call = unwrap(res, 'Anruf starten') as Call
+  const call = unwrap(res, 'fehler.anruf_starten') as Call
 
   const rows = [
     { call_id: call.id, user_id: auth.user.id, state: 'joined', joined_at: new Date().toISOString() },
@@ -675,7 +679,7 @@ export async function createCall(projectId: string, video: boolean, invitees: st
       .map((u) => ({ call_id: call.id, user_id: u, state: 'invited' })),
   ]
   const { error } = await supabase.from('call_participants').insert(rows)
-  if (error) throw new Error(`Teilnehmer eintragen: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.teilnehmer_eintragen', { grund: errText(error) }))
   return call
 }
 
@@ -685,7 +689,7 @@ export async function setCallStatus(callId: string, status: Call['status']): Pro
   if (status === 'ended' || status === 'declined' || status === 'missed')
     patch.ended_at = new Date().toISOString()
   const { error } = await supabase.from('calls').update(patch).eq('id', callId)
-  if (error) throw new Error(`Anruf aendern: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.anruf_aendern', { grund: errText(error) }))
 }
 
 export async function setParticipantState(
@@ -701,7 +705,7 @@ export async function setParticipantState(
     .update(patch)
     .eq('call_id', callId)
     .eq('user_id', userId)
-  if (error) throw new Error(`Teilnehmer aendern: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.teilnehmer_aendern', { grund: errText(error) }))
 }
 
 export async function getCall(callId: string): Promise<{ call: Call; parts: CallParticipant[] }> {
@@ -709,8 +713,8 @@ export async function getCall(callId: string): Promise<{ call: Call; parts: Call
     supabase.from('calls').select('*').eq('id', callId).maybeSingle(),
     supabase.from('call_participants').select('*').eq('call_id', callId),
   ])
-  if (c.error) throw new Error(`Anruf laden: ${errText(c.error)}`)
-  if (!c.data) throw new Error('Anruf nicht gefunden')
+  if (c.error) throw new Error(tg('fehler.anruf_laden', { grund: errText(c.error) }))
+  if (!c.data) throw new Error(tg('fehler.anruf_fehlt'))
   return { call: c.data as Call, parts: (p.data ?? []) as CallParticipant[] }
 }
 
@@ -722,14 +726,14 @@ export async function getPrefs(userId: string): Promise<NotificationPrefs> {
     .select('*')
     .eq('user_id', userId)
     .maybeSingle()
-  if (res.error) throw new Error(`Einstellungen laden: ${errText(res.error)}`)
+  if (res.error) throw new Error(tg('fehler.prefs_laden', { grund: errText(res.error) }))
   if (res.data) return res.data as NotificationPrefs
   const created = await supabase
     .from('notification_prefs')
     .insert({ user_id: userId })
     .select('*')
     .single()
-  return unwrap(created, 'Einstellungen anlegen') as NotificationPrefs
+  return unwrap(created, 'fehler.prefs_anlegen') as NotificationPrefs
 }
 
 export async function setPrefs(
@@ -737,7 +741,7 @@ export async function setPrefs(
   patch: Partial<NotificationPrefs>,
 ): Promise<void> {
   const { error } = await supabase.from('notification_prefs').update(patch).eq('user_id', userId)
-  if (error) throw new Error(`Einstellungen speichern: ${errText(error)}`)
+  if (error) throw new Error(tg('fehler.prefs_speichern', { grund: errText(error) }))
 }
 
 /* ============================================================== Profile */

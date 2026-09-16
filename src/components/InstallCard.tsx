@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Share, Smartphone, X } from 'lucide-react'
-import { Button, Card } from './ui'
+import { Button, Card, IconButton } from './ui'
 import { useLocalState } from '../lib/util'
+import { useT } from '../lib/i18n'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -62,6 +63,7 @@ export function useInstall() {
 export function InstallCard({ compact = false }: { compact?: boolean }) {
   const { canPrompt, installed, install } = useInstall()
   const [hidden, setHidden] = useLocalState('kistly.hideInstall', false)
+  const t = useT()
   const ios = typeof navigator !== 'undefined' && isIos()
 
   if (installed) return null
@@ -71,31 +73,29 @@ export function InstallCard({ compact = false }: { compact?: boolean }) {
   return (
     <Card className="relative overflow-hidden p-4">
       {compact ? (
-        <button
+        <IconButton
+          size="sm"
+          label={t('einstellungen.install_ausblenden')}
           onClick={() => setHidden(true)}
-          aria-label="Hinweis ausblenden"
-          className="absolute right-2 top-2 rounded-lg p-1.5 text-muted hover:bg-raised"
+          className="absolute end-2 top-2"
         >
           <X size={16} />
-        </button>
+        </IconButton>
       ) : null}
       <div className="flex items-start gap-3">
         <Smartphone size={22} className="mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="font-bold">Kistly auf den Startbildschirm</p>
+          <p className="font-bold">{t('einstellungen.install_titel')}</p>
           {ios && !canPrompt ? (
             <p className="mt-1 text-sm text-muted">
-              In Safari unten auf <Share size={13} className="inline" /> Teilen tippen, dann
-              auf Zum Home-Bildschirm. Danach startet Kistly wie eine normale App, mit Logo.
+              {t('einstellungen.install_ios_1')} <Share size={13} className="inline" />{' '}
+              {t('einstellungen.install_ios_2')}
             </p>
           ) : (
             <>
-              <p className="mt-1 text-sm text-muted">
-                Ein Tipp, und Kistly liegt mit Logo auf deinem Startbildschirm. Ohne
-                Browserleiste, mit Benachrichtigungen.
-              </p>
+              <p className="mt-1 text-sm text-muted">{t('einstellungen.install_text')}</p>
               <Button size="sm" className="mt-3" onClick={() => void install()}>
-                Jetzt installieren
+                {t('einstellungen.install_knopf')}
               </Button>
             </>
           )}

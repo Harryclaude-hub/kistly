@@ -6,7 +6,8 @@ Startseite schlicht aus und die App funktioniert unveraendert weiter.
 
 | Datei | Was |
 |---|---|
-| `buehne.css` | Hintergrund, Raster, Lichter, Kistenumrisse, Knopfglanz, Glaskarten |
+| `buehne.css` | warmer Grund, Kistenfarben, Knopfglanz, Glaskarten |
+| `Kisten.tsx` | die gezeichneten Umzugskisten als SVG |
 | `Buehne.tsx` | haengt die Hintergrundebenen ein und schreibt die Scrollhoehe nach `--sy` |
 | `motion.tsx` | Bewegungsstufe und der Schalter dazu |
 

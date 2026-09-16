@@ -1,11 +1,19 @@
 import { useEffect } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useLocalState } from '../lib/util'
+import { useT } from '../lib/i18n'
 
 type Mode = 'system' | 'light' | 'dark'
 const ORDER: Mode[] = ['system', 'light', 'dark']
 const ICON = { system: Monitor, light: Sun, dark: Moon }
-const LABEL = { system: 'System', light: 'Hell', dark: 'Dunkel' }
+
+/* Nicht der fertige Name, sondern der Schluessel dazu. Den Namen holt sich
+ * jede Stelle selbst, damit er beim Sprachwechsel neu gerendert wird. */
+export const MODE_KEY: Record<Mode, string> = {
+  system: 'einstellungen.theme_system',
+  light: 'einstellungen.theme_hell',
+  dark: 'einstellungen.theme_dunkel',
+}
 
 export function applyTheme(mode: Mode) {
   const dark =
@@ -31,18 +39,20 @@ export function useTheme() {
 
 export function ThemeToggle({ withLabel = false }: { withLabel?: boolean }) {
   const { mode, setMode } = useTheme()
+  const t = useT()
   const Icon = ICON[mode]
   const next = ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length]
+  const name = t(MODE_KEY[mode])
   return (
     <button
       type="button"
       onClick={() => setMode(next)}
-      title={`Darstellung: ${LABEL[mode]}`}
-      aria-label={`Darstellung umschalten, aktuell ${LABEL[mode]}`}
+      title={t('einstellungen.theme_titel', { wert: name })}
+      aria-label={t('kopf.darstellung', { wert: name })}
       className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-ink hover:bg-raised"
     >
       <Icon size={18} />
-      {withLabel ? LABEL[mode] : null}
+      {withLabel ? name : null}
     </button>
   )
 }

@@ -20,6 +20,7 @@ import {
   setParticipantState,
 } from '../lib/api'
 import { notifyProject } from '../lib/push'
+import { useSprache, type Vars } from '../lib/i18n'
 import { CallSession, type PeerInfo } from '../lib/webrtc'
 import { Avatar, Button, useToast } from './ui'
 import { fmtDuration } from '../lib/util'
@@ -83,17 +84,21 @@ function PeerTile({
   stream,
   state,
   muted,
+  t,
 }: {
   name: string
   stream: MediaStream | null
   state: string
   muted?: boolean
+  t: (key: string, vars?: Vars) => string
 }) {
   const ref = useRef<HTMLVideoElement>(null)
   useEffect(() => {
     if (ref.current && stream) ref.current.srcObject = stream
   }, [stream])
-  const hasVideo = Boolean(stream?.getVideoTracks().some((t) => t.enabled && t.readyState === 'live'))
+  const hasVideo = Boolean(
+    stream?.getVideoTracks().some((spur) => spur.enabled && spur.readyState === 'live'),
+  )
   return (
     <div className="relative flex aspect-square min-h-24 items-center justify-center overflow-hidden rounded-2xl bg-raised">
       <video
@@ -106,11 +111,15 @@ function PeerTile({
       {!hasVideo ? (
         <div className="flex flex-col items-center gap-2">
           <Avatar name={name} size={56} />
-          <span className="text-xs font-semibold">{name}</span>
+          <span className="max-w-full truncate text-sm font-semibold">{name}</span>
         </div>
       ) : null}
-      <span className="absolute bottom-1.5 left-2 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-bold text-white">
-        {state === 'connected' ? name : state === 'failed' ? 'Verbindung fehlgeschlagen' : 'verbindet'}
+      <span className="absolute bottom-1.5 start-2 max-w-[calc(100%-1rem)] truncate rounded bg-black/55 px-1.5 py-0.5 text-sm font-bold text-white">
+        {state === 'connected'
+          ? name
+          : state === 'failed'
+            ? t('chat.anruf_fehlgeschlagen')
+            : t('chat.anruf_verbindet')}
       </span>
     </div>
   )
@@ -128,6 +137,7 @@ export function CallProvider({
   children: ReactNode
 }) {
   const { user, profile } = useAuth()
+  const { t, tn } = useSprache()
   const toast = useToast()
   const uid = user?.id ?? ''
 
@@ -152,9 +162,9 @@ export function CallProvider({
   const nameOf = useCallback(
     (id: string) => {
       const m = members.find((x) => x.user_id === id)
-      return displayNameOf(m?.profile, 'Jemand')
+      return displayNameOf(m?.profile, t('chat.jemand'))
     },
-    [members],
+    [members, t],
   )
 
   /* -------------------------------------------------- eingehende Anrufe */
@@ -207,11 +217,11 @@ export function CallProvider({
       setSeconds(0)
       return
     }
-    const t = window.setInterval(() => {
+    const timer = window.setInterval(() => {
       secondsRef.current += 1
       setSeconds(secondsRef.current)
     }, 1000)
-    return () => clearInterval(t)
+    return () => clearInterval(timer)
   }, [active])
 
   const teardown = useCallback(
@@ -233,7 +243,7 @@ export function CallProvider({
         await setCallStatus(call.id, reason)
         if (call.created_by === uid) {
           await notifyProject(projectId, {
-            title: 'Anruf beendet',
+            title: t('chat.anruf_beendet_kurz'),
             type: 'call-cancel',
             tag: `call-${call.id}`,
           })
@@ -243,17 +253,17 @@ export function CallProvider({
             call_id: call.id,
             body:
               reason === 'ended'
-                ? `Anruf beendet, ${fmtDuration(secondsRef.current)}`
+                ? t('chat.anruf_beendet', { dauer: fmtDuration(secondsRef.current) })
                 : reason === 'declined'
-                  ? 'Anruf abgelehnt'
-                  : 'Anruf nicht angenommen',
+                  ? t('chat.anruf_abgelehnt')
+                  : t('chat.anruf_nicht_angenommen'),
           })
         }
       } catch (err) {
         console.warn('[call] Aufraeumen unvollstaendig:', err)
       }
     },
-    [uid, projectId],
+    [uid, projectId, t],
   )
 
   const attach = useCallback(
@@ -275,7 +285,7 @@ export function CallProvider({
       try {
         const others = members.map((m) => m.user_id).filter((id) => id !== uid)
         if (others.length === 0) {
-          toast('In diesem Umzug ist sonst niemand, den man anrufen koennte.', 'error')
+          toast(t('chat.anruf_niemand_da'), 'error')
           return
         }
         const call = await createCall(projectId, video, others)
@@ -290,8 +300,9 @@ export function CallProvider({
           await notifyProject(
             projectId,
             {
-              title: `${displayNameOf(profile, 'Jemand')} ruft an`,
-              body: `${projectName}${video ? ', Videoanruf' : ''}`,
+              title: t('chat.anruf_ruft_an', { name: displayNameOf(profile, t('chat.jemand')) }),
+              /* Der Name des Umzugs ist Nutzereingabe und bleibt stehen. */
+              body: video ? t('chat.anruf_push_video', { umzug: projectName }) : projectName,
               type: 'call',
               tag: `call-${call.id}`,
               callId: call.id,
@@ -316,7 +327,7 @@ export function CallProvider({
           if (ticks > 8) {
             if (ringTimer.current) clearInterval(ringTimer.current)
             ringTimer.current = null
-            toast('Niemand ist rangegangen.', 'info')
+            toast(t('chat.anruf_niemand_ran'), 'info')
             await teardown(call, 'missed')
             return
           }
@@ -332,7 +343,7 @@ export function CallProvider({
         setBusy(false)
       }
     },
-    [uid, members, projectId, projectName, profile, attach, toast, teardown],
+    [uid, members, projectId, projectName, profile, attach, toast, teardown, t],
   )
 
   const accept = useCallback(async () => {
@@ -390,20 +401,24 @@ export function CallProvider({
           <Avatar name={nameOf(incoming.created_by ?? '')} size={92} />
           <p className="mt-5 text-xl font-bold">{nameOf(incoming.created_by ?? '')}</p>
           <p className="animate-pulse-soft mt-1 text-sm text-white/70">
-            {incoming.video ? 'Videoanruf' : 'Anruf'} in {projectName}
+            {incoming.video
+              ? t('chat.anruf_eingehend_video', { umzug: projectName })
+              : t('chat.anruf_eingehend', { umzug: projectName })}
           </p>
           <div className="mt-10 flex gap-6">
             <button
               onClick={() => void decline()}
               className="flex h-16 w-16 items-center justify-center rounded-full bg-danger text-white"
-              aria-label="Ablehnen"
+              aria-label={t('chat.anruf_ablehnen')}
+              title={t('chat.anruf_ablehnen')}
             >
               <PhoneOff size={26} />
             </button>
             <button
               onClick={() => void accept()}
               className="flex h-16 w-16 items-center justify-center rounded-full bg-ok text-white"
-              aria-label="Annehmen"
+              aria-label={t('chat.anruf_annehmen')}
+              title={t('chat.anruf_annehmen')}
             >
               <Phone size={26} />
             </button>
@@ -418,24 +433,39 @@ export function CallProvider({
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold">
-                  {active.video ? 'Videoanruf' : 'Anruf'} laeuft
+                  {active.video ? t('chat.anruf_laeuft_video') : t('chat.anruf_laeuft')}
                 </p>
-                <p className="font-mono text-xs text-muted">{fmtDuration(seconds)}</p>
+                {/* Die Laufzeit ist eine Zahl und bleibt von links nach
+                    rechts. Das dir sitzt an der Zahl, nicht an der Zeile,
+                    sonst steht sie im Arabischen an der falschen Seite. */}
+                <p className="font-mono text-sm text-muted">
+                  <span dir="ltr">{fmtDuration(seconds)}</span>
+                </p>
               </div>
-              <span className="text-xs text-muted">
-                {peers.filter((p) => p.state === 'connected').length + 1} verbunden
+              <span className="text-sm text-muted">
+                {tn(
+                  'chat.anruf_verbunden',
+                  peers.filter((p) => p.state === 'connected').length + 1,
+                )}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               <PeerTile
-                name={displayNameOf(profile, 'Du')}
+                name={displayNameOf(profile, t('chat.du'))}
                 stream={localStream}
                 state="connected"
                 muted
+                t={t}
               />
               {peers.map((p) => (
-                <PeerTile key={p.userId} name={nameOf(p.userId)} stream={p.stream} state={p.state} />
+                <PeerTile
+                  key={p.userId}
+                  name={nameOf(p.userId)}
+                  stream={p.stream}
+                  state={p.state}
+                  t={t}
+                />
               ))}
             </div>
 
@@ -448,7 +478,8 @@ export function CallProvider({
                   setMuted(next)
                   session?.setMuted(next)
                 }}
-                aria-label={muted ? 'Mikrofon an' : 'Mikrofon aus'}
+                aria-label={muted ? t('chat.mikro_an') : t('chat.mikro_aus')}
+                title={muted ? t('chat.mikro_an') : t('chat.mikro_aus')}
               >
                 {muted ? <MicOff size={18} /> : <Mic size={18} />}
               </Button>
@@ -461,13 +492,14 @@ export function CallProvider({
                     setCamOff(next)
                     session?.setCameraOff(next)
                   }}
-                  aria-label={camOff ? 'Kamera an' : 'Kamera aus'}
+                  aria-label={camOff ? t('chat.kamera_an') : t('chat.kamera_aus')}
+                  title={camOff ? t('chat.kamera_an') : t('chat.kamera_aus')}
                 >
                   {camOff ? <VideoOff size={18} /> : <Video size={18} />}
                 </Button>
               ) : null}
               <Button variant="danger" onClick={() => void teardown(active, 'ended')}>
-                <PhoneOff size={18} /> Auflegen
+                <PhoneOff size={18} /> {t('chat.auflegen')}
               </Button>
             </div>
           </div>

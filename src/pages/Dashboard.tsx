@@ -19,18 +19,19 @@ import {
 } from '../components/ui'
 import { createProject, joinProject, listProjects, type ProjectWithStats } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { ROLE_LABEL } from '../lib/types'
+import { useT } from '../lib/i18n'
 import { fmtDate, useAsync } from '../lib/util'
 
 /** Fortschritt eines Umzugs. Der Balken ist bewusst dick, damit man ihn im
  *  Vorbeigehen erkennt, und die Prozentzahl steht gross daneben. */
 function Progress({ done, total }: { done: number; total: number }) {
+  const t = useT()
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
   return (
     <div className="mt-4">
       <div className="flex items-end justify-between gap-3">
         <span className="t-sub min-w-0 truncate">
-          {done} von {total} angekommen
+          {t('status.angekommen_von', { a: done, b: total })}
         </span>
         <span className="shrink-0 text-2xl font-black leading-none tabular-nums">{pct}%</span>
       </div>
@@ -40,7 +41,7 @@ function Progress({ done, total }: { done: number; total: number }) {
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label="Angekommen"
+        aria-label={t('status.arrived')}
       >
         <div className="h-full rounded-full bg-ok transition-all" style={{ width: `${pct}%` }} />
       </div>
@@ -49,6 +50,7 @@ function Progress({ done, total }: { done: number; total: number }) {
 }
 
 function ProjectCard({ row }: { row: ProjectWithStats }) {
+  const t = useT()
   const { project, stats, role, members } = row
   return (
     <Link to={`/app/p/${project.id}`} className="block">
@@ -58,11 +60,13 @@ function ProjectCard({ row }: { row: ProjectWithStats }) {
             <h3 className="t-name-lg break-words">{project.name}</h3>
             <p className="t-sub mt-1 break-words">
               {project.note ||
-                (project.move_date ? `Umzug am ${fmtDate(project.move_date)}` : 'Kein Vermerk')}
+                (project.move_date
+                  ? t('umzuege.umzug_am', { datum: fmtDate(project.move_date) })
+                  : t('umzuege.kein_vermerk'))}
             </p>
           </div>
           <span className="shrink-0 rounded-full bg-raised px-3 py-1 text-sm font-bold">
-            {ROLE_LABEL[role]}
+            {t(`rolle.${role}`)}
           </span>
         </div>
 
@@ -72,15 +76,17 @@ function ProjectCard({ row }: { row: ProjectWithStats }) {
           <span className="inline-flex items-center gap-2 text-base font-bold">
             <Boxes size={19} className="text-muted" />
             {stats.items_total}
-            <span className="font-semibold text-muted">Kisten</span>
+            <span className="font-semibold text-muted">{t('umzuege.karte_kisten')}</span>
           </span>
           <span className="inline-flex items-center gap-2 text-base font-bold">
             <Users size={19} className="text-muted" />
             {members}
-            <span className="font-semibold text-muted">dabei</span>
+            <span className="font-semibold text-muted">{t('umzuege.karte_dabei')}</span>
           </span>
           {stats.items_transit > 0 ? (
-            <span className="text-base font-bold text-warn">{stats.items_transit} unterwegs</span>
+            <span className="text-base font-bold text-warn">
+              {t('umzuege.karte_unterwegs', { n: stats.items_transit })}
+            </span>
           ) : null}
         </div>
       </Card>
@@ -90,6 +96,7 @@ function ProjectCard({ row }: { row: ProjectWithStats }) {
 
 export default function Dashboard() {
   const { profile } = useAuth()
+  const t = useT()
   const nav = useNavigate()
   const toast = useToast()
   const list = useAsync(listProjects, [])
@@ -122,7 +129,7 @@ export default function Dashboard() {
     setBusy(true)
     try {
       const p = await createProject(name, note, defaults)
-      toast('Umzug angelegt', 'ok')
+      toast(t('umzuege.toast_angelegt'), 'ok')
       nav(`/app/p/${p.id}`)
     } catch (err) {
       setFormError(err instanceof Error ? err.message : String(err))
@@ -137,7 +144,7 @@ export default function Dashboard() {
     setBusy(true)
     try {
       const p = await joinProject(code)
-      toast(`Du bist jetzt bei ${p.name} dabei`, 'ok')
+      toast(t('umzuege.toast_beigetreten', { name: p.name }), 'ok')
       nav(`/app/p/${p.id}`)
     } catch (err) {
       setFormError(err instanceof Error ? err.message : String(err))
@@ -155,13 +162,15 @@ export default function Dashboard() {
       <Page>
         <div className="mb-5">
           <h1 className="text-2xl font-black tracking-tight">
-            Hallo{profile?.display_name ? `, ${profile.display_name}` : ''}
+            {profile?.display_name
+              ? t('umzuege.hallo_name', { name: profile.display_name })
+              : t('umzuege.hallo')}
           </h1>
-          <p className="t-sub mt-1">Deine Umzuege auf einen Blick.</p>
+          <p className="t-sub mt-1">{t('umzuege.blick')}</p>
 
           <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
             <Button size="lg" full className="sm:w-auto" onClick={() => openNew(true)}>
-              <Plus size={20} /> Neuer Umzug
+              <Plus size={20} /> {t('umzuege.neu')}
             </Button>
             <Button
               size="lg"
@@ -170,7 +179,7 @@ export default function Dashboard() {
               className="sm:w-auto"
               onClick={() => openJoin(true)}
             >
-              <LogIn size={20} /> Code einloesen
+              <LogIn size={20} /> {t('umzuege.code_einloesen')}
             </Button>
           </div>
         </div>
@@ -180,17 +189,17 @@ export default function Dashboard() {
         </div>
 
         {list.loading ? (
-          <Loading label="Umzuege werden geladen" />
+          <Loading label={t('umzuege.laden')} />
         ) : list.error ? (
           <ErrorBox error={list.error} onRetry={list.reload} />
         ) : (list.data ?? []).length === 0 ? (
           <Empty
             icon={<Boxes size={30} />}
-            title="Noch kein Umzug angelegt"
-            hint="Ein Umzug ist die Klammer um alles: Zimmer, Personen, Kisten, Etiketten und den Chat."
+            title={t('umzuege.leer_titel')}
+            hint={t('umzuege.leer_hinweis')}
             action={
               <Button size="lg" onClick={() => openNew(true)}>
-                <Plus size={20} /> Ersten Umzug anlegen
+                <Plus size={20} /> {t('umzuege.leer_knopf')}
               </Button>
             }
           />
@@ -209,36 +218,36 @@ export default function Dashboard() {
       <Modal
         open={newOpen}
         onClose={() => openNew(false)}
-        title="Neuer Umzug"
+        title={t('umzuege.neu')}
         footer={
           <>
             <Button variant="ghost" onClick={() => openNew(false)}>
-              Abbrechen
+              {t('aktion.abbrechen')}
             </Button>
             <Button form="new-project" type="submit" loading={busy}>
-              Anlegen
+              {t('aktion.anlegen')}
             </Button>
           </>
         }
       >
         <form id="new-project" onSubmit={onCreate} className="space-y-4">
-          <Field label="Name" required>
+          <Field label={t('begriff.name')} required>
             <Input
               required
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Umzug Salzburg 2026"
+              placeholder={t('umzuege.name_platzhalter')}
             />
           </Field>
-          <Field label="Vermerk" hint="Optional, zum Beispiel die neue Adresse.">
+          <Field label={t('umzuege.vermerk')} hint={t('umzuege.vermerk_hinweis')}>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
           </Field>
           <Switch
             checked={defaults}
             onChange={setDefaults}
-            label="Standardzimmer anlegen"
-            hint="Wohnzimmer, Kueche, Schlafzimmer, Kinderzimmer, Bad, Flur, Keller. Kannst du danach aendern."
+            label={t('umzuege.standardzimmer')}
+            hint={t('umzuege.standardzimmer_hinweis')}
           />
           {formError ? <ErrorBox error={formError} /> : null}
         </form>
@@ -247,22 +256,22 @@ export default function Dashboard() {
       <Modal
         open={joinOpen}
         onClose={() => openJoin(false)}
-        title="Einem Umzug beitreten"
+        title={t('umzuege.beitreten_titel')}
         footer={
           <>
             <Button variant="ghost" onClick={() => openJoin(false)}>
-              Abbrechen
+              {t('aktion.abbrechen')}
             </Button>
             <Button form="join-project" type="submit" loading={busy}>
-              Beitreten
+              {t('umzuege.beitreten')}
             </Button>
           </>
         }
       >
         <form id="join-project" onSubmit={onJoin} className="space-y-4">
           <Field
-            label="Einladungscode"
-            hint="Den Code bekommst du von der Person, die den Umzug angelegt hat."
+            label={t('umzuege.einladungscode')}
+            hint={t('umzuege.einladungscode_hinweis')}
           >
             <Input
               required

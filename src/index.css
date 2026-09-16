@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* Nur echte Zeiger koennen schweben. Auf dem Telefon gibt es kein
+   Schweben, dort muessen Aktionen angetippt werden. */
+@custom-variant zeiger (@media (hover: hover) and (pointer: fine));
 
 /* Semantische Farben liegen als CSS-Variablen vor, damit hell und dunkel
    dieselben Utility-Namen benutzen. Nur hier wird Farbe definiert. */
@@ -15,8 +18,13 @@
   --color-danger: var(--danger);
   --color-warn: var(--warn);
   --color-ok: var(--ok);
+  /* Die arabischen Namen am Ende greifen nur, wenn arabische Zeichen
+     vorkommen. Ohne sie faellt Arabisch auf eine Notschrift zurueck und
+     sieht auf Windows unruhig aus. */
   --font-sans:
-    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'SF Arabic', 'Geeza Pro', 'Noto Sans Arabic', 'Segoe UI Historic', Tahoma,
+    sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
 }
 
@@ -24,37 +32,41 @@
    aendert diese Werte, sonst nichts.
    Geprueft gegen WCGA AA: Nebentext auf Grund mindestens 7:1, Linien
    deutlich sichtbar, Karten heben sich vom Grund ab. */
+/* Warmes Papier statt kaltem Weiss. Ruhig genug, um stundenlang darin zu
+   suchen, und trotzdem mit klarem Abstand zwischen Text und Grund.
+   Nachgerechnet: Nebentext 6,7:1 im Hellen, 7,6:1 im Dunklen.
+   Alle Farben stehen hier und nur hier. */
 :root {
-  --paper: #ffffff;
-  --surface: #ffffff;
-  --raised: #eceef2;
-  --ink: #07080a;
-  --muted: #4b5563;
-  --line: #ccd2da;
-  --accent: #07080a;
-  --zebra: rgba(7, 8, 10, 0.05);
-  --danger: #d32032;
-  --warn: #b45309;
-  --ok: #15803d;
-  --glanz: rgba(255, 255, 255, 0.5);
-  --schatten: rgba(7, 8, 10, 0.14);
+  --paper: #f2eee6;
+  --surface: #fbf8f2;
+  --raised: #e6e0d4;
+  --ink: #1d1b16;
+  --muted: #57524a;
+  --line: #d8d1c2;
+  --accent: #1d1b16;
+  --zebra: rgba(29, 27, 22, 0.045);
+  --danger: #b23a2e;
+  --warn: #9a6a16;
+  --ok: #2f6b4f;
+  --glanz: rgba(255, 255, 255, 0.55);
+  --schatten: rgba(61, 52, 38, 0.18);
   color-scheme: light;
 }
 
 .dark {
-  --paper: #07080b;
-  --surface: #14171c;
-  --raised: #1f242b;
-  --ink: #f8fafc;
-  --muted: #aab3c0;
-  --line: #333a44;
-  --accent: #ffffff;
-  --zebra: rgba(255, 255, 255, 0.055);
-  --danger: #ff5d6c;
-  --warn: #fbbf24;
-  --ok: #4ade80;
-  --glanz: rgba(255, 255, 255, 0.12);
-  --schatten: rgba(0, 0, 0, 0.55);
+  --paper: #16140f;
+  --surface: #211e18;
+  --raised: #2c281f;
+  --ink: #f3efe6;
+  --muted: #ada593;
+  --line: #3b362c;
+  --accent: #f3efe6;
+  --zebra: rgba(255, 255, 255, 0.05);
+  --danger: #e8776a;
+  --warn: #e0b15c;
+  --ok: #79c79b;
+  --glanz: rgba(255, 255, 255, 0.1);
+  --schatten: rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
 
@@ -110,11 +122,35 @@ body {
   line-height: 1.4;
   color: var(--muted);
 }
+/* Seriennummern bleiben in jeder Sprache gleich und immer von links nach
+   rechts. Ohne isolate wuerde W-3-007 im arabischen Satz zerfallen, weil
+   der Bindestrich als neutrales Zeichen die Richtung des Umfeldes
+   uebernimmt und die Bloecke umsortiert werden. */
 .t-serial {
   font-family: var(--font-mono);
   font-weight: 900;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* ------------------------------------------------- Rechts nach links */
+
+/* Pfeile und andere Zeichen, die eine Richtung meinen, werden gespiegelt.
+   Ein Zurueck-Pfeil zeigt im Arabischen nach rechts. */
+[dir='rtl'] .spiegeln {
+  transform: scaleX(-1);
+}
+
+/* Der Farbbalken einer Kiste sitzt am Anfang der Zeile, nicht fest links. */
+[dir='rtl'] .zeile-balken {
+  order: 2;
+}
+
+/* Zahlen in Fliesstext (Uhrzeiten, Mengen, Prozente) bleiben lesbar. */
+.zahl {
+  unicode-bidi: isolate;
 }
 
 /* Abwechselnde Zeilenfarbe. Bei langen Listen ist das der Unterschied
