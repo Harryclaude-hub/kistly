@@ -115,16 +115,19 @@ Bleibt er an, versucht Supabase bei jeder Registrierung eine Mail zu
 verschicken. Der eingebaute Mailversand ist auf wenige Mails pro Stunde
 begrenzt, und dann kommt:
 
+```
+email rate limit exceeded
+```
 
+Die Absage kommt mit Status 429, bevor ueberhaupt eine Zeile in
+`auth.users` entsteht. Kein Trigger und kein Kniff in der Datenbank hilft
+dagegen, nur der Schalter.
 
-Die Absage kommt, bevor ueberhaupt ein Konto entsteht. Kein Trigger und kein
-Kniff in der Datenbank hilft dagegen, nur der Schalter.
-
- setzt die Vorgabe zusaetzlich auf
-Datenbankebene um: jedes neue Konto wird sofort selbst bestaetigt. Damit
-haengt nie ein Konto im Zustand "angelegt, aber nicht bestaetigt", auch
-wenn der Schalter spaeter wieder angeht. Bewusste Folge: eine Adresse wird
-nicht geprueft.
+`0009_keine_email_bestaetigung.sql` setzt die Vorgabe zusaetzlich auf
+Datenbankebene um: jedes neue Konto wird per Trigger sofort selbst
+bestaetigt. Damit haengt nie ein Konto im Zustand "angelegt, aber nicht
+bestaetigt", auch wenn der Schalter spaeter wieder angeht oder das Projekt
+neu aufgesetzt wird. Bewusste Folge: eine Adresse wird nicht geprueft.
 
 ### 4. Umgebung setzen
 
