@@ -318,8 +318,10 @@ export async function listItems(projectId: string, f: ItemFilter = {}): Promise<
   if (f.roomId && f.roomId !== 'all') q = q.eq('room_id', f.roomId)
   if (f.personId && f.personId !== 'all') q = q.eq('person_id', f.personId)
   if (f.search?.trim()) {
-    const s = f.search.trim().replace(/[%,]/g, '')
-    q = q.or(`code.ilike.%${s}%,title.ilike.%${s}%,note.ilike.%${s}%,target_room.ilike.%${s}%`)
+    const s = f.search.trim().replace(/[%,()*\\"]/g, '')
+    if (s) {
+      q = q.or(`code.ilike.%${s}%,title.ilike.%${s}%,note.ilike.%${s}%,target_room.ilike.%${s}%`)
+    }
   }
 
   if (f.sort === 'newest') q = q.order('created_at', { ascending: false })
@@ -329,6 +331,15 @@ export async function listItems(projectId: string, f: ItemFilter = {}): Promise<
   const { data, error, count } = await q
   if (error) throw new Error(tg('fehler.kisten_laden', { grund: errText(error) }))
   return { rows: (data ?? []) as Item[], total: count ?? 0 }
+}
+
+/** Nur zaehlen, nichts laden. Die Zahl kommt aus der Datenbank und ist
+ *  damit auch dann richtig, wenn die Liste daneben abgeschnitten ist. Wer
+ *  aus einer begrenzten Seite zaehlt, zaehlt irgendwann falsch, ohne dass
+ *  es jemand merkt. */
+export async function countItems(projectId: string, f: ItemFilter = {}): Promise<number> {
+  const { total } = await listItems(projectId, { ...f, limit: 1, offset: 0 })
+  return total
 }
 
 export async function listAllItems(projectId: string): Promise<Item[]> {
@@ -426,18 +437,29 @@ export async function listContentsForItems(itemIds: string[]): Promise<Map<strin
   const map = new Map<string, ItemContent[]>()
   if (itemIds.length === 0) return map
   const step = 200
+  const seite = 1000
   for (let i = 0; i < itemIds.length; i += step) {
     const slice = itemIds.slice(i, i + step)
-    const res = await supabase
-      .from('item_contents')
-      .select('*')
-      .in('item_id', slice)
-      .order('sort')
-    if (res.error) throw new Error(tg('fehler.inhalte_laden', { grund: errText(res.error) }))
-    for (const row of (res.data ?? []) as ItemContent[]) {
-      const list = map.get(row.item_id) ?? []
-      list.push(row)
-      map.set(row.item_id, list)
+    // Innerhalb eines Blocks wird weitergeblaettert, bis nichts mehr
+    // kommt. Ohne das waere die Antwort irgendwann still gekuerzt und der
+    // Etikettenbogen liefe ohne Inhaltsangaben durch, ohne dass etwas zu
+    // fehlen scheint.
+    for (let von = 0; ; von += seite) {
+      const res = await supabase
+        .from('item_contents')
+        .select('*')
+        .in('item_id', slice)
+        .order('item_id')
+        .order('sort')
+        .range(von, von + seite - 1)
+      if (res.error) throw new Error(tg('fehler.inhalte_laden', { grund: errText(res.error) }))
+      const zeilen = (res.data ?? []) as ItemContent[]
+      for (const row of zeilen) {
+        const list = map.get(row.item_id) ?? []
+        list.push(row)
+        map.set(row.item_id, list)
+      }
+      if (zeilen.length < seite) break
     }
   }
   return map

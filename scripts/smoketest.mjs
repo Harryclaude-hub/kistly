@@ -388,9 +388,33 @@ async function main() {
   const tagSymbol = await rest(`/tags?id=eq.${wohn.id}`, {
     method: 'PATCH',
     prefer: 'return=representation',
+    body: { symbol: 'stern' },
+  })
+  check('Symbol am Bereich gespeichert', tagSymbol.data?.[0]?.symbol === 'stern')
+
+  // Unbekannte Werte muessen abgelehnt werden. Sonst stuende spaeter
+  // woertlich marken.symbol_sofa auf dem Bildschirm, oder das Zeichen
+  // verschwaende spurlos, je nachdem welche Stelle es anzeigt.
+  const falschesSymbol = await rest(`/tags?id=eq.${wohn.id}`, {
+    method: 'PATCH',
     body: { symbol: 'sofa' },
   })
-  check('Symbol am Bereich gespeichert', tagSymbol.data?.[0]?.symbol === 'sofa')
+  check('Unbekanntes Bereichssymbol wird abgelehnt', !falschesSymbol.ok,
+    `Status ${falschesSymbol.status}`)
+
+  const falschesMarkSymbol = await rest(`/items?id=eq.${moebel.id}`, {
+    method: 'PATCH',
+    body: { mark_symbol: 'sofa' },
+  })
+  check('Unbekanntes Markierungszeichen wird abgelehnt', !falschesMarkSymbol.ok,
+    `Status ${falschesMarkSymbol.status}`)
+
+  const falscheFarbe = await rest(`/items?id=eq.${moebel.id}`, {
+    method: 'PATCH',
+    body: { mark_color: 'rot' },
+  })
+  check('Unbrauchbare Markierungsfarbe wird abgelehnt', !falscheFarbe.ok,
+    `Status ${falscheFarbe.status}`)
 
   // Moebel und Kisten sauber auseinanderhalten
   const nurKisten = await rest(`/items?project_id=eq.${pid}&kind=neq.furniture&select=id`)
@@ -409,6 +433,16 @@ async function main() {
   check('Bereich mit sich selbst zusammenfuehren wird abgelehnt', !selbst.ok, `Status ${selbst.status}`)
   const gemischt = await rpc('merge_tags', { p_von: personId, p_nach: wohn.id })
   check('Person und Zimmer lassen sich nicht mischen', !gemischt.ok, `Status ${gemischt.status}`)
+
+  // Eine fremde oder erfundene Kennung darf keine Auskunft geben. Die
+  // Antwort muss dieselbe sein wie bei fehlender Berechtigung.
+  const erfunden = await rpc('merge_tags', {
+    p_von: '00000000-0000-0000-0000-000000000000',
+    p_nach: wohn.id,
+  })
+  check('Unbekannter Bereich verraet nichts', !erfunden.ok &&
+    JSON.stringify(erfunden.data).includes('Berechtigung'),
+    JSON.stringify(erfunden.data).slice(0, 160))
 
   const verschmolzen = await rpc('merge_tags', { p_von: kinder.id, p_nach: wohn.id })
   check('merge_tags lief durch', verschmolzen.ok, JSON.stringify(verschmolzen.data).slice(0, 160))
@@ -451,11 +485,21 @@ async function main() {
   const rest_items = await rest(`/items?project_id=eq.${pid}&select=id`)
   check('Kisten sind mitgeloescht', (rest_items.data ?? []).length === 0)
 
-  console.log(`\nErgebnis: ${passed} ok, ${failed} fehlgeschlagen`)
-  if (failed > 0) process.exitCode = 1
 }
 
-main().catch((err) => {
-  console.error('\nAbbruch:', err)
-  process.exitCode = 1
-})
+/** Ergebnis melden. Steht ausserhalb von main(), damit es auch nach einem
+ *  fruehen return laeuft. Vorher konnte der Test mit Code 0 enden, obwohl
+ *  die Anmeldung fehlgeschlagen war und nichts geprueft wurde. Ein
+ *  gruener Lauf, der nichts geprueft hat, ist der teuerste Fehlertyp. */
+function auswerten() {
+  console.log(`\nErgebnis: ${passed} ok, ${failed} fehlgeschlagen`)
+  if (passed === 0) console.error('Kein einziger Test ist gelaufen.')
+  if (failed > 0 || passed === 0) process.exitCode = 1
+}
+
+main()
+  .catch((err) => {
+    console.error('\nAbbruch:', err)
+    process.exitCode = 1
+  })
+  .finally(auswerten)

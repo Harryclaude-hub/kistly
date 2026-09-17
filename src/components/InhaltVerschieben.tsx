@@ -61,9 +61,13 @@ export function InhaltVerschieben({
     }
   }, [offen, projectId, quelleId, gebremst])
 
-  // Bei jedem Oeffnen frisch anfangen, sonst steht die Suche von vorhin da.
+  // Bei jedem Oeffnen frisch anfangen, sonst steht die Suche von vorhin da
+  // und daneben die Trefferliste, die nicht mehr dazu gehoert.
   useEffect(() => {
-    if (offen) setSuche('')
+    if (!offen) return
+    setSuche('')
+    setTreffer([])
+    setLaedt(true)
   }, [offen])
 
   return (

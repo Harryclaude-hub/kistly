@@ -89,6 +89,10 @@ export const kisten: Woerterbuch = {
     ar: 'اختر غرفة أو شخصًا على الأقل.',
   },
   'kisten.angelegt': { de: '{code} angelegt', ar: 'تم إنشاء {code}' },
+  'kisten.reihe_abgebrochen': {
+    de: '{n} Kisten sind angelegt und stehen in der Liste. Danach ging es nicht weiter: {grund}',
+    ar: 'تم إنشاء {n} صناديق وهي في القائمة. بعد ذلك توقّف: {grund}',
+  },
   'kisten.mehrere_angelegt': {
     de: '{n} Kisten angelegt, {von} bis {bis}',
     ar: 'تم إنشاء {n} صناديق، من {von} إلى {bis}',

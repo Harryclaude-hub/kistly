@@ -29,18 +29,11 @@ export function istMarkSymbol(wert: string | null | undefined): wert is MarkSymb
   return typeof wert === 'string' && (MARK_SYMBOLE as readonly string[]).includes(wert)
 }
 
-/** Zeichen fuer Papier und fuer Stellen ohne Symbolschrift. Beim Drucken
- *  zaehlt nur, dass man es wiedererkennt. */
-export const MARK_ZEICHEN: Record<MarkSymbol, string> = {
-  stern: '*',
-  haken: 'v',
-  achtung: '!',
-  herz: '+',
-  flagge: 'F',
-  kreis: 'o',
-  blitz: 'Z',
-  schloss: 'S',
-}
+/* Auf Papier wird das Zeichen gezeichnet, nicht als Buchstabe gesetzt:
+ * siehe markZeichenBild in lib/ausgabe.ts. Eine Buchstabentabelle stand
+ * hier frueher und war ein Fehler. Merkbuchstaben wie F fuer Flagge oder
+ * S fuer Schloss sind deutsche Woerter und haetten unuebersetzt auf einem
+ * arabischen Blatt gestanden. */
 
 /* Farben zum Markieren. Bewusst dieselbe Palette wie bei den Bereichen,
  * damit im ganzen Programm dieselben Farben vorkommen. */

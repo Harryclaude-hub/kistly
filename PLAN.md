@@ -133,6 +133,42 @@ Weg ueber den Drucker liefert in beiden Sprachen ein sauberes PDF.
 
 ---
 
+## Gegenpruefung vom 17.09.2026
+
+Nach den fuenf Bloecken lief eine adversarische Pruefung ueber den neuen
+Code: fuenf Pruefer nach Dimensionen getrennt, jeder Fund danach von drei
+Skeptikern zu widerlegen versucht. 76 Funde, 39 bestaetigt, 37 verworfen.
+Behoben wurden unter anderem:
+
+| Was | Wo |
+|---|---|
+| Farben und Zebra verschwanden beim Drucken und im PDF | `index.css`, `Export.tsx`, `ausgabe.ts` |
+| Deutsche Merkbuchstaben (F, Z, S) auf dem arabischen Blatt | `ausgabe.ts` zeichnet das Zeichen jetzt |
+| Leere Datei wurde als fertiges Dokument gemeldet | `Export.tsx` |
+| CSV ohne Kennung, arabische Namen in Excel unlesbar | `Export.tsx` |
+| CSV zeigte andere Spalten als Vorschau und Druck | `Export.tsx` |
+| Gescheitertes Speichern meldete Erfolg | `FurnitureDetail.tsx` |
+| Abgebrochene Mehrfachanlage verschwieg die schon angelegten Kisten | `Items.tsx` |
+| Ab 301 Kisten zeigte die Bereichsseite still falsche Zahlen | `AreaDetail.tsx`, `api.ts` countItems |
+| Auswahl ueberlebte den Wechsel auf einen anderen Bereich | `AreaDetail.tsx` |
+| Nachfrage beim Zusammenfuehren wurde nicht abgewartet | `AreaDetail.tsx` |
+| Zimmerentwurf ignorierte den gesetzten Filter | `Furniture.tsx` |
+| Hover uebermalte Zebra und Markierung | `ItemRow.tsx` |
+| Eine Klammer im Suchfeld brach die Suche ab | `api.ts` |
+| Inhalte wurden unbegrenzt geladen | `api.ts` |
+| Smoketest endete gruen, ohne etwas geprueft zu haben | `smoketest.mjs` |
+| Markierungen ohne Pruefung in der Datenbank | Migration 0011 |
+| `merge_tags` gab Auskunft vor der Berechtigungspruefung | Migration 0011 |
+
+Offen und bewusst nicht angefasst: wird ein Kuerzel umbenannt, vergibt die
+Datenbank die Nummer einer betroffenen Kiste erst bei der naechsten
+beliebigen Aenderung neu. Das ist altes Verhalten aus 0002, kein neuer
+Fehler, aber es ueberrascht. Eine Loesung braucht eine Entscheidung: alle
+Codes sofort neu vergeben und das beim Umbenennen ansagen, oder das
+Kuerzel nach dem ersten Etikett festhalten.
+
+---
+
 ## Regeln, die ueberall gelten
 
 - Datenbankzugriffe nur in `src/lib/api.ts`

@@ -1,5 +1,5 @@
 import QRCode from 'qrcode'
-import { MARK_ZEICHEN, istMarkSymbol } from './marken'
+import { istMarkSymbol, type MarkSymbol } from './marken'
 import type { Item, ItemContent, Tag } from './types'
 import { appUrl } from './util'
 
@@ -47,6 +47,120 @@ export function qrDatenBild(wert: string, px = 120): string | null {
     return leinwand.toDataURL('image/png')
   } catch (err) {
     console.warn('[ausgabe] QR-Code konnte nicht erzeugt werden:', err)
+    return null
+  }
+}
+
+/* ----------------------------------------------------- Markierungszeichen */
+
+/** Das Zeichen einer Markierung als gezeichnetes Bild.
+ *
+ *  Absichtlich gezeichnet und nicht als Buchstabe oder Schriftzeichen:
+ *  Buchstaben waeren deutsche Merkbuchstaben und stuenden dann auch auf
+ *  einem arabischen Blatt, und ein Schriftzeichen haengt davon ab, ob die
+ *  Schrift auf dem Rechner es kennt. Ein gezeichnetes Bild bedeutet in
+ *  jeder Sprache dasselbe und kann nicht fehlen. */
+export function markZeichenBild(symbol: MarkSymbol, farbe: string | null, px = 16): string | null {
+  try {
+    const skala = 4 // scharf auch auf Papier
+    const s = px * skala
+    const leinwand = document.createElement('canvas')
+    leinwand.width = s
+    leinwand.height = s
+    const c = leinwand.getContext('2d')
+    if (!c) return null
+    const ton = farbe && /^#[0-9a-fA-F]{6}$/.test(farbe.trim()) ? farbe.trim() : '#111111'
+    c.fillStyle = ton
+    c.strokeStyle = ton
+    c.lineWidth = s * 0.14
+    c.lineCap = 'round'
+    c.lineJoin = 'round'
+    const m = s / 2
+
+    const vieleck = (ecken: Array<[number, number]>) => {
+      c.beginPath()
+      ecken.forEach(([x, y], i) => (i === 0 ? c.moveTo(x * s, y * s) : c.lineTo(x * s, y * s)))
+      c.closePath()
+      c.fill()
+    }
+
+    switch (symbol) {
+      case 'stern': {
+        c.beginPath()
+        for (let i = 0; i < 10; i++) {
+          const r = i % 2 === 0 ? m * 0.92 : m * 0.4
+          const w = (Math.PI / 5) * i - Math.PI / 2
+          const x = m + r * Math.cos(w)
+          const y = m + r * Math.sin(w)
+          if (i === 0) c.moveTo(x, y)
+          else c.lineTo(x, y)
+        }
+        c.closePath()
+        c.fill()
+        break
+      }
+      case 'haken':
+        c.beginPath()
+        c.moveTo(s * 0.2, s * 0.53)
+        c.lineTo(s * 0.42, s * 0.75)
+        c.lineTo(s * 0.82, s * 0.25)
+        c.stroke()
+        break
+      case 'achtung':
+        vieleck([
+          [0.5, 0.08],
+          [0.95, 0.9],
+          [0.05, 0.9],
+        ])
+        c.fillStyle = '#ffffff'
+        c.fillRect(s * 0.45, s * 0.42, s * 0.1, s * 0.26)
+        c.fillRect(s * 0.45, s * 0.74, s * 0.1, s * 0.1)
+        break
+      case 'herz':
+        c.beginPath()
+        c.moveTo(m, s * 0.9)
+        c.bezierCurveTo(s * -0.15, s * 0.5, s * 0.18, s * 0.05, m, s * 0.32)
+        c.bezierCurveTo(s * 0.82, s * 0.05, s * 1.15, s * 0.5, m, s * 0.9)
+        c.closePath()
+        c.fill()
+        break
+      case 'flagge':
+        c.beginPath()
+        c.moveTo(s * 0.24, s * 0.08)
+        c.lineTo(s * 0.24, s * 0.94)
+        c.stroke()
+        vieleck([
+          [0.26, 0.1],
+          [0.9, 0.28],
+          [0.26, 0.5],
+        ])
+        break
+      case 'kreis':
+        c.beginPath()
+        c.arc(m, m, m * 0.82, 0, Math.PI * 2)
+        c.fill()
+        break
+      case 'blitz':
+        vieleck([
+          [0.6, 0.05],
+          [0.24, 0.56],
+          [0.46, 0.56],
+          [0.38, 0.95],
+          [0.76, 0.42],
+          [0.53, 0.42],
+        ])
+        break
+      case 'schloss':
+        c.lineWidth = s * 0.12
+        c.beginPath()
+        c.arc(m, s * 0.4, s * 0.22, Math.PI, 0)
+        c.stroke()
+        c.fillRect(s * 0.18, s * 0.42, s * 0.64, s * 0.46)
+        break
+    }
+    return leinwand.toDataURL('image/png')
+  } catch (err) {
+    console.warn('[ausgabe] Zeichen konnte nicht gezeichnet werden:', err)
     return null
   }
 }
@@ -183,10 +297,15 @@ export function bauTabelle(opt: AusgabeOpt): string {
             return `<td style="${stil};text-align:center;width:${opt.qrGroesse + 14}px">${inhalt}</td>`
           }
           if (s === 'code') {
-            const zeichen =
-              opt.symbole && istMarkSymbol(item.mark_symbol)
-                ? ` <span style="font-weight:700">${MARK_ZEICHEN[item.mark_symbol]}</span>`
+            let zeichen = ''
+            if (opt.symbole && istMarkSymbol(item.mark_symbol)) {
+              const bild = markZeichenBild(item.mark_symbol, item.mark_color, 14)
+              // Faellt das Zeichnen aus, steht lieber nichts da als ein
+              // deutscher Merkbuchstabe auf einem arabischen Blatt.
+              zeichen = bild
+                ? ` <img src="${bild}" width="14" height="14" alt="" style="vertical-align:middle" />`
                 : ''
+            }
             // Die Nummer bleibt in jeder Sprache von links nach rechts.
             return `<td style="${stil};white-space:nowrap"><span dir="ltr" style="font-family:Consolas,'Courier New',monospace;font-weight:700;font-size:12pt">${escape(
               item.code,
@@ -244,7 +363,8 @@ export function alsWord(dateiname: string, tabelle: string, format: 'A4' | 'A3' 
     'xmlns:w="urn:schemas-microsoft-com:office:word" ',
     'xmlns="http://www.w3.org/TR/REC-html40">',
     '<head><meta charset="utf-8">',
-    `<style>@page { size: ${groessen[format]}; margin: 15mm } body { margin: 0 }</style>`,
+    `<style>@page { size: ${groessen[format]}; margin: 15mm } body { margin: 0 }`,
+    '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>',
     '</head><body>',
   ].join('')
   herunterladen(dateiname, '﻿' + kopf + tabelle + '</body></html>', 'application/msword')
@@ -257,7 +377,14 @@ export function alsHtml(dateiname: string, titel: string, tabelle: string): void
   const doc = [
     '<!doctype html><html><head><meta charset="utf-8">',
     `<title>${escape(titel)}</title>`,
-    '<style>body{margin:16mm;background:#fff}@media print{body{margin:0}}</style>',
+    '<style>',
+    'body{margin:16mm;background:#fff}',
+    '@media print{body{margin:0}}',
+    // Ohne diese Regel wirft der Browser beim Speichern als PDF alle
+    // Zeilenfarben weg, und der Wechsel hell/dunkel waere genau dort
+    // verloren, wo diese Datei hinsoll: auf dem Blatt.
+    '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    '</style>',
     '</head><body>',
     tabelle,
     '</body></html>',

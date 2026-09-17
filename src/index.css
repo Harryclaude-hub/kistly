@@ -231,6 +231,15 @@ input[type='color']::-webkit-color-swatch {
   @page {
     margin: 8mm;
   }
+  /* Browser werfen Hintergrundfarben beim Drucken ab Werk weg. Damit
+     verschwaende der Zebrastreifen und jede Zeilenfarbe genau dort, wo
+     eine lange Liste sie am noetigsten braucht: auf dem Blatt. */
+  .zebra > *,
+  .ausgabe-blatt,
+  .ausgabe-blatt * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   body {
     background: #fff !important;
     color: #000 !important;

@@ -203,8 +203,9 @@ export default function Items() {
       return
     }
     setBusy(true)
+    const created: Item[] = []
+    let abbruch: string | null = null
     try {
-      const created: Item[] = []
       for (let i = 0; i < Math.min(Math.max(draft.count, 1), 50); i++) {
         created.push(
           await createItem({
@@ -221,6 +222,16 @@ export default function Items() {
           }),
         )
       }
+    } catch (err) {
+      abbruch = err instanceof Error ? err.message : String(err)
+    }
+    setBusy(false)
+
+    /* Was schon in der Datenbank steht, wird gemeldet und geladen, auch
+     * wenn die Reihe abgebrochen ist. Sonst waeren die bereits angelegten
+     * Kisten unsichtbar, und der naechste Versuch legte sie ein zweites
+     * Mal an. */
+    if (created.length > 0) {
       toast(
         created.length === 1
           ? t('kisten.angelegt', { code: created[0].code })
@@ -231,16 +242,25 @@ export default function Items() {
             }),
         'ok',
       )
-      setOpen(false)
-      setDraft((d) => ({ ...d, title: '', note: '', count: 1 }))
-      params.delete('neu')
-      setParams(params, { replace: true })
       await load(0, false)
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setBusy(false)
     }
+
+    if (abbruch) {
+      setFormError(
+        created.length > 0
+          ? t('kisten.reihe_abgebrochen', { n: created.length, grund: abbruch })
+          : abbruch,
+      )
+      // Die Anzahl sinkt um das, was schon steht, damit ein zweiter
+      // Versuch den Rest anlegt und nicht alles noch einmal.
+      setDraft((d) => ({ ...d, count: Math.max(1, d.count - created.length) }))
+      return
+    }
+
+    setOpen(false)
+    setDraft((d) => ({ ...d, title: '', note: '', count: 1 }))
+    params.delete('neu')
+    setParams(params, { replace: true })
   }
 
   async function cycleStatus(item: Item) {

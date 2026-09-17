@@ -128,7 +128,14 @@ export function ItemRow({
     </>
   )
 
-  const felder = 'flex min-w-0 flex-1 flex-col gap-1.5 px-3 py-3.5 text-start transition hover:bg-raised'
+  /* Der Hover liegt als eigene Schicht ueber der Zeile, nicht als
+   * Hintergrundfarbe. Eine Hintergrundfarbe haette den Zebrafilm und die
+   * eigene Markierung uebermalt, und genau beim Ansteuern einer Zeile
+   * waere die Leserichtung verloren gegangen. */
+  const felder =
+    'relative flex min-w-0 flex-1 flex-col gap-1.5 px-3 py-3.5 text-start transition ' +
+    'before:pointer-events-none before:absolute before:inset-0 before:bg-ink/0 ' +
+    'before:transition hover:before:bg-ink/[0.06]'
 
   return (
     <div className="flex items-stretch" style={stil}>

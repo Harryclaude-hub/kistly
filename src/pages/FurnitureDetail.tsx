@@ -140,8 +140,11 @@ export default function FurnitureDetail() {
     }
   }, [id])
 
-  async function aendern(p: Partial<Item>) {
-    if (!item) return
+  /** Gibt zurueck, ob es wirklich geklappt hat. Wer danach Erfolg meldet,
+   *  muss das hier abfragen. Sonst steht eine gruene Meldung neben einer
+   *  roten und niemand weiss, was nun gilt. */
+  async function aendern(p: Partial<Item>): Promise<boolean> {
+    if (!item) return false
     const vorher = item
     setItem({ ...item, ...p })
     try {
@@ -154,9 +157,11 @@ export default function FurnitureDetail() {
           t('kisten.ist_angekommen', { code: neu.code }),
         )
       }
+      return true
     } catch (err) {
       setItem(vorher)
       toast(err instanceof Error ? err.message : String(err), 'error')
+      return false
     }
   }
 
@@ -723,9 +728,12 @@ export default function FurnitureDetail() {
         people={people}
         onClose={() => setBearbeiten(false)}
         onSpeichern={async (p) => {
-          await aendern(p)
-          setBearbeiten(false)
-          toast(t('moebel.gespeichert'), 'ok')
+          // Nur bei echtem Erfolg schliessen und melden. Der Fehler selbst
+          // wurde in aendern schon angezeigt.
+          if (await aendern(p)) {
+            setBearbeiten(false)
+            toast(t('moebel.gespeichert'), 'ok')
+          }
         }}
       />
 

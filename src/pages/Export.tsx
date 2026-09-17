@@ -176,6 +176,10 @@ export default function Export() {
     knoten.textContent = [
       '@media print {',
       `  @page { size: ${cfg.papier} portrait; margin: 12mm }`,
+      // Ohne diese Regel wirft der Browser alle Zeilenfarben weg und der
+      // Wechsel hell/dunkel waere genau auf dem Blatt verloren.
+      '  .ausgabe-blatt, .ausgabe-blatt * {',
+      '    -webkit-print-color-adjust: exact; print-color-adjust: exact }',
       '  .ausgabe-blatt { box-shadow: none !important; border: 0 !important;',
       '    padding: 0 !important; margin: 0 !important; max-height: none !important;',
       '    overflow: visible !important; background: #fff !important }',
@@ -200,22 +204,56 @@ export default function Export() {
     setzen({ spalten: sortiert.length === 0 ? ['code'] : [...sortiert] })
   }
 
+  /* Eine Datei entsteht nur, wenn wirklich etwas darauf steht. Sonst
+   * faellt ein Dokument mit Kopfzeile und ohne eine einzige Zeile heraus,
+   * begleitet von einer gruenen Erfolgsmeldung. Das waere ein
+   * Fehlschlag, der aussieht wie ein Ergebnis. */
+  const ausgebbar = bereit && zeilen.length > 0 && tabelle !== ''
+
   function csv() {
-    if (zeilen.length === 0) return
-    const daten = zeilen.map((i) => ({
-      [t('ausgabe.spalte_code')]: i.code,
-      [t('ausgabe.spalte_titel')]: i.title ?? '',
-      [t('ausgabe.spalte_zimmer')]: tagById(i.room_id)?.name ?? '',
-      [t('ausgabe.spalte_person')]: tagById(i.person_id)?.name ?? '',
-      [t('ausgabe.spalte_groesse')]: i.size,
-      [t('ausgabe.spalte_status')]: t(`status.${i.status}`),
-      [t('ausgabe.spalte_inhalt')]: (inhalte.get(i.id) ?? [])
-        .map((c) => (c.qty > 1 ? `${c.qty}x ${c.text}` : c.text))
-        .join(', '),
-      [t('ausgabe.spalte_notiz')]: i.note ?? '',
-    }))
-    download(dateiname(project.name, 'csv', new Date()), toCsv(daten))
+    if (!ausgebbar) return
+    /* Dieselben Spalten wie Vorschau, Druck und Word, und dieselben Werte.
+     * Vorher hatte die CSV eine eigene feste Spaltenliste, das war genau
+     * die Drift, die wir vermeiden wollen. */
+    const daten = zeilen.map((i) => {
+      const zeile: Record<string, string | number> = {}
+      for (const s of cfg.spalten) {
+        if (s === 'qr') continue // ein Bild gehoert nicht in eine CSV
+        zeile[t(`ausgabe.spalte_${s}`)] = csvWert(i, s)
+      }
+      return zeile
+    })
+    // Excel unter Windows liest eine CSV ohne Kennung in der ANSI-Tabelle.
+    // Ohne dieses eine Zeichen wird jedes arabische Wort zu Zeichensalat.
+    download(dateiname(project.name, 'csv', new Date()), '﻿' + toCsv(daten))
     toast(t('ausgabe.datei_fertig'), 'ok')
+  }
+
+  /** Derselbe Wert wie in der Tabelle, damit CSV und Blatt sich nicht
+   *  widersprechen. */
+  function csvWert(i: Item, s: Spalte): string | number {
+    switch (s) {
+      case 'code':
+        return i.code
+      case 'titel':
+        return i.title || t(`art.${i.kind}`)
+      case 'zimmer':
+        return tagById(i.room_id)?.name ?? ''
+      case 'person':
+        return tagById(i.person_id)?.name ?? ''
+      case 'groesse':
+        return i.size
+      case 'status':
+        return t(`status.${i.status}`)
+      case 'inhalt':
+        return (inhalte.get(i.id) ?? [])
+          .map((c) => (c.qty > 1 ? `${c.qty}x ${c.text}` : c.text))
+          .join(', ')
+      case 'notiz':
+        return i.note ?? ''
+      default:
+        return ''
+    }
   }
 
   return (
@@ -367,14 +405,14 @@ export default function Export() {
               <SectionTitle>{t('ausgabe.titel')}</SectionTitle>
               <Card className="mb-5 p-4">
                 <div className="flex flex-wrap gap-2">
-                  <Button size="lg" disabled={zeilen.length === 0} onClick={() => window.print()}>
+                  <Button size="lg" disabled={!ausgebbar} onClick={() => window.print()}>
                     <Printer size={19} />
                     {t('ausgabe.drucken')}
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
-                    disabled={zeilen.length === 0}
+                    disabled={!ausgebbar}
                     onClick={() => {
                       alsWord(dateiname(project.name, 'doc', new Date()), tabelle, cfg.papier)
                       toast(t('ausgabe.datei_fertig'), 'ok')
@@ -386,7 +424,7 @@ export default function Export() {
                   <Button
                     size="lg"
                     variant="outline"
-                    disabled={zeilen.length === 0}
+                    disabled={!ausgebbar}
                     onClick={() => {
                       alsHtml(dateiname(project.name, 'html', new Date()), project.name, tabelle)
                       toast(t('ausgabe.datei_fertig'), 'ok')
@@ -395,7 +433,7 @@ export default function Export() {
                     <FileCode2 size={19} />
                     {t('ausgabe.html')}
                   </Button>
-                  <Button size="lg" variant="outline" disabled={zeilen.length === 0} onClick={csv}>
+                  <Button size="lg" variant="outline" disabled={!ausgebbar} onClick={csv}>
                     <Sheet size={19} />
                     {t('ausgabe.csv')}
                   </Button>

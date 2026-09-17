@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Armchair, Boxes, CheckSquare, DoorOpen, Merge, Pencil, Printer, User } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
@@ -21,7 +21,7 @@ import {
   useToast,
 } from '../components/ui'
 import { useProject } from './ProjectLayout'
-import { listItems, mergeTags, setItemStatus } from '../lib/api'
+import { countItems, listItems, mergeTags, setItemStatus } from '../lib/api'
 import { useSprache } from '../lib/i18n'
 import { notifyItemStatus } from '../lib/push'
 import { useWischen } from '../lib/wischen'
@@ -63,7 +63,17 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
   const [zusammen, setZusammen] = useState(false)
   const [waehlen, setWaehlen] = useState(false)
   const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set())
+  /** Wie viele Zeilen geladen sind. Waechst auf Wunsch, statt still
+   *  abzuschneiden. */
+  const [grenze, setGrenze] = useState(300)
   useWischen()
+
+  useEffect(() => {
+    setWaehlen(false)
+    setGewaehlt(new Set())
+    setGrenze(300)
+    setZusammen(false)
+  }, [tagId, kind])
 
   const tag = tags.find((x) => x.id === tagId && x.kind === kind)
   /** Zimmer und Person unterscheiden sich nur in diesem einen Feld. */
@@ -71,22 +81,30 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
   /** Der Name im Adressfeld, damit Links und Filter dasselbe Wort nutzen. */
   const param = kind === 'room' ? 'room' : 'person'
 
-  // Alles, was an diesem Bereich haengt, in einem Zug. Begrenzt geladen,
-  // damit ein Zimmer mit sehr vielen Kisten die Antwort nicht sprengt.
-  const alles = useAsync<Item[]>(async () => {
-    if (!tag) return []
-    const seite = await listItems(project.id, { ...nurHier, limit: 300, sort: 'code' })
-    return seite.rows
+  /* Die Liste wird begrenzt geladen, damit ein Zimmer mit sehr vielen
+   * Kisten die Antwort nicht sprengt. Die ZAHLEN kommen aber getrennt aus
+   * der Datenbank. Aus einer abgeschnittenen Seite zu zaehlen hiesse, ab
+   * der 301. Kiste dauerhaft falsche Zahlen anzuzeigen, ohne Hinweis. */
+  const alles = useAsync<{ rows: Item[]; total: number; zahlen: [number, number, number] }>(
+    async () => {
+      if (!tag) return { rows: [], total: 0, zahlen: [0, 0, 0] }
+      const [seite, offen, unterwegs, angekommen] = await Promise.all([
+        listItems(project.id, { ...nurHier, limit: grenze, sort: 'code' }),
+        countItems(project.id, { ...nurHier, status: 'open' }),
+        countItems(project.id, { ...nurHier, status: 'transit' }),
+        countItems(project.id, { ...nurHier, status: 'arrived' }),
+      ])
+      return { rows: seite.rows, total: seite.total, zahlen: [offen, unterwegs, angekommen] }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.id, tagId, kind])
+    [project.id, tagId, kind, grenze],
+  )
 
-  const rows = alles.data ?? []
+  const rows = alles.data?.rows ?? []
+  const gesamt = alles.data?.total ?? 0
+  const [offen, unterwegs, angekommen] = alles.data?.zahlen ?? [0, 0, 0]
   const kisten = rows.filter((i) => i.kind !== 'furniture')
   const moebel = rows.filter((i) => i.kind === 'furniture')
-
-  const angekommen = rows.filter((i) => i.status === 'arrived').length
-  const unterwegs = rows.filter((i) => i.status === 'transit').length
-  const offen = rows.filter((i) => i.status === 'open').length
 
   /* Die Gegenseite: in einem Zimmer stehen Kisten verschiedener Personen,
    * eine Person hat Kisten in verschiedenen Zimmern. Beides wird aus den
@@ -120,7 +138,9 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
     const ziel = NAECHSTER_STATUS[item.status]
     try {
       const neu = await setItemStatus(item.id, ziel)
-      alles.setData((prev) => (prev ?? []).map((x) => (x.id === neu.id ? neu : x)))
+      alles.setData((prev) =>
+        prev ? { ...prev, rows: prev.rows.map((x) => (x.id === neu.id ? neu : x)) } : prev,
+      )
       if (ziel === 'arrived') {
         void notifyItemStatus(project.id, project.name, t('kisten.ist_angekommen', { code: neu.code }))
       }
@@ -193,7 +213,11 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
               <h1 className="t-name-lg break-words">{tag.name}</h1>
               <p className="t-sub mt-1 flex flex-wrap items-center gap-2">
                 {kind === 'room' ? <DoorOpen size={15} /> : <User size={15} />}
-                {alles.loading ? t('bereichsseite.zahlen_laden') : tn('begriff.kisten_anzahl', rows.length)}
+                {alles.loading
+                  ? t('bereichsseite.zahlen_laden')
+                  : alles.error
+                    ? t('bereichsseite.zahl_unbekannt')
+                    : tn('begriff.kisten_anzahl', gesamt)}
                 {tag.symbol ? (
                   <Badge>
                     <MarkIcon symbol={tag.symbol} size={14} />
@@ -221,7 +245,7 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
               <Zahl wert={angekommen} wort={t('status.arrived')} farbe="var(--ok)" />
             </div>
             <p className="t-sub mb-5 text-center">
-              {t('bereichsseite.fortschritt', { a: angekommen, b: rows.length })}
+              {t('bereichsseite.fortschritt', { a: angekommen, b: gesamt })}
             </p>
           </>
         )}
@@ -344,6 +368,17 @@ export default function AreaDetail({ kind }: { kind: TagKind }) {
             >
               {t('bereichsseite.moebel')}
             </SectionTitle>
+            {rows.length < gesamt ? (
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <Button variant="outline" onClick={() => setGrenze((g) => g + 300)}>
+                  {t('aktion.mehr_laden')}
+                </Button>
+                <p className="t-sub">
+                  {t('kisten.geladen_von', { a: rows.length, b: gesamt })}
+                </p>
+              </div>
+            ) : null}
+
             {moebel.length === 0 ? (
               <Empty icon={<Armchair size={30} />} title={t('bereichsseite.keine_moebel')} />
             ) : (
@@ -433,6 +468,14 @@ function ZusammenDialog({
   const [busy, setBusy] = useState(false)
   const ziel = ziele.find((z) => z.id === zielId)
 
+  // Jedes Oeffnen faengt ohne Ziel an. Sonst stuende die Wahl von vorhin
+  // scharf da und ein Druck auf Zusammenfuehren traefe den falschen Bereich.
+  useEffect(() => {
+    if (!offen) return
+    setZielId('')
+    setNachfrage(false)
+  }, [offen])
+
   return (
     <>
       <Modal
@@ -479,18 +522,20 @@ function ZusammenDialog({
         body={t('zusammen.warnung', { von: quelle.name, nach: ziel?.name ?? '' })}
         confirmLabel={t('zusammen.knopf')}
         onClose={() => setNachfrage(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!ziel || busy) return
           setBusy(true)
-          void mergeTags(quelle.id, ziel.id)
-            .then((n) => onFertig(n))
-            .catch((err: unknown) => {
-              toast(err instanceof Error ? err.message : String(err), 'error')
-            })
-            .finally(() => {
-              setBusy(false)
-              setNachfrage(false)
-            })
+          try {
+            // Wirklich abwarten. Vorher wurde das Versprechen nur
+            // angestossen, der Dialog ging sofort zu und der Auswahldialog
+            // sprang mitten im Schreiben wieder auf.
+            const n = await mergeTags(quelle.id, ziel.id)
+            await onFertig(n)
+          } catch (err) {
+            toast(err instanceof Error ? err.message : String(err), 'error')
+          } finally {
+            setBusy(false)
+          }
         }}
       />
     </>

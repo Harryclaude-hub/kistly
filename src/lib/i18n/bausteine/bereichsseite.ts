@@ -33,6 +33,10 @@ export const bereichsseite: Woerterbuch = {
     de: '{a} von {b} angekommen',
     ar: 'وصل {a} من أصل {b}',
   },
+  'bereichsseite.zahl_unbekannt': {
+    de: 'Anzahl unbekannt',
+    ar: 'العدد غير معروف',
+  },
   'bereichsseite.zahlen_laden': { de: 'Zahlen werden geladen', ar: 'جارٍ تحميل الأعداد' },
   'bereichsseite.zaehlwerte_fehler': {
     de: 'Zaehlwerte konnten nicht geladen werden.',

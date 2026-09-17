@@ -61,6 +61,8 @@ export default function Furniture() {
   const zimmerFilter = params.get('room') ?? 'all'
 
   const [rows, setRows] = useState<Item[]>([])
+  const [gesamt, setGesamt] = useState(0)
+  const [grenze, setGrenze] = useState(300)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,16 +73,17 @@ export default function Furniture() {
       const res = await listItems(project.id, {
         kind: 'furniture',
         roomId: zimmerFilter,
-        limit: 300,
+        limit: grenze,
         sort: 'code',
       })
       setRows(res.rows)
+      setGesamt(res.total)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
-  }, [project.id, zimmerFilter])
+  }, [project.id, zimmerFilter, grenze])
 
   useEffect(() => {
     void laden()
@@ -100,6 +103,19 @@ export default function Furniture() {
     zerlegt: false,
     note: '',
   })
+
+  /* Beim Oeffnen zeigt der Dialog das Zimmer, das oben gerade gefiltert
+   * ist. Vorher stand dort das Zimmer vom ersten Rendern. Wer den Filter
+   * gewechselt hatte und das nicht bemerkte, legte das Stueck im falschen
+   * Zimmer an, mit falscher Nummer. */
+  useEffect(() => {
+    if (!offen) return
+    setEntwurf((d) => ({
+      ...d,
+      room_id: zimmerFilter !== 'all' ? zimmerFilter : d.room_id || (rooms[0]?.id ?? ''),
+    }))
+    setFormFehler(null)
+  }, [offen, zimmerFilter, rooms])
 
   const vorschau = tagById(entwurf.room_id)?.short ?? '??'
 
@@ -128,6 +144,11 @@ export default function Furniture() {
       toast(t('moebel.angelegt', { code: neu.code }), 'ok')
       setOffen(false)
       setEntwurf((d) => ({ ...d, title: '', hersteller: '', modell: '', masse: '', note: '' }))
+      if (params.get('neu')) {
+        const rest = new URLSearchParams(params)
+        rest.delete('neu')
+        setParams(rest, { replace: true })
+      }
       await laden()
     } catch (err) {
       setFormFehler(err instanceof Error ? err.message : String(err))
@@ -216,7 +237,7 @@ export default function Furniture() {
           />
         ) : (
           <>
-            <p className="t-sub mb-3">{tn('moebel.anzahl', rows.length)}</p>
+            <p className="t-sub mb-3">{tn('moebel.anzahl', gesamt)}</p>
             <Card className="zebra divide-y divide-line overflow-hidden">
               {rows.map((item) => (
                 <ItemRow
@@ -231,6 +252,15 @@ export default function Furniture() {
             </Card>
           </>
         )}
+        {rows.length < gesamt ? (
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <Button variant="outline" onClick={() => setGrenze((g) => g + 300)}>
+              {t('aktion.mehr_laden')}
+            </Button>
+            <p className="t-sub">{t('kisten.geladen_von', { a: rows.length, b: gesamt })}</p>
+          </div>
+        ) : null}
+
         <div className="h-6" />
       </Page>
 
