@@ -95,6 +95,9 @@ export interface Item {
    * Zimmer. Die Zimmerfarbe bleibt davon unberuehrt. */
   mark_color: string | null
   mark_symbol: string | null
+  /* Das Bild, das beim Scannen sofort erscheint. Verweis auf eine Zeile
+   * in item_photos, kein zweiter Pfad. Siehe Migration 0012. */
+  cover_photo_id: string | null
   arrived_at: string | null
   created_by: string | null
   created_at: string

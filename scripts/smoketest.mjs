@@ -373,6 +373,37 @@ async function main() {
   const nurAnleitung = await rest(`/item_photos?item_id=eq.${moebel.id}&art=eq.anleitung&select=id`)
   check('Anleitungen getrennt abrufbar', (nurAnleitung.data ?? []).length === 1)
 
+  // ----------------------------------------------------------- Deckbild
+  const fotoId = foto.data?.[0]?.id
+  const deck = await rest(`/items?id=eq.${moebel.id}`, {
+    method: 'PATCH',
+    prefer: 'return=representation',
+    body: { cover_photo_id: fotoId },
+  })
+  check('Deckbild gesetzt', deck.data?.[0]?.cover_photo_id === fotoId,
+    JSON.stringify(deck.data).slice(0, 140))
+
+  // Ein Deckbild, das zu einer anderen Kiste gehoert, muss die Datenbank
+  // ablehnen. Sonst zeigt eine Kiste beim Scannen das Bild einer anderen.
+  const fremdesDeck = await rest(`/items?id=eq.${i3.id}`, {
+    method: 'PATCH',
+    body: { cover_photo_id: fotoId },
+  })
+  check('Fremdes Deckbild wird abgelehnt', !fremdesDeck.ok, `Status ${fremdesDeck.status}`)
+
+  const totesDeck = await rest(`/items?id=eq.${moebel.id}`, {
+    method: 'PATCH',
+    body: { cover_photo_id: '00000000-0000-0000-0000-000000000000' },
+  })
+  check('Deckbild ohne Foto wird abgelehnt', !totesDeck.ok, `Status ${totesDeck.status}`)
+
+  // Wird das Foto geloescht, darf kein Verweis ins Leere zurueckbleiben.
+  await rest(`/item_photos?id=eq.${fotoId}`, { method: 'DELETE' })
+  const nachLoeschen = await rest(`/items?id=eq.${moebel.id}&select=cover_photo_id`)
+  check('Geloeschtes Foto nimmt das Deckbild mit',
+    nachLoeschen.data?.[0]?.cover_photo_id === null,
+    JSON.stringify(nachLoeschen.data).slice(0, 140))
+
   // Markieren wie in Excel. Die Markierung gehoert der Zeile, nicht dem Zimmer.
   const markiert = await rest(`/items?id=eq.${moebel.id}`, {
     method: 'PATCH',

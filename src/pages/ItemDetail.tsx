@@ -8,6 +8,7 @@ import {
   Pencil,
   Plus,
   Printer,
+  Star,
   Trash2,
   Upload,
   MoveRight,
@@ -47,6 +48,7 @@ import {
   listContents,
   listItemEvents,
   listPhotos,
+  setCoverPhoto,
   updateContent,
   updateItem,
 } from '../lib/api'
@@ -646,6 +648,50 @@ export default function ItemDetail() {
                           {t('kisten.bild_fehlt')}
                         </div>
                       )}
+                      {/* Das Deckbild ist das, was beim Scannen sofort
+                          erscheint. Darum steht der Knopf direkt am Bild
+                          und zeigt an, welches gerade gilt. */}
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          aria-pressed={item.cover_photo_id === p.id}
+                          aria-label={
+                            item.cover_photo_id === p.id
+                              ? t('schnell.deckbild')
+                              : t('kisten.zum_deckbild')
+                          }
+                          title={
+                            item.cover_photo_id === p.id
+                              ? t('schnell.deckbild')
+                              : t('kisten.zum_deckbild')
+                          }
+                          onClick={() => {
+                            const ziel = item.cover_photo_id === p.id ? null : p.id
+                            void setCoverPhoto(item.id, ziel)
+                              .then((neu) => {
+                                setItem(neu)
+                                toast(
+                                  ziel ? t('schnell.deckbild_gesetzt') : t('kisten.deckbild_ab'),
+                                  'ok',
+                                )
+                              })
+                              .catch((err: unknown) =>
+                                toast(err instanceof Error ? err.message : String(err), 'error'),
+                              )
+                          }}
+                          className={cx(
+                            'absolute start-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-xl transition active:scale-95',
+                            item.cover_photo_id === p.id
+                              ? 'bg-ink text-paper'
+                              : 'bg-black/60 text-white',
+                          )}
+                        >
+                          <Star
+                            size={17}
+                            fill={item.cover_photo_id === p.id ? 'currentColor' : 'none'}
+                          />
+                        </button>
+                      ) : null}
                       {canEdit ? (
                         // Immer sichtbar, denn auf dem Handy gibt es kein Ueberfahren
                         // mit der Maus und der Knopf waere sonst nicht erreichbar. Die

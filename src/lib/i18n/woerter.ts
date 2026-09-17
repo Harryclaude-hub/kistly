@@ -21,6 +21,7 @@ import { marken } from './bausteine/marken'
 import { etiketten } from './bausteine/etiketten'
 import { ausgabe } from './bausteine/ausgabe'
 import { scannen } from './bausteine/scannen'
+import { schnell } from './bausteine/schnell'
 import { chat } from './bausteine/chat'
 import { team } from './bausteine/team'
 import { einstellungen } from './bausteine/einstellungen'
@@ -57,6 +58,7 @@ export const WOERTER: Woerterbuch = zusammenlegen(
   etiketten,
   ausgabe,
   scannen,
+  schnell,
   chat,
   team,
   einstellungen,

@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Check, ScanLine, Search, Warehouse } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
+import { Schnellansicht } from '../components/Schnellansicht'
 import { Scanner } from '../components/Scanner'
 import {
   Button,
@@ -32,6 +33,7 @@ interface Hit {
 
 export default function ScanPage() {
   const { project, tagById, canEdit } = useProject()
+  const [params, setParams] = useSearchParams()
   const toast = useToast()
   const t = useT()
 
@@ -43,6 +45,11 @@ export default function ScanPage() {
   const [paused, setPaused] = useState(false)
   const [manual, setManual] = useState('')
   const [busy, setBusy] = useState(false)
+  /* Nach jedem Treffer geht die Schnellansicht auf. Sie zeigt das
+   * Deckbild, die Nummer und den einen grossen Knopf, den man beim
+   * Tragen braucht. Die Kamera haelt so lange an. */
+  const [schnellId, setSchnellId] = useState<string | null>(params.get('schnell'))
+  const [schnellAlt, setSchnellAlt] = useState<string | undefined>(undefined)
 
   const handleItem = useCallback(
     async (itemId: string, oldCode?: string) => {
@@ -74,6 +81,8 @@ export default function ScanPage() {
           toast(t('scannen.gefunden', { code: item.code }), 'ok')
         }
         setHits((h) => [{ item, at: new Date().toISOString(), oldCode }, ...h].slice(0, 40))
+        setSchnellAlt(oldCode)
+        setSchnellId(item.id)
       } catch (err) {
         toast(err instanceof Error ? err.message : String(err), 'error')
       } finally {
@@ -126,7 +135,10 @@ export default function ScanPage() {
       />
       <Page>
         <div className="mb-4">
-          <Scanner onResult={(text) => void onScan(text)} paused={paused || busy} />
+          <Scanner
+            onResult={(text) => void onScan(text)}
+            paused={paused || busy || schnellId !== null}
+          />
         </div>
 
         <Card className="mb-4 p-4">
@@ -279,6 +291,29 @@ export default function ScanPage() {
         {/* Luft fuer die untere Navigationsleiste */}
         <div className="h-6" />
       </Page>
+
+      <Schnellansicht
+        itemId={schnellId}
+        offen={schnellId !== null}
+        alterCode={schnellAlt}
+        tagById={tagById}
+        canEdit={canEdit}
+        projectName={project.name}
+        onClose={() => {
+          setSchnellId(null)
+          setSchnellAlt(undefined)
+          // Der Parameter darf nicht stehen bleiben, sonst geht die
+          // Schnellansicht bei jedem Neuladen wieder auf.
+          if (params.get('schnell')) {
+            const rest = new URLSearchParams(params)
+            rest.delete('schnell')
+            setParams(rest, { replace: true })
+          }
+        }}
+        onGeaendert={(neu) =>
+          setHits((h) => h.map((x) => (x.item.id === neu.id ? { ...x, item: neu } : x)))
+        }
+      />
     </>
   )
 }

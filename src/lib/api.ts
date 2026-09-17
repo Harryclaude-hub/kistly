@@ -575,6 +575,35 @@ export async function addPhotoRecord(
   return unwrap(res, 'fehler.foto_speichern') as ItemPhoto
 }
 
+/** Ein Foto zum Deckbild machen, oder das Deckbild wieder abnehmen.
+ *  Die Datenbank prueft, dass das Foto zu diesem Eintrag gehoert. */
+export async function setCoverPhoto(itemId: string, photoId: string | null): Promise<Item> {
+  return updateItem(itemId, { cover_photo_id: photoId })
+}
+
+/** Die Deckbilder mehrerer Eintraege auf einmal holen, fuer Listen und
+ *  fuer die Schnellansicht. Begrenzt und seitenweise, damit auch eine
+ *  lange Liste nicht in eine zu grosse Antwort laeuft. */
+export async function coverPaths(items: Item[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  const ids = items.map((i) => i.cover_photo_id).filter((x): x is string => Boolean(x))
+  if (ids.length === 0) return out
+  const step = 200
+  for (let i = 0; i < ids.length; i += step) {
+    const res = await supabase
+      .from('item_photos')
+      .select('id,path')
+      .in('id', ids.slice(i, i + step))
+    if (res.error) throw new Error(tg('fehler.fotos_laden', { grund: errText(res.error) }))
+    const nachId = new Map((res.data ?? []).map((r) => [r.id as string, r.path as string]))
+    for (const item of items) {
+      const pfad = item.cover_photo_id ? nachId.get(item.cover_photo_id) : undefined
+      if (pfad) out.set(item.id, pfad)
+    }
+  }
+  return out
+}
+
 export async function deletePhoto(photo: ItemPhoto): Promise<void> {
   const { error } = await supabase.from('item_photos').delete().eq('id', photo.id)
   if (error) throw new Error(tg('fehler.foto_loeschen', { grund: errText(error) }))

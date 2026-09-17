@@ -19,7 +19,9 @@ export default function ScanResolve() {
       try {
         const item = await getItem(itemId)
         await logScan(item.project_id, item.id, 'QR-Code')
-        if (alive) nav(`/app/p/${item.project_id}/kisten/${item.id}`, { replace: true })
+        if (alive) {
+          nav(`/app/p/${item.project_id}/scan?schnell=${item.id}`, { replace: true })
+        }
       } catch (err) {
         if (alive) setError(err instanceof Error ? err.message : String(err))
       }

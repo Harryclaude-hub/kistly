@@ -149,6 +149,8 @@ export const kisten: Woerterbuch = {
   'kisten.foto': { de: 'Foto', ar: 'صورة' },
   'kisten.foto_aufnehmen': { de: 'Foto aufnehmen', ar: 'التقاط صورة' },
   'kisten.foto_alt': { de: 'Foto der Kiste', ar: 'صورة الصندوق' },
+  'kisten.zum_deckbild': { de: 'Zum Deckbild machen', ar: 'جعلها الصورة الرئيسية' },
+  'kisten.deckbild_ab': { de: 'Deckbild abgenommen', ar: 'تمت إزالة الصورة الرئيسية' },
   'kisten.foto_loeschen': { de: 'Foto loeschen', ar: 'حذف الصورة' },
   'kisten.fotos_leer': { de: 'Noch kein Foto vom Inhalt', ar: 'لا توجد صورة للمحتويات بعد' },
   'kisten.fotos_hinweis': {
