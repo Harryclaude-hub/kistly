@@ -472,10 +472,13 @@ export async function addContent(
   itemId: string,
   text: string,
   qty = 1,
+  /** Woher die Zeile kommt. Ein Vorschlag aus einem Foto bleibt als
+   *  solcher erkennbar, auch nachdem er uebernommen wurde. */
+  quelle: ItemContent['quelle'] = 'hand',
 ): Promise<ItemContent> {
   const res = await supabase
     .from('item_contents')
-    .insert({ item_id: itemId, project_id: projectId, text: text.trim(), qty })
+    .insert({ item_id: itemId, project_id: projectId, text: text.trim(), qty, quelle })
     .select('*')
     .single()
   return unwrap(res, 'fehler.eintrag_anlegen') as ItemContent

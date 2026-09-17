@@ -11,10 +11,12 @@ import {
   MoveRight,
   Palette,
   Printer,
+  Sparkles,
   Trash2,
   X,
 } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
+import { BildLesen } from '../components/BildLesen'
 import { InhaltVerschieben } from '../components/InhaltVerschieben'
 import { MarkIcon, MarkPicker } from '../components/Mark'
 import {
@@ -39,6 +41,7 @@ import {
 } from '../components/ui'
 import { SizePicker } from './Items'
 import { useProject } from './ProjectLayout'
+import { useAuth } from '../lib/auth'
 import {
   addContent,
   addPhotoRecord,
@@ -93,6 +96,7 @@ export default function FurnitureDetail() {
   const { id = '' } = useParams()
   const nav = useNavigate()
   const { project, rooms, people, tagById, canEdit } = useProject()
+  const { user } = useAuth()
   const { t, tn } = useSprache()
   const toast = useToast()
   useWischen()
@@ -113,6 +117,7 @@ export default function FurnitureDetail() {
   const [bearbeiten, setBearbeiten] = useState(false)
   const [markieren, setMarkieren] = useState(false)
   const [umhaengen, setUmhaengen] = useState<ItemContent | null>(null)
+  const [bildLesen, setBildLesen] = useState(false)
 
   const fotoFeld = useRef<HTMLInputElement>(null)
   const anleitungFeld = useRef<HTMLInputElement>(null)
@@ -409,7 +414,18 @@ export default function FurnitureDetail() {
         </Card>
 
         {/* Teilekatalog zum Nachzaehlen */}
-        <SectionTitle>{t('moebel.teile')}</SectionTitle>
+        <SectionTitle
+          action={
+            canEdit && seitenFotos.length > 0 ? (
+              <Button size="sm" variant="outline" onClick={() => setBildLesen(true)}>
+                <Sparkles size={16} />
+                {t('bildki.knopf_kurz')}
+              </Button>
+            ) : null
+          }
+        >
+          {t('moebel.teile')}
+        </SectionTitle>
         <p className="t-sub mb-2">{t('moebel.teile_hinweis')}</p>
         <Card className="mb-6 overflow-hidden">
           {teile.length === 0 ? (
@@ -735,6 +751,19 @@ export default function FurnitureDetail() {
             toast(t('moebel.gespeichert'), 'ok')
           }
         }}
+      />
+
+      <BildLesen
+        offen={bildLesen}
+        onClose={() => setBildLesen(false)}
+        projectId={project.id}
+        itemId={item.id}
+        fotos={fotos}
+        art="moebel"
+        vorhandeneInhalte={teile}
+        canEdit={canEdit}
+        userId={user?.id ?? ''}
+        onUebernommen={(neu) => setTeile((c) => [...c, ...neu])}
       />
 
       <InhaltVerschieben

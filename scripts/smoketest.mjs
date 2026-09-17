@@ -509,6 +509,56 @@ async function main() {
   const restKatalog = await rest(`/item_contents?item_id=eq.${moebel.id}&select=id`)
   check('Im Katalog bleibt genau ein Teil zurueck', (restKatalog.data ?? []).length === 1)
 
+  // --------------------------------------------- Fotos am Zimmer und Quelle
+  const zimmerFoto = await rest('/item_photos', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: { tag_id: wohn.id, path: `${pid}/zimmer/${wohn.id}.jpg` },
+  })
+  check('Foto am Zimmer moeglich', zimmerFoto.ok && zimmerFoto.data?.[0]?.tag_id === wohn.id,
+    JSON.stringify(zimmerFoto.data).slice(0, 140))
+  check('Umzug am Zimmerfoto kommt aus dem Bereich',
+    zimmerFoto.data?.[0]?.project_id === pid)
+
+  // Ein Foto muss zu genau einem Ziel gehoeren, nicht zu beiden und nicht
+  // zu keinem. Sonst haengt es irgendwo und taucht nirgends auf.
+  const beidesFoto = await rest('/item_photos', {
+    method: 'POST',
+    body: { item_id: i3.id, tag_id: wohn.id, path: 'x.jpg' },
+  })
+  check('Foto an Kiste UND Zimmer wird abgelehnt', !beidesFoto.ok, `Status ${beidesFoto.status}`)
+
+  const keinZiel = await rest('/item_photos', { method: 'POST', body: { path: 'y.jpg' } })
+  check('Foto ohne Ziel wird abgelehnt', !keinZiel.ok, `Status ${keinZiel.status}`)
+
+  // Ein mitgeschicktes project_id darf nie zaehlen, die RLS haengt daran.
+  const gefaelscht = await rest('/item_photos', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: { item_id: i3.id, path: 'z.jpg', project_id: '00000000-0000-0000-0000-000000000000' },
+  })
+  check('Mitgeschickter Umzug wird ueberschrieben',
+    gefaelscht.ok && gefaelscht.data?.[0]?.project_id === pid,
+    JSON.stringify(gefaelscht.data).slice(0, 140))
+
+  const quelle = await rest('/item_contents', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: { item_id: i3.id, project_id: pid, text: 'Aus dem Bild', quelle: 'bild' },
+  })
+  check('Inhalt kann aus einem Bild stammen', quelle.data?.[0]?.quelle === 'bild')
+
+  const falscheQuelle = await rest('/item_contents', {
+    method: 'POST',
+    body: { item_id: i3.id, project_id: pid, text: 'Unfug', quelle: 'zauberei' },
+  })
+  check('Unbekannte Quelle wird abgelehnt', !falscheQuelle.ok, `Status ${falscheQuelle.status}`)
+
+  const restZahl = await rpc('bild_lesen_rest', { p_project: pid, p_user: userId })
+  const frei = Array.isArray(restZahl.data) ? restZahl.data[0] : restZahl.data
+  check('Restguthaben abfragbar', restZahl.ok && Number(frei?.rest_projekt) > 0,
+    JSON.stringify(restZahl.data).slice(0, 140))
+
   // ------------------------------------------------------------- Aufraeumen
   console.log('\n11. Aufraeumen')
   const del = await rest(`/projects?id=eq.${pid}`, { method: 'DELETE' })

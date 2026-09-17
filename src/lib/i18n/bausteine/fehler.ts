@@ -270,6 +270,18 @@ export const fehler: Woerterbuch = {
     de: 'Inhalt verschieben: {grund}',
     ar: 'تعذّر نقل المحتوى: {grund}',
   },
+  'fehler.erkennung_laden': {
+    de: 'Erkennung laden: {grund}',
+    ar: 'تعذّر تحميل التعرّف: {grund}',
+  },
+  'fehler.erkennung_verwerfen': {
+    de: 'Erkennung verwerfen: {grund}',
+    ar: 'تعذّر حذف التعرّف: {grund}',
+  },
+  'fehler.rest_laden': {
+    de: 'Verbleibende Auswertungen laden: {grund}',
+    ar: 'تعذّر تحميل المتبقّي: {grund}',
+  },
   'fehler.keine_verbindung': {
     de: 'Keine Verbindung zum Server. Internet pruefen.',
     ar: 'لا يوجد اتصال بالخادم. تحقق من الإنترنت.',

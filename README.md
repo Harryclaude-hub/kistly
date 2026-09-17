@@ -216,7 +216,49 @@ supabase functions deploy push-send
 Ohne Schluessel laeuft die App normal weiter und meldet in den Einstellungen,
 dass kein Schluessel hinterlegt ist.
 
-### 6. Starten und pruefen
+### 6. Bilderkennung einschalten (freiwillig)
+
+Kistly kann Fotos lesen und vorschlagen, was in einer Kiste liegt oder aus
+welchen Teilen ein Moebelstueck besteht. Dafuer braucht es einen Schluessel
+fuer den Erkennungsdienst. **Ohne Schluessel laeuft alles andere normal
+weiter**, und der Knopf sagt genau, was fehlt.
+
+Schluessel setzen, entweder als Function Secret:
+
+```bash
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+
+oder als Zeile in `private.config`, wenn kein CLI zur Hand ist:
+
+```sql
+insert into private.config (key, value)
+values ('ANTHROPIC_API_KEY', 'sk-ant-...')
+on conflict (key) do update set value = excluded.value;
+```
+
+Dann ausrollen:
+
+```bash
+supabase functions deploy bild-analyse
+```
+
+Freiwillig dazu: `ANTHROPIC_MODELL` setzt ein anderes Modell, ohne dass die
+Funktion neu ausgerollt werden muss. `APP_ORIGINS` (mit Komma getrennt)
+schraenkt ein, von welchen Adressen aus die Funktion aufgerufen werden darf.
+
+**Was das kostet und wer zahlt.** Jedes neue Bild kostet einen Bruchteil
+eines Cent, und zwar den Besitzer des Schluessels, nicht den, der tippt. Ein
+Bild, das schon gelesen wurde, kostet nichts mehr. Zwei Bremsen sind fest
+eingebaut und stehen in `supabase/migrations/0015_bilderkennung_bremse.sql`:
+200 bezahlte Bilder je Umzug und Tag, 60 je Person und Stunde. Jeder Aufruf
+steht in `bild_lesen_log`, mit Modell, damit man nachrechnen kann.
+
+**Was mit dem Bild passiert.** Es verlaesst zum Lesen das eigene
+Supabase-Projekt und geht an den Erkennungsdienst. Das sagt die Oberflaeche
+an der Stelle auch. Wer das nicht will, laesst den Schluessel weg.
+
+### 7. Starten und pruefen
 
 ```bash
 npm run dev

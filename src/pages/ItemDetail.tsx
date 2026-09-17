@@ -8,6 +8,7 @@ import {
   Pencil,
   Plus,
   Printer,
+  Sparkles,
   Star,
   Trash2,
   Upload,
@@ -16,6 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
+import { BildLesen } from '../components/BildLesen'
 import { InhaltVerschieben } from '../components/InhaltVerschieben'
 import { MarkIcon, MarkPicker } from '../components/Mark'
 import {
@@ -67,7 +69,7 @@ import {
   type TagKind,
 } from '../lib/types'
 import { appUrl, contrastOn, cx, fmtDateTime, relTime, uid, useAsync } from '../lib/util'
-import { displayNameOf } from '../lib/auth'
+import { displayNameOf, useAuth } from '../lib/auth'
 
 function labelUrl(itemId: string): string {
   return appUrl(`s/${itemId}`)
@@ -116,6 +118,7 @@ function TagTile({ role, tag }: { role: string; tag: Tag }) {
 export default function ItemDetail() {
   const { iid = '' } = useParams()
   const { project, rooms, people, tagById, canEdit, members } = useProject()
+  const { user } = useAuth()
   const { t, tn } = useSprache()
   const toast = useToast()
   const nav = useNavigate()
@@ -131,6 +134,7 @@ export default function ItemDetail() {
    * markieren. Beides sind eigene Dialoge, damit die Seite ruhig bleibt. */
   const [umhaengen, setUmhaengen] = useState<ItemContent | null>(null)
   const [markieren, setMarkieren] = useState(false)
+  const [bildLesen, setBildLesen] = useState(false)
   const [urls, setUrls] = useState<Map<string, string>>(new Map())
   const [newEntry, setNewEntry] = useState('')
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -434,7 +438,16 @@ export default function ItemDetail() {
         </Card>
 
         {/* Inhalt */}
-        <SectionTitle>
+        <SectionTitle
+          action={
+            canEdit && photos.some((p) => p.art === 'foto') ? (
+              <Button size="sm" variant="outline" onClick={() => setBildLesen(true)}>
+                <Sparkles size={16} />
+                {t('bildki.knopf_kurz')}
+              </Button>
+            ) : null
+          }
+        >
           {t('begriff.inhalt')}
           {contents.length > 0 ? ` (${contents.length})` : ''}
         </SectionTitle>
@@ -879,6 +892,19 @@ export default function ItemDetail() {
           />
         </div>
       </Modal>
+
+      <BildLesen
+        offen={bildLesen}
+        onClose={() => setBildLesen(false)}
+        projectId={project.id}
+        itemId={item.id}
+        fotos={photos}
+        art={item.kind === 'furniture' ? 'moebel' : 'kiste'}
+        vorhandeneInhalte={contents}
+        canEdit={canEdit}
+        userId={user?.id ?? ''}
+        onUebernommen={(neu) => setContents((c) => [...c, ...neu])}
+      />
 
       <InhaltVerschieben
         offen={umhaengen !== null}

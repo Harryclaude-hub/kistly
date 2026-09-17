@@ -169,6 +169,57 @@ Kuerzel nach dem ersten Etikett festhalten.
 
 ---
 
+## Nach dem Fahrplan dazugekommen
+
+### Schnellansicht nach dem Scan (0012)
+
+Ein Etikett scannen fuehrt nicht mehr auf die volle Kistenseite, sondern
+oeffnet eine Schnellansicht: Deckbild, Nummer, Zimmer, ein grosser Knopf
+"Angekommen", Kurznotiz, die ersten Inhaltszeilen. `items.cover_photo_id`
+verweist auf ein vorhandenes Foto, ein Trigger prueft, dass es zu diesem
+Eintrag gehoert. Eine Fassung fuer alle Wege, in
+`src/components/Schnellansicht.tsx`.
+
+### Bilderkennung (0013 bis 0015)
+
+Fotos von Kisten und Moebeln werden gelesen, das Ergebnis kommt als
+Tabelle mit Haken, Text und Menge, jede Zeile von Hand aenderbar.
+**Nichts wird von allein eingetragen.** Was nicht uebernommen wird, bleibt
+sichtbar stehen.
+
+| Was | Wo |
+|---|---|
+| Fotos auch am Zimmer | `item_photos.tag_id`, genau eines von item_id und tag_id |
+| Ergebnisse, einmal je Bild und Sprache | `photo_analyses` |
+| Woher eine Inhaltszeile kommt | `item_contents.quelle` |
+| Bremse gegen Kosten | `bild_lesen_log` und `bild_lesen_rest()` |
+| Die Erkennung selbst | `supabase/functions/bild-analyse/index.ts` |
+| Aufruf und Anzeige | `src/lib/bildki.ts`, `src/components/BildLesen.tsx` |
+
+Entscheidungen, die man dem Code nicht ansieht:
+
+- **Der Schluessel liegt auf dem Server, nie im Browser.** Im Browser waere
+  er fuer jeden lesbar, der die Seite oeffnet.
+- **Die Sicherheit wird als drei Stufen gezeigt, nicht als Prozentzahl.**
+  Sie ist eine Selbsteinschaetzung des Modells, keine Messung. Eine Zahl
+  wie 87 Prozent liest sich wie ein Messwert und ist keiner.
+- **Text, der im Bild steht, wird woertlich uebernommen**, nicht
+  uebersetzt. Aus IKEA Kallax wird nie etwas anderes. Derselbe Gedanke wie
+  bei den Seriennummern.
+- **Was die Erkennung ausgibt, ist ab dann Nutzerinhalt** und wird nie
+  nachtraeglich uebersetzt. Die Sprache wird beim Lesen gewaehlt und in
+  `photo_analyses.sprache` festgehalten.
+- Ohne Schluessel laeuft alles andere weiter, und der Knopf sagt genau,
+  was fehlt.
+
+Offen: **Zimmerfotos in der Oberflaeche.** Die Datenbank kann es seit 0013
+(`item_photos.tag_id`), die Bereichsseite hat noch keinen Fotobereich. Was
+aus einem Zimmerfoto erkannt wird, ist auch keine Inhaltsliste, sondern ein
+Vorschlag fuer Moebel. Das ist eine eigene Stufe und wurde bewusst nicht
+halb gebaut.
+
+---
+
 ## Regeln, die ueberall gelten
 
 - Datenbankzugriffe nur in `src/lib/api.ts`

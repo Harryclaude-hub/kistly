@@ -104,6 +104,11 @@ export interface Item {
   updated_at: string
 }
 
+/** Woher eine Zeile der Inhaltsliste kommt. Ein Vorschlag der
+ *  Bilderkennung bleibt als solcher erkennbar, auch nachdem er
+ *  uebernommen wurde. Siehe Migration 0013. */
+export type InhaltQuelle = 'hand' | 'bild'
+
 export interface ItemContent {
   id: string
   item_id: string
@@ -112,6 +117,7 @@ export interface ItemContent {
   qty: number
   checked: boolean
   sort: number
+  quelle: InhaltQuelle
   created_at: string
 }
 
@@ -119,7 +125,11 @@ export type PhotoArt = 'foto' | 'anleitung'
 
 export interface ItemPhoto {
   id: string
-  item_id: string
+  /* Ein Foto haengt entweder an einer Kiste oder an einem Bereich.
+   * Genau eines von beiden ist gesetzt, die Datenbank prueft das.
+   * Siehe Migration 0013. */
+  item_id: string | null
+  tag_id: string | null
   project_id: string
   path: string
   /** Gewoehnliches Foto oder Aufbauanleitung (Bild oder PDF). */
@@ -127,6 +137,33 @@ export interface ItemPhoto {
   /** Welche Seite zu sehen ist, etwa vorne, hinten, Unterseite. */
   seite: string | null
   caption: string | null
+  created_by: string | null
+  created_at: string
+}
+
+/* -------------------------------------------------------- Bilderkennung */
+
+/** Ein Ding, das die Erkennung auf einem Bild gesehen hat. */
+export interface ErkanntesDing {
+  /** Der Name in der Sprache, in der gefragt wurde. */
+  text: string
+  /** Wie oft es zu sehen ist. Mindestens 1. */
+  menge: number
+  /** 0 bis 1. Niedrige Werte werden angezeigt, nicht weggeworfen. */
+  sicherheit: number
+  /** Zerbrechlich, schwer, und was sonst beim Tragen zaehlt. */
+  hinweis?: string | null
+}
+
+export interface PhotoAnalyse {
+  id: string
+  project_id: string
+  photo_id: string
+  sprache: 'de' | 'ar'
+  status: 'fertig' | 'fehler'
+  modell: string | null
+  ergebnis: ErkanntesDing[]
+  fehler: string | null
   created_by: string | null
   created_at: string
 }
