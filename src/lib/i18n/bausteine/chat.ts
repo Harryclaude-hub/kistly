@@ -18,10 +18,10 @@ export const chat: Woerterbuch = {
 
   // -------------------------------------------------------- Verlauf laden
   'chat.laedt': { de: 'Nachrichten werden geladen', ar: 'جارٍ تحميل الرسائل' },
-  'chat.aeltere': { de: 'Aeltere Nachrichten', ar: 'الرسائل الأقدم' },
+  'chat.aeltere': { de: 'Ältere Nachrichten', ar: 'الرسائل الأقدم' },
   'chat.leer_titel': { de: 'Noch keine Nachricht', ar: 'لا توجد رسائل بعد' },
   'chat.leer_hinweis': {
-    de: 'Hier besprecht ihr den Umzug. Du kannst Kisten und Zimmer verlinken, Bilder hereinziehen oder einfach einfuegen.',
+    de: 'Hier besprecht ihr den Umzug. Du kannst Kisten und Zimmer verlinken, Bilder hereinziehen oder einfach einfügen.',
     ar: 'هنا تنسّقون النقلة. يمكنك ربط الصناديق والغرف، أو سحب الصور إلى هنا، أو لصقها مباشرة.',
   },
   'chat.teilweise_geladen': {
@@ -34,14 +34,14 @@ export const chat: Woerterbuch = {
   'chat.gestern': { de: 'Gestern', ar: 'أمس' },
 
   // ------------------------------------------------------ Nachrichtenarten
-  'chat.geloescht': { de: 'Nachricht geloescht', ar: 'رسالة محذوفة' },
-  'chat.geloescht_kurz': { de: 'geloescht', ar: 'محذوفة' },
+  'chat.geloescht': { de: 'Nachricht gelöscht', ar: 'رسالة محذوفة' },
+  'chat.geloescht_kurz': { de: 'gelöscht', ar: 'محذوفة' },
   'chat.bearbeitet': { de: 'bearbeitet', ar: 'مُعدّلة' },
   'chat.sprachnachricht': { de: 'Sprachnachricht', ar: 'رسالة صوتية' },
   'chat.bild': { de: 'Bild', ar: 'صورة' },
   'chat.datei': { de: 'Datei', ar: 'ملف' },
-  'chat.bild_gross': { de: 'Bild gross anzeigen', ar: 'عرض الصورة بحجم كبير' },
-  'chat.bild_schliessen': { de: 'Bild schliessen', ar: 'إغلاق الصورة' },
+  'chat.bild_gross': { de: 'Bild groß anzeigen', ar: 'عرض الصورة بحجم كبير' },
+  'chat.bild_schliessen': { de: 'Bild schließen', ar: 'إغلاق الصورة' },
   'chat.bild_nicht_erreichbar': {
     de: 'Das Bild ist gerade nicht erreichbar.',
     ar: 'الصورة غير متاحة حاليًا.',
@@ -54,11 +54,11 @@ export const chat: Woerterbuch = {
   // -------------------------------------------------------------- Aktionen
   'chat.reagieren': { de: 'Reagieren', ar: 'تفاعل' },
   'chat.antworten': { de: 'Antworten', ar: 'رد' },
-  'chat.loeschen': { de: 'Nachricht loeschen', ar: 'حذف الرسالة' },
+  'chat.loeschen': { de: 'Nachricht löschen', ar: 'حذف الرسالة' },
   /* Die arabische Vorsilbe haengt ohne Leerzeichen am folgenden Zeichen. */
   'chat.mit_reagieren': { de: 'Mit {emoji} reagieren', ar: 'التفاعل بـ{emoji}' },
   'chat.reaktion_umschalten': {
-    de: '{emoji} {n}, antippen zum Aendern',
+    de: '{emoji} {n}, antippen zum Ändern',
     ar: '{emoji} {n}، اضغط للتغيير',
   },
 
@@ -73,12 +73,12 @@ export const chat: Woerterbuch = {
     ar: 'مرفق واحد، لم يُرسل بعد',
   },
   'chat.anhaenge_offen.viele': {
-    de: '{n} Anhaenge, noch nicht gesendet',
+    de: '{n} Anhänge, noch nicht gesendet',
     ar: '{n} مرفقات، لم تُرسل بعد',
   },
   'chat.anhang_entfernen': { de: '{name} entfernen', ar: 'إزالة {name}' },
   'chat.datei_zu_gross': {
-    de: '{name} ist zu gross. Hoechstens 25 MB.',
+    de: '{name} ist zu groß. Höchstens 25 MB.',
     ar: '{name} كبير جدًا. الحد الأقصى 25 ميغابايت.',
   },
   /* Wenn ein eingefuegtes Bild gar keinen Dateinamen mitbringt. */
@@ -97,7 +97,7 @@ export const chat: Woerterbuch = {
 
   // --------------------------------------------------------------- Aufnahme
   'chat.aufnehmen': {
-    de: 'Sprachnachricht aufnehmen, gedrueckt halten',
+    de: 'Sprachnachricht aufnehmen, gedrückt halten',
     ar: 'تسجيل رسالة صوتية، اضغط مع الاستمرار',
   },
   'chat.abspielen': { de: 'Abspielen', ar: 'تشغيل' },
@@ -110,9 +110,9 @@ export const chat: Woerterbuch = {
     de: 'Zugriff auf das Mikrofon wurde abgelehnt.',
     ar: 'تم رفض الوصول إلى الميكروفون.',
   },
-  'chat.aufnahme_fehler': { de: 'Aufnahme nicht moeglich: {grund}', ar: 'تعذّر التسجيل: {grund}' },
+  'chat.aufnahme_fehler': { de: 'Aufnahme nicht möglich: {grund}', ar: 'تعذّر التسجيل: {grund}' },
   'chat.aufnahme_zu_kurz': {
-    de: 'Zu kurz. Halte den Knopf gedrueckt, solange du sprichst.',
+    de: 'Zu kurz. Halte den Knopf gedrückt, solange du sprichst.',
     ar: 'قصيرة جدًا. اضغط مع الاستمرار طوال حديثك.',
   },
 
@@ -145,8 +145,8 @@ export const chat: Woerterbuch = {
   'chat.anruf_push_video': { de: '{umzug}, Videoanruf', ar: '{umzug}، مكالمة فيديو' },
 
   // --------------------------------------------------------- Anruf, laufend
-  'chat.anruf_laeuft': { de: 'Anruf laeuft', ar: 'مكالمة جارية' },
-  'chat.anruf_laeuft_video': { de: 'Videoanruf laeuft', ar: 'مكالمة فيديو جارية' },
+  'chat.anruf_laeuft': { de: 'Anruf läuft', ar: 'مكالمة جارية' },
+  'chat.anruf_laeuft_video': { de: 'Videoanruf läuft', ar: 'مكالمة فيديو جارية' },
   'chat.anruf_verbunden.eins': { de: '{n} verbunden', ar: 'متصل واحد' },
   'chat.anruf_verbunden.viele': { de: '{n} verbunden', ar: '{n} متصلين' },
   'chat.anruf_verbindet': { de: 'verbindet', ar: 'جارٍ الاتصال' },
@@ -159,7 +159,7 @@ export const chat: Woerterbuch = {
 
   // ---------------------------------------------------------- Anruf, Ende
   'chat.anruf_niemand_da': {
-    de: 'In diesem Umzug ist sonst niemand, den man anrufen koennte.',
+    de: 'In diesem Umzug ist sonst niemand, den man anrufen könnte.',
     ar: 'لا يوجد أحد آخر في هذه النقلة للاتصال به.',
   },
   'chat.anruf_niemand_ran': { de: 'Niemand ist rangegangen.', ar: 'لم يرد أحد.' },

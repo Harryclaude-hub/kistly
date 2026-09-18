@@ -16,7 +16,7 @@ export const team: Woerterbuch = {
   'team.dabei_seit': { de: 'dabei seit {datum}', ar: 'عضو منذ {datum}' },
   'team.rolle_von': { de: 'Rolle von {name}', ar: 'دور {name}' },
   'team.entfernen_label': { de: '{name} entfernen', ar: 'إزالة {name}' },
-  'team.rolle_geaendert': { de: 'Rolle geaendert', ar: 'تم تغيير الدور' },
+  'team.rolle_geaendert': { de: 'Rolle geändert', ar: 'تم تغيير الدور' },
 
   // ---------------------------------------------------------- Einladungscodes
   'team.codes_titel': { de: 'Einladungscodes', ar: 'رموز الدعوة' },
@@ -24,7 +24,7 @@ export const team: Woerterbuch = {
   'team.codes_laden': { de: 'Codes werden geladen', ar: 'جارٍ تحميل الرموز' },
   'team.kein_code_titel': { de: 'Kein Code offen', ar: 'لا يوجد رمز مفعّل' },
   'team.kein_code_hinweis': {
-    de: 'Ein Code laesst andere diesem Umzug beitreten. Sie geben ihn unter Code einloesen ein.',
+    de: 'Ein Code lässt andere diesem Umzug beitreten. Sie geben ihn unter Code einlösen ein.',
     ar: 'الرمز يتيح لغيرك الانضمام إلى هذه النقلة. يُدخلونه في صفحة استخدام رمز.',
   },
   'team.code_erstellen': { de: 'Code erstellen', ar: 'إنشاء رمز' },
@@ -90,24 +90,24 @@ export const team: Woerterbuch = {
   'team.einstellen_titel': { de: 'Umzug einstellen', ar: 'إعدادات النقلة' },
   'team.grunddaten': { de: 'Grunddaten', ar: 'البيانات الأساسية' },
   'team.speichert_beim_verlassen': {
-    de: 'Aenderungen werden gespeichert, sobald du das Feld verlaesst.',
+    de: 'Änderungen werden gespeichert, sobald du das Feld verlässt.',
     ar: 'يتم الحفظ بمجرد خروجك من الحقل.',
   },
   'team.nur_lesen': {
-    de: 'Du kannst hier nur lesen. Zum Aendern brauchst du die Rolle Bearbeiter.',
+    de: 'Du kannst hier nur lesen. Zum Ändern brauchst du die Rolle Bearbeiter.',
     ar: 'لديك صلاحية القراءة فقط. للتعديل تحتاج إلى دور محرر.',
   },
   'team.umzug_name': { de: 'Name des Umzugs', ar: 'اسم النقلة' },
   'team.vermerk': { de: 'Vermerk', ar: 'ملاحظة' },
   'team.vermerk_hinweis': {
-    de: 'Steht auf der Uebersicht unter dem Namen.',
+    de: 'Steht auf der Übersicht unter dem Namen.',
     ar: 'تظهر في القائمة تحت الاسم.',
   },
   'team.alte_adresse': { de: 'Alte Adresse', ar: 'العنوان القديم' },
   'team.neue_adresse': { de: 'Neue Adresse', ar: 'العنوان الجديد' },
   'team.umzugstag': { de: 'Umzugstag', ar: 'يوم النقل' },
   'team.zeitstempel': {
-    de: 'Angelegt am {angelegt}. Zuletzt geaendert {geaendert}.',
+    de: 'Angelegt am {angelegt}. Zuletzt geändert {geaendert}.',
     ar: 'أُنشئت في {angelegt}. آخر تعديل {geaendert}.',
   },
   'team.gespeichert': { de: 'Gespeichert', ar: 'تم الحفظ' },
@@ -118,24 +118,24 @@ export const team: Woerterbuch = {
     de: 'Wer darf mit, wer darf nur lesen, und welcher Code ist offen.',
     ar: 'من يشارك، من يقرأ فقط، وأي رمز ما زال مفعّلًا.',
   },
-  'team.karte_knopf': { de: 'Team oeffnen', ar: 'فتح الفريق' },
+  'team.karte_knopf': { de: 'Team öffnen', ar: 'فتح الفريق' },
 
   // -------------------------------------- Umzug einstellen, Gefahrenbereich
   'team.gefahr_titel': { de: 'Gefahrenbereich', ar: 'منطقة الخطر' },
-  'team.umzug_loeschen': { de: 'Umzug loeschen', ar: 'حذف النقلة' },
+  'team.umzug_loeschen': { de: 'Umzug löschen', ar: 'حذف النقلة' },
   'team.umzug_loeschen_hinweis': {
-    de: 'Loescht Kisten, Bereiche, Fotos, Nachrichten und alle Mitgliedschaften. Das laesst sich nicht rueckgaengig machen.',
+    de: 'Löscht Kisten, Bereiche, Fotos, Nachrichten und alle Mitgliedschaften. Das lässt sich nicht rückgängig machen.',
     ar: 'يحذف الصناديق والمناطق والصور والرسائل وكل العضويات. لا يمكن التراجع عن ذلك.',
   },
-  'team.loeschen_titel': { de: 'Umzug endgueltig loeschen', ar: 'حذف النقلة نهائيًا' },
+  'team.loeschen_titel': { de: 'Umzug endgültig löschen', ar: 'حذف النقلة نهائيًا' },
   'team.loeschen_text': {
-    de: 'Alles in diesem Umzug wird geloescht: Kisten, Bereiche, Fotos, Nachrichten und Mitgliedschaften. Tippe zur Sicherheit den Namen ein.',
+    de: 'Alles in diesem Umzug wird gelöscht: Kisten, Bereiche, Fotos, Nachrichten und Mitgliedschaften. Tippe zur Sicherheit den Namen ein.',
     ar: 'سيُحذف كل شيء في هذه النقلة: الصناديق والمناطق والصور والرسائل والعضويات. اكتب الاسم للتأكيد.',
   },
   'team.loeschen_name_hinweis': {
-    de: 'Muss Zeichen fuer Zeichen stimmen.',
+    de: 'Muss Zeichen für Zeichen stimmen.',
     ar: 'يجب أن يطابق الاسم حرفًا بحرف.',
   },
-  'team.loeschen_ja': { de: 'Ja, loeschen', ar: 'نعم، احذف' },
-  'team.geloescht': { de: 'Umzug geloescht', ar: 'تم حذف النقلة' },
+  'team.loeschen_ja': { de: 'Ja, löschen', ar: 'نعم، احذف' },
+  'team.geloescht': { de: 'Umzug gelöscht', ar: 'تم حذف النقلة' },
 }

@@ -24,7 +24,7 @@ export const schnell: Woerterbuch = {
   'schnell.deckbild_wechseln': { de: 'Anderes Deckbild', ar: 'تغيير الصورة الرئيسية' },
   'schnell.deckbild_gesetzt': { de: 'Deckbild gesetzt', ar: 'تم تعيين الصورة الرئيسية' },
   'schnell.deckbild_hinweis': {
-    de: 'Das Bild erscheint beim naechsten Scan sofort. Dann sieht man, was man in der Hand hat, ohne zu lesen.',
+    de: 'Das Bild erscheint beim nächsten Scan sofort. Dann sieht man, was man in der Hand hat, ohne zu lesen.',
     ar: 'تظهر الصورة فوراً عند المسح التالي، فتعرف ما بيدك دون قراءة.',
   },
   'schnell.bild_laedt_hoch': { de: 'Bild wird hochgeladen', ar: 'جارٍ رفع الصورة' },
@@ -48,11 +48,11 @@ export const schnell: Woerterbuch = {
     de: 'Tipp irgendwo hier hin, dann siehst du alles: Tabelle, Notizen und alle Bilder.',
     ar: '\u0627\u0636\u063a\u0637 \u0641\u064a \u0623\u064a \u0645\u0643\u0627\u0646 \u0647\u0646\u0627 \u0644\u062a\u0631\u0649 \u0643\u0644 \u0634\u064a\u0621: \u0627\u0644\u062c\u062f\u0648\u0644 \u0648\u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0648\u0643\u0644 \u0627\u0644\u0635\u0648\u0631.',
   },
-  'schnell.oeffnen': { de: 'Ganz oeffnen', ar: 'فتح بالكامل' },
+  'schnell.oeffnen': { de: 'Ganz öffnen', ar: 'فتح بالكامل' },
   'schnell.weiter': { de: 'Weiter scannen', ar: 'متابعة المسح' },
-  'schnell.schliessen': { de: 'Schliessen', ar: 'إغلاق' },
+  'schnell.schliessen': { de: 'Schließen', ar: 'إغلاق' },
   'schnell.alter_code_gescannt': {
-    de: 'Gescannt wurde das alte Etikett {code}. Die Kiste heisst jetzt anders.',
+    de: 'Gescannt wurde das alte Etikett {code}. Die Kiste heißt jetzt anders.',
     ar: 'تم مسح الملصق القديم {code}. الصندوق له رقم آخر الآن.',
   },
 }

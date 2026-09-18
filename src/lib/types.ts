@@ -246,42 +246,16 @@ export interface ProjectStats {
 
 /* --------------------------------------------------------- Anzeigehilfen */
 
-export const STATUS_LABEL: Record<ItemStatus, string> = {
-  open: 'Alte Wohnung',
-  transit: 'Unterwegs',
-  arrived: 'Angekommen',
-}
+/* Die Woerter zu Status, Art, Groesse und Rolle stehen im Woerterbuch
+ * unter status.*, art.*, groesse.* und rolle.*, nicht hier. Hier standen
+ * sie frueher ein zweites Mal, fest auf Deutsch. Zwei Fassungen derselben
+ * Angabe laufen auseinander, und die hier haette auch im arabischen Satz
+ * Deutsch gezeigt. */
 
 export const STATUS_COLOR: Record<ItemStatus, string> = {
   open: '#ef4444',
   transit: '#f59e0b',
   arrived: '#16a34a',
-}
-
-export const KIND_LABEL: Record<ItemKind, string> = {
-  box: 'Kiste',
-  furniture: 'Moebelstueck',
-  bag: 'Tasche',
-  other: 'Sonstiges',
-}
-
-export const SIZE_LABEL: Record<number, string> = {
-  1: 'winzig',
-  2: 'sehr klein',
-  3: 'klein',
-  4: 'eher klein',
-  5: 'mittel',
-  6: 'eher gross',
-  7: 'gross',
-  8: 'sehr gross',
-  9: 'riesig',
-  10: 'sperrig',
-}
-
-export const ROLE_LABEL: Record<MemberRole, string> = {
-  owner: 'Besitzer',
-  editor: 'Bearbeiter',
-  viewer: 'Nur lesen',
 }
 
 export const TAG_COLORS = [

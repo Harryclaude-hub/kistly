@@ -14,7 +14,7 @@ export const einstellungen: Woerterbuch = {
   'einstellungen.ohne_namen': { de: 'Ohne Namen', ar: 'بدون اسم' },
   'einstellungen.anzeigename': { de: 'Anzeigename', ar: 'الاسم الظاهر' },
   'einstellungen.anzeigename_hinweis': {
-    de: 'So sehen dich die anderen in Umzuegen und im Chat.',
+    de: 'So sehen dich die anderen in Umzügen und im Chat.',
     ar: 'هكذا يراك الآخرون في النقلات وفي المحادثة.',
   },
   'einstellungen.name_platzhalter': { de: 'Dein Name', ar: 'اسمك' },
@@ -27,22 +27,22 @@ export const einstellungen: Woerterbuch = {
     de: 'Mindestens 8 Zeichen. Mit dem Auge kannst du es anzeigen.',
     ar: '8 أحرف على الأقل. اضغط على العين لإظهارها.',
   },
-  'einstellungen.aendern': { de: 'Aendern', ar: 'تغيير' },
-  'einstellungen.passwort_geaendert': { de: 'Passwort geaendert', ar: 'تم تغيير كلمة المرور' },
+  'einstellungen.aendern': { de: 'Ändern', ar: 'تغيير' },
+  'einstellungen.passwort_geaendert': { de: 'Passwort geändert', ar: 'تم تغيير كلمة المرور' },
   'einstellungen.sicherheit_hinweis': {
-    de: 'Die Verbindung laeuft verschluesselt, Passwoerter liegen nur als Hash beim Anbieter. Deine Daten sieht nur, wer im jeweiligen Umzug eingetragen ist.',
+    de: 'Die Verbindung läuft verschlüsselt, Passwörter liegen nur als Hash beim Anbieter. Deine Daten sieht nur, wer im jeweiligen Umzug eingetragen ist.',
     ar: 'الاتصال مشفّر، وكلمات المرور محفوظة كبصمة مشفّرة فقط. بياناتك لا يراها إلا من كان مسجّلاً في النقلة نفسها.',
   },
 
   // ----------------------------------------------------- Benachrichtigungen
   'einstellungen.benachrichtigungen': { de: 'Benachrichtigungen', ar: 'الإشعارات' },
-  'einstellungen.dieses_geraet': { de: 'Auf diesem Geraet', ar: 'على هذا الجهاز' },
+  'einstellungen.dieses_geraet': { de: 'Auf diesem Gerät', ar: 'على هذا الجهاز' },
   'einstellungen.push_unsupported': {
     de: 'Dieser Browser kann keine Push-Benachrichtigungen. Auf dem iPhone geht es erst, wenn Kistly auf dem Startbildschirm liegt.',
     ar: 'هذا المتصفح لا يدعم الإشعارات. على iPhone تعمل فقط بعد وضع Kistly على الشاشة الرئيسية.',
   },
   'einstellungen.push_no_key': {
-    de: 'Auf dem Server ist kein VAPID-Schluessel hinterlegt. Ohne den kann nichts verschickt werden.',
+    de: 'Auf dem Server ist kein VAPID-Schlüssel hinterlegt. Ohne den kann nichts verschickt werden.',
     ar: 'لا يوجد مفتاح VAPID على الخادم. بدونه لا يمكن إرسال أي إشعار.',
   },
   'einstellungen.push_denied': {
@@ -51,17 +51,17 @@ export const einstellungen: Woerterbuch = {
   },
   'einstellungen.push_default': { de: 'Noch nicht erlaubt.', ar: 'لم يتم السماح بعد.' },
   'einstellungen.push_granted_off': {
-    de: 'Erlaubt, aber dieses Geraet ist nicht angemeldet.',
+    de: 'Erlaubt, aber dieses Gerät ist nicht angemeldet.',
     ar: 'مسموح، لكن هذا الجهاز غير مشترك.',
   },
   'einstellungen.push_granted_on': {
-    de: 'Dieses Geraet bekommt Benachrichtigungen.',
+    de: 'Dieses Gerät bekommt Benachrichtigungen.',
     ar: 'هذا الجهاز يستقبل الإشعارات.',
   },
   'einstellungen.einschalten': { de: 'Einschalten', ar: 'تشغيل' },
   'einstellungen.ausschalten': { de: 'Ausschalten', ar: 'إيقاف' },
   'einstellungen.push_an': { de: 'Benachrichtigungen an', ar: 'تم تشغيل الإشعارات' },
-  'einstellungen.push_aus': { de: 'Auf diesem Geraet aus', ar: 'تم الإيقاف على هذا الجهاز' },
+  'einstellungen.push_aus': { de: 'Auf diesem Gerät aus', ar: 'تم الإيقاف على هذا الجهاز' },
   'einstellungen.laedt': { de: 'Einstellungen werden geladen', ar: 'جارٍ تحميل الإعدادات' },
   'einstellungen.chat': { de: 'Chatnachrichten', ar: 'رسائل المحادثة' },
   'einstellungen.chat_hinweis': { de: 'Einmal pro Nachricht.', ar: 'إشعار واحد لكل رسالة.' },
@@ -95,7 +95,7 @@ export const einstellungen: Woerterbuch = {
   },
   'einstellungen.bewegung_normal': { de: 'Normal', ar: 'عادي' },
   'einstellungen.bewegung_normal_hinweis': {
-    de: 'Der Hintergrund steht fest, der Vordergrund scrollt darueber.',
+    de: 'Der Hintergrund steht fest, der Vordergrund scrollt darüber.',
     ar: 'الخلفية ثابتة والمحتوى يمر فوقها.',
   },
   'einstellungen.bewegung_voll': { de: 'Voll', ar: 'كامل' },
@@ -108,7 +108,7 @@ export const einstellungen: Woerterbuch = {
   'einstellungen.app': { de: 'App', ar: 'التطبيق' },
   'einstellungen.abmelden': { de: 'Abmelden', ar: 'تسجيل الخروج' },
   'einstellungen.fusszeile': {
-    de: 'Kistly . gebaut fuer den eigenen Umzug',
+    de: 'Kistly . gebaut für den eigenen Umzug',
     ar: 'Kistly . صُنع من أجل نقلة حقيقية',
   },
 

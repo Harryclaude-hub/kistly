@@ -11,14 +11,14 @@ export const umzuege: Woerterbuch = {
   // ------------------------------------------------- Uebersicht, Begruessung
   'umzuege.hallo': { de: 'Hallo', ar: 'أهلاً' },
   'umzuege.hallo_name': { de: 'Hallo, {name}', ar: 'أهلاً {name}' },
-  'umzuege.blick': { de: 'Deine Umzuege auf einen Blick.', ar: 'كل نقلاتك في لمحة.' },
+  'umzuege.blick': { de: 'Deine Umzüge auf einen Blick.', ar: 'كل نقلاتك في لمحة.' },
 
   // ---------------------------------------------------- Uebersicht, Knoepfe
   'umzuege.neu': { de: 'Neuer Umzug', ar: 'نقلة جديدة' },
-  'umzuege.code_einloesen': { de: 'Code einloesen', ar: 'استخدام رمز' },
+  'umzuege.code_einloesen': { de: 'Code einlösen', ar: 'استخدام رمز' },
 
   // ------------------------------------------------ Uebersicht, Liste leer
-  'umzuege.laden': { de: 'Umzuege werden geladen', ar: 'جارٍ تحميل النقلات' },
+  'umzuege.laden': { de: 'Umzüge werden geladen', ar: 'جارٍ تحميل النقلات' },
   'umzuege.leer_titel': { de: 'Noch kein Umzug angelegt', ar: 'لا توجد نقلة بعد' },
   'umzuege.leer_hinweis': {
     de: 'Ein Umzug ist die Klammer um alles: Zimmer, Personen, Kisten, Etiketten und den Chat.',
@@ -43,7 +43,7 @@ export const umzuege: Woerterbuch = {
   },
   'umzuege.standardzimmer': { de: 'Standardzimmer anlegen', ar: 'إنشاء الغرف المعتادة' },
   'umzuege.standardzimmer_hinweis': {
-    de: 'Wohnzimmer, Kueche, Schlafzimmer, Kinderzimmer, Bad, Flur, Keller. Kannst du danach aendern.',
+    de: 'Wohnzimmer, Küche, Schlafzimmer, Kinderzimmer, Bad, Flur, Keller. Kannst du danach ändern.',
     ar: 'غرفة المعيشة، المطبخ، غرفة النوم، غرفة الأطفال، الحمام، الممر، القبو. يمكنك تغييرها لاحقاً.',
   },
 
@@ -62,7 +62,7 @@ export const umzuege: Woerterbuch = {
 
   // ------------------------------------------- Startseite, Kopf und Zahlen
   'umzuege.einstellen': { de: 'Umzug einstellen', ar: 'إعدادات النقلة' },
-  'umzuege.zaehlwerte_laden': { de: 'Zaehlwerte werden geladen', ar: 'جارٍ تحميل الأرقام' },
+  'umzuege.zaehlwerte_laden': { de: 'Zählwerte werden geladen', ar: 'جارٍ تحميل الأرقام' },
   'umzuege.a_von_b': { de: '{a} von {b}', ar: '{a} من {b}' },
 
   // -------------------------------------------------- Startseite, Schnellzugriff
@@ -74,12 +74,12 @@ export const umzuege: Woerterbuch = {
   'umzuege.verwalten': { de: 'Verwalten', ar: 'إدارة' },
   'umzuege.keine_zimmer': { de: 'Noch keine Zimmer', ar: 'لا توجد غرف بعد' },
   'umzuege.keine_zimmer_hinweis': {
-    de: 'Lege zuerst die Bereiche an. Jedes Zimmer bekommt ein Kuerzel, damit die Kisten eine Nummer bekommen koennen.',
+    de: 'Lege zuerst die Bereiche an. Jedes Zimmer bekommt ein Kürzel, damit die Kisten eine Nummer bekommen können.',
     ar: 'أنشئ المناطق أولاً. كل غرفة تأخذ رمزاً حتى تحصل الصناديق على أرقامها.',
   },
   'umzuege.bereiche_anlegen': { de: 'Bereiche anlegen', ar: 'إنشاء المناطق' },
-  'umzuege.zaehlwerte_fehler': { de: 'Zaehlwerte nicht geladen', ar: 'تعذّر تحميل الأرقام' },
-  'umzuege.wird_gezaehlt': { de: 'wird gezaehlt', ar: 'جارٍ العد' },
+  'umzuege.zaehlwerte_fehler': { de: 'Zählwerte nicht geladen', ar: 'تعذّر تحميل الأرقام' },
+  'umzuege.wird_gezaehlt': { de: 'wird gezählt', ar: 'جارٍ العد' },
   'umzuege.noch_keine_kisten': { de: 'noch keine Kisten', ar: 'لا صناديق بعد' },
 
   // ---------------------------------------------------- Startseite, Verlauf
@@ -95,7 +95,7 @@ export const umzuege: Woerterbuch = {
   'umzuege.ereignis_status': { de: 'hat {status} gesetzt', ar: 'ضبط الحالة على {status}' },
   'umzuege.ereignis_scan': { de: 'hat gescannt', ar: 'قام بالمسح' },
   'umzuege.ereignis_code': {
-    de: 'hat den Code auf {code} geaendert',
+    de: 'hat den Code auf {code} geändert',
     ar: 'غيّر الرمز إلى {code}',
   },
 
@@ -103,9 +103,9 @@ export const umzuege: Woerterbuch = {
   'umzuege.alle_kisten': { de: 'Alle Kisten', ar: 'كل الصناديق' },
   'umzuege.etiketten_liste': { de: 'Etiketten und Liste', ar: 'الملصقات والقائمة' },
   'umzuege.team': { de: 'Team', ar: 'الفريق' },
-  'umzuege.andere': { de: 'Andere Umzuege', ar: 'نقلات أخرى' },
+  'umzuege.andere': { de: 'Andere Umzüge', ar: 'نقلات أخرى' },
 
   // ------------------------------------------------------------- Der Rahmen
   'umzuege.umzug_laden': { de: 'Umzug wird geladen', ar: 'جارٍ تحميل النقلة' },
-  'umzuege.zur_uebersicht': { de: 'Zur Uebersicht', ar: 'إلى القائمة' },
+  'umzuege.zur_uebersicht': { de: 'Zur Übersicht', ar: 'إلى القائمة' },
 }

@@ -17,7 +17,7 @@ export const STUFE_TEXT: Record<Stufe, { name: string; hinweis: string }> = {
   ruhig: { name: 'Ruhig', hinweis: 'Nichts bewegt sich. Schont den Akku.' },
   normal: {
     name: 'Normal',
-    hinweis: 'Der Hintergrund steht fest, der Vordergrund scrollt darueber.',
+    hinweis: 'Der Hintergrund steht fest, der Vordergrund scrollt darüber.',
   },
   voll: { name: 'Voll', hinweis: 'Dazu driftende Kisten und atmende Lichter.' },
 }

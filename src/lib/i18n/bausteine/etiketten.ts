@@ -22,7 +22,7 @@ export const etiketten: Woerterbuch = {
 
   // ---------------------------------------- Was auf dem Etikett steht
   'etiketten.modus.nummer': {
-    de: 'Nur die Seriennummer, sehr gross',
+    de: 'Nur die Seriennummer, sehr groß',
     ar: 'الرقم التسلسلي وحده، بخط كبير جدًا',
   },
   'etiketten.modus.qr': { de: 'Seriennummer und QR-Code', ar: 'الرقم التسلسلي ورمز QR' },
@@ -34,7 +34,7 @@ export const etiketten: Woerterbuch = {
   // ------------------------------------------------------------- Auswahl
   'etiketten.welche_kisten': { de: 'Welche Kisten', ar: 'أي الصناديق' },
   'etiketten.nur_eine_kiste': {
-    de: 'Es wird nur diese eine Kiste gedruckt. Ohne den Link oben kommst du zur vollstaendigen Auswahl.',
+    de: 'Es wird nur diese eine Kiste gedruckt. Ohne den Link oben kommst du zur vollständigen Auswahl.',
     ar: 'يُطبع هذا الصندوق وحده. افتح الملصقات من صفحة النقلة لترى كل الصناديق.',
   },
   'etiketten.alle_zimmer': { de: 'Alle Zimmer', ar: 'كل الغرف' },
@@ -50,7 +50,7 @@ export const etiketten: Woerterbuch = {
   'etiketten.was_steht_drauf': { de: 'Was steht auf dem Etikett', ar: 'ماذا يظهر على الملصق' },
   'etiketten.pro_seite_label': { de: 'Etiketten pro Seite', ar: 'عدد الملصقات في الصفحة' },
   'etiketten.pro_seite_hinweis': {
-    de: 'Dahinter steht die Kachelgroesse.',
+    de: 'Dahinter steht die Kachelgröße.',
     ar: 'الرقم المجاور هو مقاس الملصق الواحد.',
   },
 
@@ -69,7 +69,7 @@ export const etiketten: Woerterbuch = {
   // ------------------------------------------------------------ Schalter
   'etiketten.schalter_zimmername': { de: 'Zimmername', ar: 'اسم الغرفة' },
   'etiketten.schalter_farbbalken': { de: 'Farbbalken', ar: 'شريط اللون' },
-  'etiketten.schalter_groesse': { de: 'Groesse als Text', ar: 'الحجم ككلمة' },
+  'etiketten.schalter_groesse': { de: 'Größe als Text', ar: 'الحجم ككلمة' },
   'etiketten.schalter_umzugsname': { de: 'Name des Umzugs', ar: 'اسم النقلة' },
   'etiketten.schalter_schnittlinien': { de: 'Schnittlinien', ar: 'خطوط القص' },
 
@@ -77,16 +77,16 @@ export const etiketten: Woerterbuch = {
   'etiketten.kisten_laden': { de: 'Kisten werden geladen', ar: 'جارٍ تحميل الصناديق' },
   'etiketten.nichts_zu_drucken': { de: 'Nichts zu drucken', ar: 'لا شيء للطباعة' },
   'etiketten.leer_einzeln': {
-    de: 'Diese Kiste gibt es nicht mehr. Oeffne die Etiketten ueber den Umzug, dann siehst du alle Kisten.',
+    de: 'Diese Kiste gibt es nicht mehr. Öffne die Etiketten über den Umzug, dann siehst du alle Kisten.',
     ar: 'هذا الصندوق لم يعد موجودًا. افتح الملصقات من النقلة لترى كل الصناديق.',
   },
   'etiketten.leer_filter': {
-    de: 'Zu dieser Auswahl gibt es keine Kisten. Aendere den Filter oder lege zuerst Kisten an.',
+    de: 'Zu dieser Auswahl gibt es keine Kisten. Ändere den Filter oder lege zuerst Kisten an.',
     ar: 'لا توجد صناديق مطابقة لهذا الاختيار. غيّر التصفية أو أنشئ صناديق أولًا.',
   },
 
   // ------------------------------------------------- Satz ueber der Vorschau
-  'etiketten.keine_auswahl': { de: 'Noch keine Etiketten ausgewaehlt.', ar: 'لم يُختر أي ملصق بعد.' },
+  'etiketten.keine_auswahl': { de: 'Noch keine Etiketten ausgewählt.', ar: 'لم يُختر أي ملصق بعد.' },
   'etiketten.anzahl.eins': { de: '{n} Etikett', ar: 'ملصق واحد' },
   'etiketten.anzahl.viele': { de: '{n} Etiketten', ar: '{n} ملصقات' },
   'etiketten.seiten.eins': { de: '{n} Seite', ar: 'صفحة واحدة' },
@@ -101,7 +101,7 @@ export const etiketten: Woerterbuch = {
   },
 
   // ----------------------------------------------- Auf dem Etikett selbst
-  'etiketten.groesse_von_zehn': { de: 'Groesse {n} von 10', ar: 'الحجم {n} من 10' },
+  'etiketten.groesse_von_zehn': { de: 'Größe {n} von 10', ar: 'الحجم {n} من 10' },
   'etiketten.zerbrechlich': { de: 'ZERBRECHLICH', ar: 'قابل للكسر' },
   'etiketten.nach_ziel': { de: 'nach {ziel}', ar: 'إلى {ziel}' },
   'etiketten.kein_inhalt': { de: 'Kein Inhalt eingetragen', ar: 'لم تُسجَّل محتويات' },

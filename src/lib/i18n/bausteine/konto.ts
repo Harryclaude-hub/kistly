@@ -47,21 +47,21 @@ export const konto: Woerterbuch = {
   'konto.neues_passwort_platzhalter': { de: 'Neues Passwort', ar: 'كلمة مرور جديدة' },
   'konto.fast_fertig': { de: 'Fast fertig', ar: 'اقتربت من النهاية' },
   'konto.bestaetigung_noetig': {
-    de: 'Konto angelegt. Dieses Supabase-Projekt verlangt noch eine Bestaetigung per E-Mail. Schau in dein Postfach, dann kannst du dich anmelden.',
+    de: 'Konto angelegt. Dieses Supabase-Projekt verlangt noch eine Bestätigung per E-Mail. Schau in dein Postfach, dann kannst du dich anmelden.',
     ar: 'تم إنشاء الحساب. يطلب مشروع Supabase هذا تأكيدًا عبر البريد الإلكتروني. تحقق من بريدك، ثم يمكنك تسجيل الدخول.',
   },
   'konto.zur_anmeldung': { de: 'Zur Anmeldung', ar: 'إلى تسجيل الدخول' },
 
   // --------------------------------------------------- Passwort vergessen
-  'konto.reset_titel': { de: 'Passwort zuruecksetzen', ar: 'إعادة تعيين كلمة المرور' },
+  'konto.reset_titel': { de: 'Passwort zurücksetzen', ar: 'إعادة تعيين كلمة المرور' },
   'konto.reset_unter': {
     de: 'Wir schicken dir einen Link, mit dem du ein neues Passwort setzt.',
     ar: 'سنرسل لك رابطًا تضبط به كلمة مرور جديدة.',
   },
-  'konto.zurueck_anmeldung': { de: 'Zurueck zur Anmeldung', ar: 'رجوع إلى تسجيل الدخول' },
+  'konto.zurueck_anmeldung': { de: 'Zurück zur Anmeldung', ar: 'رجوع إلى تسجيل الدخول' },
   'konto.link_verschickt': { de: 'Link verschickt', ar: 'تم إرسال الرابط' },
   'konto.link_verschickt_text': {
-    de: 'Falls es zu dieser Adresse ein Konto gibt, liegt gleich eine Mail im Postfach. Der Link fuehrt direkt auf die Seite fuer das neue Passwort.',
+    de: 'Falls es zu dieser Adresse ein Konto gibt, liegt gleich eine Mail im Postfach. Der Link führt direkt auf die Seite für das neue Passwort.',
     ar: 'إن كان لهذا العنوان حساب، فستصل رسالة إلى بريدك بعد لحظات. يقودك الرابط مباشرة إلى صفحة كلمة المرور الجديدة.',
   },
   'konto.link_schicken': { de: 'Link schicken', ar: 'أرسل الرابط' },
@@ -72,8 +72,8 @@ export const konto: Woerterbuch = {
     de: 'Setze jetzt dein neues Passwort.',
     ar: 'اضبط الآن كلمة المرور الجديدة.',
   },
-  'konto.link_wird_geprueft': { de: 'Link wird geprueft', ar: 'جارٍ التحقق من الرابط' },
-  'konto.link_ungueltig': { de: 'Kein gueltiger Link', ar: 'رابط غير صالح' },
+  'konto.link_wird_geprueft': { de: 'Link wird geprüft', ar: 'جارٍ التحقق من الرابط' },
+  'konto.link_ungueltig': { de: 'Kein gültiger Link', ar: 'رابط غير صالح' },
   'konto.link_ungueltig_text': {
     de: 'Der Link ist abgelaufen oder wurde schon benutzt. Fordere unter Passwort vergessen einen neuen an.',
     ar: 'انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطًا جديدًا من صفحة نسيت كلمة المرور.',
@@ -81,10 +81,10 @@ export const konto: Woerterbuch = {
   'konto.neuen_link': { de: 'Neuen Link anfordern', ar: 'اطلب رابطًا جديدًا' },
   'konto.passwort_nochmal': { de: 'Nochmal', ar: 'أعد الكتابة' },
   'konto.passwoerter_ungleich': {
-    de: 'Die beiden Passwoerter sind nicht gleich.',
+    de: 'Die beiden Passwörter sind nicht gleich.',
     ar: 'كلمتا المرور غير متطابقتين.',
   },
   'konto.passwort_speichern': { de: 'Passwort speichern', ar: 'حفظ كلمة المرور' },
-  'konto.passwort_geaendert': { de: 'Passwort geaendert', ar: 'تم تغيير كلمة المرور' },
+  'konto.passwort_geaendert': { de: 'Passwort geändert', ar: 'تم تغيير كلمة المرور' },
   'konto.weiter_geht_es': { de: 'Weiter geht es.', ar: 'لنكمل.' },
 }

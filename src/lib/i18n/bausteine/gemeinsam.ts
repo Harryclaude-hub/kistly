@@ -5,7 +5,7 @@ import type { Woerterbuch } from '../woerter'
  * Baustein, nicht hierher. */
 export const gemeinsam: Woerterbuch = {
   // ------------------------------------------------------------ Navigation
-  'nav.umzuege': { de: 'Umzuege', ar: 'النقلات' },
+  'nav.umzuege': { de: 'Umzüge', ar: 'النقلات' },
   'nav.kisten': { de: 'Kisten', ar: 'الصناديق' },
   'nav.scannen': { de: 'Scannen', ar: 'مسح' },
   'nav.chat': { de: 'Chat', ar: 'المحادثة' },
@@ -14,10 +14,10 @@ export const gemeinsam: Woerterbuch = {
   // --------------------------------------------------------------- Aktionen
   'aktion.speichern': { de: 'Speichern', ar: 'حفظ' },
   'aktion.abbrechen': { de: 'Abbrechen', ar: 'إلغاء' },
-  'aktion.loeschen': { de: 'Loeschen', ar: 'حذف' },
+  'aktion.loeschen': { de: 'Löschen', ar: 'حذف' },
   'aktion.entfernen': { de: 'Entfernen', ar: 'إزالة' },
-  'aktion.schliessen': { de: 'Schliessen', ar: 'إغلاق' },
-  'aktion.zurueck': { de: 'Zurueck', ar: 'رجوع' },
+  'aktion.schliessen': { de: 'Schließen', ar: 'إغلاق' },
+  'aktion.zurueck': { de: 'Zurück', ar: 'رجوع' },
   'aktion.anlegen': { de: 'Anlegen', ar: 'إنشاء' },
   'aktion.bearbeiten': { de: 'Bearbeiten', ar: 'تعديل' },
   'aktion.kopieren': { de: 'Kopieren', ar: 'نسخ' },
@@ -34,7 +34,7 @@ export const gemeinsam: Woerterbuch = {
   'aktion.mehr_laden': { de: 'Weitere laden', ar: 'تحميل المزيد' },
 
   // -------------------------------------------------------------- Zustaende
-  'zustand.laedt': { de: 'Laedt', ar: 'جارٍ التحميل' },
+  'zustand.laedt': { de: 'Lädt', ar: 'جارٍ التحميل' },
   'zustand.moment': { de: 'Moment', ar: 'لحظة' },
   'zustand.fehler': { de: 'Das hat nicht geklappt', ar: 'لم ينجح الأمر' },
   'zustand.nichts_gefunden': { de: 'Nichts gefunden', ar: 'لا توجد نتائج' },
@@ -48,8 +48,8 @@ export const gemeinsam: Woerterbuch = {
   'begriff.bereich': { de: 'Bereich', ar: 'منطقة' },
   'begriff.bereiche': { de: 'Bereiche', ar: 'المناطق' },
   'begriff.kiste': { de: 'Kiste', ar: 'صندوق' },
-  'begriff.groesse': { de: 'Groesse', ar: 'الحجم' },
-  'begriff.kuerzel': { de: 'Kuerzel', ar: 'الرمز' },
+  'begriff.groesse': { de: 'Größe', ar: 'الحجم' },
+  'begriff.kuerzel': { de: 'Kürzel', ar: 'الرمز' },
   'begriff.farbe': { de: 'Farbe', ar: 'اللون' },
   'begriff.name': { de: 'Name', ar: 'الاسم' },
   'begriff.notiz': { de: 'Notiz', ar: 'ملاحظة' },
@@ -67,7 +67,7 @@ export const gemeinsam: Woerterbuch = {
   'begriff.mitglieder_anzahl.eins': { de: '{n} Mitglied', ar: 'عضو واحد' },
   'begriff.mitglieder_anzahl.viele': { de: '{n} Mitglieder', ar: '{n} أعضاء' },
   'begriff.eintraege.eins': { de: '{n} Eintrag', ar: 'إدخال واحد' },
-  'begriff.eintraege.viele': { de: '{n} Eintraege', ar: '{n} إدخالات' },
+  'begriff.eintraege.viele': { de: '{n} Einträge', ar: '{n} إدخالات' },
 
   // ------------------------------------------------------------------ Status
   'status.open': { de: 'Alte Wohnung', ar: 'في البيت القديم' },
@@ -77,7 +77,7 @@ export const gemeinsam: Woerterbuch = {
 
   // --------------------------------------------------------------- Kistenart
   'art.box': { de: 'Kiste', ar: 'صندوق' },
-  'art.furniture': { de: 'Moebelstueck', ar: 'قطعة أثاث' },
+  'art.furniture': { de: 'Möbelstück', ar: 'قطعة أثاث' },
   'art.bag': { de: 'Tasche', ar: 'حقيبة' },
   'art.other': { de: 'Sonstiges', ar: 'أخرى' },
 
@@ -92,12 +92,12 @@ export const gemeinsam: Woerterbuch = {
   'groesse.3': { de: 'klein', ar: 'صغير' },
   'groesse.4': { de: 'eher klein', ar: 'أصغر من المتوسط' },
   'groesse.5': { de: 'mittel', ar: 'متوسط' },
-  'groesse.6': { de: 'eher gross', ar: 'أكبر من المتوسط' },
-  'groesse.7': { de: 'gross', ar: 'كبير' },
-  'groesse.8': { de: 'sehr gross', ar: 'كبير جدًا' },
+  'groesse.6': { de: 'eher groß', ar: 'أكبر من المتوسط' },
+  'groesse.7': { de: 'groß', ar: 'كبير' },
+  'groesse.8': { de: 'sehr groß', ar: 'كبير جدًا' },
   'groesse.9': { de: 'riesig', ar: 'ضخم' },
   'groesse.10': { de: 'sperrig', ar: 'ضخم وثقيل' },
-  'groesse.von_zehn': { de: 'Groesse {n} von 10, {wort}', ar: 'الحجم {n} من 10، {wort}' },
+  'groesse.von_zehn': { de: 'Größe {n} von 10, {wort}', ar: 'الحجم {n} من 10، {wort}' },
 
   // ------------------------------------------- Von ui.tsx direkt gebraucht
   'konto.passwort_anzeigen': { de: 'Passwort anzeigen', ar: 'إظهار كلمة المرور' },

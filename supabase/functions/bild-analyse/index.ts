@@ -81,30 +81,30 @@ const SPRACHNAME: Record<Sprache, string> = { de: 'Deutsch', ar: 'Arabisch' }
 function anweisung(was: Was, sprache: Sprache): string {
   const ziel = SPRACHNAME[sprache]
   const gemeinsam =
-    `Antworte ausschliesslich auf ${ziel}. Auch jeder einzelne Gegenstandsname ist auf ${ziel}. ` +
+    `Antworte ausschließlich auf ${ziel}. Auch jeder einzelne Gegenstandsname ist auf ${ziel}. ` +
     `EINE Ausnahme: Text, der im Bild selbst steht, also Aufdrucke, Marken, Modellnamen und Etiketten, ` +
-    `uebernimmst du Zeichen fuer Zeichen so, wie er dasteht. Uebersetze ihn nicht und schreibe ihn nicht um. ` +
+    `übernimmst du Zeichen für Zeichen so, wie er dasteht. Übersetze ihn nicht und schreibe ihn nicht um. ` +
     `Aus IKEA Kallax wird nie etwas anderes, aus Bosch keine Umschrift. ` +
-    `Benutze sonst alltaegliche Woerter, so wie jemand sie auf einen Zettel schreiben wuerde, keine Fachsprache. ` +
-    `Fasse zusammen, was zusammengehoert: zehn Buecher sind ein Eintrag mit Menge 10, nicht zehn Eintraege. ` +
-    `Zaehle nur, was du wirklich siehst. Rate nicht, was unter anderen Dingen liegen koennte. ` +
+    `Benutze sonst alltägliche Wörter, so wie jemand sie auf einen Zettel schreiben würde, keine Fachsprache. ` +
+    `Fasse zusammen, was zusammengehört: zehn Bücher sind ein Eintrag mit Menge 10, nicht zehn Einträge. ` +
+    `Zähle nur, was du wirklich siehst. Rate nicht, was unter anderen Dingen liegen könnte. ` +
     `Bist du dir bei etwas unsicher, nimm es trotzdem auf und gib eine niedrige Sicherheit an. ` +
-    `Weglassen waere schlimmer: was fehlt, sucht spaeter jemand vergeblich. ` +
-    `Notiere bei hinweis nur, was beim Tragen zaehlt, etwa zerbrechlich oder schwer. Sonst lass es weg.`
+    `Weglassen wäre schlimmer: was fehlt, sucht später jemand vergeblich. ` +
+    `Notiere bei hinweis nur, was beim Tragen zählt, etwa zerbrechlich oder schwer. Sonst lass es weg.`
 
   if (was === 'moebel') {
     return (
-      `Auf dem Bild ist ein Moebelstueck, das fuer einen Umzug erfasst wird. ` +
-      `Nenne das Stueck selbst und die einzelnen Teile, die zu sehen sind ` +
-      `(Bretter, Beine, Schrauben, Schluessel, Beschlaege), damit man sie beim Aufbauen nachzaehlen kann. ` +
+      `Auf dem Bild ist ein Möbelstück, das für einen Umzug erfasst wird. ` +
+      `Nenne das Stück selbst und die einzelnen Teile, die zu sehen sind ` +
+      `(Bretter, Beine, Schrauben, Schlüssel, Beschläge), damit man sie beim Aufbauen nachzählen kann. ` +
       gemeinsam
     )
   }
   if (was === 'zimmer') {
     return (
       `Auf dem Bild ist ein Zimmer, das umgezogen werden soll. ` +
-      `Nenne die Moebel und die groesseren Gegenstaende darin, also das, was eingepackt oder getragen werden muss. ` +
-      `Kleinkram wie einzelne Stifte gehoert nicht dazu. ` +
+      `Nenne die Möbel und die größeren Gegenstände darin, also das, was eingepackt oder getragen werden muss. ` +
+      `Kleinkram wie einzelne Stifte gehört nicht dazu. ` +
       gemeinsam
     )
   }
@@ -136,7 +136,7 @@ const WERKZEUG = {
             },
             hinweis: {
               type: 'string',
-              description: 'Nur wenn es beim Tragen zaehlt, sonst weglassen',
+              description: 'Nur wenn es beim Tragen zählt, sonst weglassen',
             },
           },
           required: ['text', 'menge', 'sicherheit'],
@@ -270,7 +270,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'project_id und photo_ids sind Pflicht' }, 400)
     }
     if (body.photo_ids.length > MAX_BILDER) {
-      return json({ error: `Hoechstens ${MAX_BILDER} Bilder auf einmal`, code: 'zu_viele' }, 400)
+      return json({ error: `Höchstens ${MAX_BILDER} Bilder auf einmal`, code: 'zu_viele' }, 400)
     }
 
     /* Erst pruefen, wer fragt, dann erst lesen. Mit dem Token des
@@ -291,7 +291,7 @@ Deno.serve(async (req: Request) => {
     if (mitgliedFehler) return json({ error: mitgliedFehler.message }, 400)
     if (!mitglied) return json({ error: 'Kein Mitglied dieses Umzugs', code: 'kein_mitglied' }, 403)
     if (mitglied.role !== 'owner' && mitglied.role !== 'editor') {
-      return json({ error: 'Nur Bearbeiter duerfen Bilder auswerten lassen', code: 'nur_lesen' }, 403)
+      return json({ error: 'Nur Bearbeiter dürfen Bilder auswerten lassen', code: 'nur_lesen' }, 403)
     }
 
     // Die Fotos ueber den Nutzer lesen, damit auch hier die
@@ -316,7 +316,7 @@ Deno.serve(async (req: Request) => {
         {
           error:
             'ANTHROPIC_API_KEY fehlt. Entweder als Function Secret setzen oder in private.config eintragen. ' +
-            'Ohne Schluessel kann kein Bild ausgewertet werden.',
+            'Ohne Schlüssel kann kein Bild ausgewertet werden.',
           code: 'kein_schluessel',
         },
         503,
@@ -381,7 +381,7 @@ Deno.serve(async (req: Request) => {
         }
         const bytes = new Uint8Array(await datei.arrayBuffer())
         if (bytes.length > MAX_BYTES) {
-          throw new Error('Das Bild ist zu gross fuer die Auswertung.')
+          throw new Error('Das Bild ist zu groß für die Auswertung.')
         }
         const typ = datei.type && datei.type.startsWith('image/') ? datei.type : 'image/jpeg'
 

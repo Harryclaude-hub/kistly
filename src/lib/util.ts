@@ -111,8 +111,19 @@ export function initials(name: string | null | undefined, fallback = '?'): strin
   return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || fallback
 }
 
+/** Umlaute fuer das Kuerzel. Das Kuerzel steht in jeder Seriennummer und
+ *  bleibt darum lateinisch. Es muss aber aus dem Wort kommen, das wirklich
+ *  dasteht: aus Kueche wird KU, nicht KC. */
+const KUERZEL_UMSCHRIFT: Record<string, string> = {
+  'ä': 'A', 'Ä': 'A',
+  'ö': 'O', 'Ö': 'O',
+  'ü': 'U', 'Ü': 'U',
+  'ß': 'SS',
+}
+
 export function suggestShort(name: string, taken: string[]): string {
-  const clean = name.trim().replace(/[^A-Za-zAeOeUeaeoeuess0-9\s]/g, '')
+  const lateinisch = name.replace(/[äöüÄÖÜß]/g, (z) => KUERZEL_UMSCHRIFT[z] ?? z)
+  const clean = lateinisch.trim().replace(/[^A-Za-z0-9\s]/g, '')
   if (!clean) return ''
   const used = new Set(taken.map((t) => t.toUpperCase()))
   const words = clean.split(/\s+/).filter(Boolean)

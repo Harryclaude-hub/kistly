@@ -14,15 +14,15 @@ export const marken: Woerterbuch = {
   'marken.symbol': { de: 'Zeichen', ar: 'الرمز' },
   'marken.ohne_farbe': { de: 'Keine Farbe', ar: 'بدون لون' },
   'marken.ohne_symbol': { de: 'Kein Zeichen', ar: 'بدون رمز' },
-  'marken.farbe_waehlen': { de: 'Farbe {farbe} waehlen', ar: 'اختيار اللون {farbe}' },
+  'marken.farbe_waehlen': { de: 'Farbe {farbe} wählen', ar: 'اختيار اللون {farbe}' },
   'marken.zebra_hinweis': {
-    de: 'Eine Zeile bleibt heller, die naechste dunkler. Das gilt auch mit eigener Farbe, damit man beim Lesen die Spur nicht verliert.',
+    de: 'Eine Zeile bleibt heller, die nächste dunkler. Das gilt auch mit eigener Farbe, damit man beim Lesen die Spur nicht verliert.',
     ar: 'يبقى صف أفتح والذي يليه أغمق، حتى مع لون خاص، حتى لا تضيع عينك أثناء القراءة.',
   },
   'marken.gesetzt': { de: 'Markierung gesetzt', ar: 'تم وضع التمييز' },
   'marken.entfernt': { de: 'Markierung entfernt', ar: 'تم إزالة التمييز' },
   'marken.gehoert_der_zeile': {
-    de: 'Die Markierung gehoert dieser Zeile. Die Farbe des Zimmers bleibt, wie sie ist.',
+    de: 'Die Markierung gehört dieser Zeile. Die Farbe des Zimmers bleibt, wie sie ist.',
     ar: 'التمييز يخص هذا الصف. لون الغرفة يبقى كما هو.',
   },
 
@@ -36,16 +36,16 @@ export const marken: Woerterbuch = {
   'marken.symbol_schloss': { de: 'Schloss', ar: 'قفل' },
 
   /* ------------------------------------------------------- Auswaehlen */
-  'auswahl.modus_an': { de: 'Auswaehlen', ar: 'تحديد' },
+  'auswahl.modus_an': { de: 'Auswählen', ar: 'تحديد' },
   'auswahl.modus_aus': { de: 'Auswahl beenden', ar: 'إنهاء التحديد' },
   'auswahl.alle': { de: 'Alle', ar: 'الكل' },
   'auswahl.keine': { de: 'Keine', ar: 'لا شيء' },
-  'auswahl.anzahl.eins': { de: '1 ausgewaehlt', ar: 'عنصر واحد محدّد' },
-  'auswahl.anzahl.viele': { de: '{n} ausgewaehlt', ar: '{n} عناصر محدّدة' },
-  'auswahl.nichts_gewaehlt': { de: 'Noch nichts ausgewaehlt', ar: 'لم يتم تحديد شيء بعد' },
-  'auswahl.zeile_waehlen': { de: 'Zeile auswaehlen', ar: 'تحديد الصف' },
+  'auswahl.anzahl.eins': { de: '1 ausgewählt', ar: 'عنصر واحد محدّد' },
+  'auswahl.anzahl.viele': { de: '{n} ausgewählt', ar: '{n} عناصر محدّدة' },
+  'auswahl.nichts_gewaehlt': { de: 'Noch nichts ausgewählt', ar: 'لم يتم تحديد شيء بعد' },
+  'auswahl.zeile_waehlen': { de: 'Zeile auswählen', ar: 'تحديد الصف' },
   'auswahl.hinweis': {
-    de: 'Tippe die Zeilen an, die du meinst. Danach gilt jede Aktion fuer alle davon.',
+    de: 'Tippe die Zeilen an, die du meinst. Danach gilt jede Aktion für alle davon.',
     ar: 'اضغط على الصفوف التي تقصدها. بعدها يسري كل إجراء عليها جميعاً.',
   },
 
@@ -53,10 +53,10 @@ export const marken: Woerterbuch = {
   'verschieben.titel': { de: 'Verschieben', ar: 'نقل' },
   'verschieben.zimmer': { de: 'In dieses Zimmer', ar: 'إلى هذه الغرفة' },
   'verschieben.person': { de: 'Zu dieser Person', ar: 'إلى هذا الشخص' },
-  'verschieben.unveraendert': { de: 'Nicht aendern', ar: 'بدون تغيير' },
-  'verschieben.abhaengen': { de: 'Abhaengen', ar: 'إزالة الربط' },
+  'verschieben.unveraendert': { de: 'Nicht ändern', ar: 'بدون تغيير' },
+  'verschieben.abhaengen': { de: 'Abhängen', ar: 'إزالة الربط' },
   'verschieben.code_hinweis': {
-    de: 'Die Nummer wird neu vergeben, weil das Kuerzel wechselt. Das alte Etikett bleibt scannbar.',
+    de: 'Die Nummer wird neu vergeben, weil das Kürzel wechselt. Das alte Etikett bleibt scannbar.',
     ar: 'سيُعاد إصدار الرقم لأن الرمز يتغيّر. الملصق القديم يبقى قابلاً للمسح.',
   },
   'verschieben.erledigt.eins': { de: '1 Kiste verschoben', ar: 'تم نقل صندوق واحد' },
@@ -66,21 +66,21 @@ export const marken: Woerterbuch = {
     ar: 'تم نقل {ok}، وفشل {fehler}. السبب: {grund}',
   },
   'verschieben.nichts_gewaehlt': {
-    de: 'Waehle ein Zimmer oder eine Person aus.',
+    de: 'Wähle ein Zimmer oder eine Person aus.',
     ar: 'اختر غرفة أو شخصاً.',
   },
 
   /* -------------------------------------------------- Zusammenfuehren */
-  'zusammen.titel': { de: 'Bereiche zusammenfuehren', ar: 'دمج المناطق' },
-  'zusammen.knopf': { de: 'Zusammenfuehren', ar: 'دمج' },
+  'zusammen.titel': { de: 'Bereiche zusammenführen', ar: 'دمج المناطق' },
+  'zusammen.knopf': { de: 'Zusammenführen', ar: 'دمج' },
   'zusammen.ziel': { de: 'Alles kommt hierhin', ar: 'كل شيء ينتقل إلى هنا' },
-  'zusammen.ziel_waehlen': { de: 'Ziel waehlen', ar: 'اختر الوجهة' },
+  'zusammen.ziel_waehlen': { de: 'Ziel wählen', ar: 'اختر الوجهة' },
   'zusammen.warnung': {
-    de: 'Alles aus {von} haengt danach an {nach}, und {von} verschwindet. Die Nummern werden neu vergeben, die alten Etiketten bleiben scannbar. Rueckgaengig geht das nicht.',
+    de: 'Alles aus {von} hängt danach an {nach}, und {von} verschwindet. Die Nummern werden neu vergeben, die alten Etiketten bleiben scannbar. Rückgängig geht das nicht.',
     ar: 'كل ما في {von} سينتقل إلى {nach}، ثم تختفي {von}. ستُعاد إصدار الأرقام، والملصقات القديمة تبقى قابلة للمسح. لا يمكن التراجع.',
   },
-  'zusammen.erledigt.eins': { de: '1 Eintrag umgehaengt', ar: 'تم نقل عنصر واحد' },
-  'zusammen.erledigt.viele': { de: '{n} Eintraege umgehaengt', ar: 'تم نقل {n} عناصر' },
+  'zusammen.erledigt.eins': { de: '1 Eintrag umgehängt', ar: 'تم نقل عنصر واحد' },
+  'zusammen.erledigt.viele': { de: '{n} Einträge umgehängt', ar: 'تم نقل {n} عناصر' },
   'zusammen.kein_ziel': {
     de: 'Es gibt keinen zweiten Bereich derselben Art.',
     ar: 'لا توجد منطقة أخرى من النوع نفسه.',
