@@ -296,9 +296,6 @@ export default function ScanPage() {
         itemId={schnellId}
         offen={schnellId !== null}
         alterCode={schnellAlt}
-        tagById={tagById}
-        canEdit={canEdit}
-        projectName={project.name}
         onClose={() => {
           setSchnellId(null)
           setSchnellAlt(undefined)

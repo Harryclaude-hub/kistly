@@ -559,6 +559,31 @@ async function main() {
   check('Restguthaben abfragbar', restZahl.ok && Number(frei?.rest_projekt) > 0,
     JSON.stringify(restZahl.data).slice(0, 140))
 
+  // ------------------------------------------------- Daten der Schnellansicht
+  // Die Schnellansicht laedt alles selbst, damit es sie ueberall gibt.
+  // Geprueft wird hier, dass jede der sechs Abfragen unter der
+  // Zeilen-Sicherheit wirklich durchkommt. Faellt eine davon aus, waere
+  // das Fenster nach einem Scan halb leer, ohne dass etwas meldet.
+  const schnellItem = i3.id
+  const [sItem, sProject, sTags, sMitglied, sInhalt] = await Promise.all([
+    rest(`/items?id=eq.${schnellItem}&select=*`),
+    rest(`/projects?id=eq.${pid}&select=id,name`),
+    rest(`/tags?id=in.(${wohn.id},${personId})&select=*`),
+    rest(`/project_members?project_id=eq.${pid}&user_id=eq.${userId}&select=role`),
+    rest(`/item_contents?item_id=eq.${schnellItem}&select=*`),
+  ])
+  check('Schnellansicht: Kiste geladen', sItem.data?.[0]?.id === schnellItem)
+  check('Schnellansicht: Umzugsname geladen', Boolean(sProject.data?.[0]?.name))
+  check('Schnellansicht: Bereiche geladen', (sTags.data ?? []).length === 2,
+    `${(sTags.data ?? []).length} statt 2`)
+  check('Schnellansicht: eigene Rolle lesbar', sMitglied.data?.[0]?.role === 'owner',
+    JSON.stringify(sMitglied.data).slice(0, 120))
+  check('Schnellansicht: Inhalt lesbar', Array.isArray(sInhalt.data))
+
+  // Ein Bereich aus einem fremden Umzug darf hier nie mitkommen.
+  const fremdeTags = await rest(`/tags?id=in.(00000000-0000-0000-0000-000000000000)&select=id`)
+  check('Schnellansicht: fremder Bereich kommt nicht mit', (fremdeTags.data ?? []).length === 0)
+
   // ------------------------------------------------------------- Aufraeumen
   console.log('\n11. Aufraeumen')
   const del = await rest(`/projects?id=eq.${pid}`, { method: 'DELETE' })

@@ -44,6 +44,10 @@ export const schnell: Woerterbuch = {
   'schnell.inhalt_leer': { de: 'Kein Inhalt eingetragen', ar: 'لم يُسجّل محتوى' },
   'schnell.inhalt_mehr': { de: 'und {n} weitere', ar: 'و{n} أخرى' },
 
+  'schnell.tippen_hinweis': {
+    de: 'Tipp irgendwo hier hin, dann siehst du alles: Tabelle, Notizen und alle Bilder.',
+    ar: '\u0627\u0636\u063a\u0637 \u0641\u064a \u0623\u064a \u0645\u0643\u0627\u0646 \u0647\u0646\u0627 \u0644\u062a\u0631\u0649 \u0643\u0644 \u0634\u064a\u0621: \u0627\u0644\u062c\u062f\u0648\u0644 \u0648\u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0648\u0643\u0644 \u0627\u0644\u0635\u0648\u0631.',
+  },
   'schnell.oeffnen': { de: 'Ganz oeffnen', ar: 'فتح بالكامل' },
   'schnell.weiter': { de: 'Weiter scannen', ar: 'متابعة المسح' },
   'schnell.schliessen': { de: 'Schliessen', ar: 'إغلاق' },

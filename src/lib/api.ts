@@ -13,6 +13,7 @@ import type {
   ItemEvent,
   ItemPhoto,
   ItemStatus,
+  MemberRole,
   Message,
   MessageLink,
   MessageReaction,
@@ -419,6 +420,71 @@ export async function resolveCode(
   const res = await supabase.rpc('resolve_code', { p_project: projectId, p_code: code })
   if (res.error) throw new Error(tg('fehler.code_suchen', { grund: errText(res.error) }))
   return (res.data ?? []) as Array<{ item_id: string; code: string; is_old: boolean }>
+}
+
+/* ------------------------------------------------------- Schnellansicht */
+
+/** Alles, was die Schnellansicht nach einem Scan braucht.
+ *
+ *  Sie laedt es selbst, statt es sich von der Seite reichen zu lassen.
+ *  Nur so laesst sie sich ueberall einsetzen: im Umzug, im globalen
+ *  Scanbereich und hinter der QR-Adresse. Wuerde sie tagById und canEdit
+ *  als Eigenschaften erwarten, gaebe es sie nur dort, wo der
+ *  Umzugs-Zusammenhang schon steht, und der globale Scanbereich braeuchte
+ *  eine zweite Fassung. */
+export interface SchnellDaten {
+  item: Item
+  project: Project
+  room: Tag | null
+  person: Tag | null
+  contents: ItemContent[]
+  /** Pfad des Deckbilds im Speicher, oder null. */
+  coverPath: string | null
+  /** Die eigene Rolle in diesem Umzug. Daraus folgt, was man aendern darf. */
+  role: MemberRole | null
+}
+
+export async function ladeSchnellansicht(itemId: string): Promise<SchnellDaten> {
+  const item = await getItem(itemId)
+  const { data: auth } = await supabase.auth.getUser()
+  const uid = auth.user?.id ?? null
+
+  /* Nur die beiden Bereiche holen, die wirklich an dieser Kiste haengen,
+   * nicht alle Bereiche des Umzugs. Beim Scannen im Treppenhaus zaehlt
+   * jede Zehntelsekunde. */
+  const tagIds = [item.room_id, item.person_id].filter((x): x is string => Boolean(x))
+
+  const [project, contents, tags, deck, rolle] = await Promise.all([
+    getProject(item.project_id),
+    listContents(item.id),
+    tagIds.length
+      ? supabase.from('tags').select('*').in('id', tagIds)
+      : Promise.resolve({ data: [] as Tag[], error: null }),
+    item.cover_photo_id
+      ? supabase.from('item_photos').select('path').eq('id', item.cover_photo_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    uid
+      ? supabase
+          .from('project_members')
+          .select('role')
+          .eq('project_id', item.project_id)
+          .eq('user_id', uid)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
+  if (tags.error) throw new Error(tg('fehler.bereiche_laden', { grund: errText(tags.error) }))
+  const liste = (tags.data ?? []) as Tag[]
+
+  return {
+    item,
+    project,
+    room: liste.find((x) => x.id === item.room_id) ?? null,
+    person: liste.find((x) => x.id === item.person_id) ?? null,
+    contents,
+    coverPath: (deck.data as { path?: string } | null)?.path ?? null,
+    role: ((rolle.data as { role?: MemberRole } | null)?.role ?? null) as MemberRole | null,
+  }
 }
 
 /* ------------------------------------------------------------- Inhalte */

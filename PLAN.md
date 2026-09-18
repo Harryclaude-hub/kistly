@@ -180,6 +180,13 @@ verweist auf ein vorhandenes Foto, ein Trigger prueft, dass es zu diesem
 Eintrag gehoert. Eine Fassung fuer alle Wege, in
 `src/components/Schnellansicht.tsx`.
 
+Seit 18.09.2026 ist die Schnellansicht ein echtes Vollbild und laedt alles
+selbst ueber `ladeSchnellansicht` in api.ts. Darum gibt es sie an allen
+drei Stellen, an denen man scannt, ohne zweite Fassung: im Umzug, im
+globalen Scanbereich und hinter der QR-Adresse. Neu dabei der QR-Code
+neben der Nummer. Ein Tippen auf den Inhalt, ausserhalb der
+Bedienelemente, fuehrt auf die volle Kistenseite.
+
 ### Bilderkennung (0013 bis 0015)
 
 Fotos von Kisten und Moebeln werden gelesen, das Ergebnis kommt als

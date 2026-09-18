@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { AppHeader, Page } from '../components/AppShell'
 import { Scanner } from '../components/Scanner'
+import { Schnellansicht } from '../components/Schnellansicht'
 import {
   Button,
   Card,
@@ -102,6 +103,11 @@ export default function ScanHub() {
   const [manual, setManual] = useState('')
   const [paused, setPaused] = useState(false)
   const [lastInput, setLastInput] = useState('')
+  /* Nach jedem Treffer geht die Schnellansicht ueber den ganzen
+   * Bildschirm auf. Dieselbe Fassung wie beim Scannen im Umzug und hinter
+   * der QR-Adresse, damit es ueberall gleich aussieht und sich ueberall
+   * gleich bedient. */
+  const [schnellId, setSchnellId] = useState<string | null>(null)
 
   const busyRef = useRef(false)
   const timerRef = useRef<number | null>(null)
@@ -212,6 +218,7 @@ export default function ScanHub() {
 
         setHit(current)
         setLog((rows) => [{ at: new Date().toISOString(), hit: current }, ...rows].slice(0, 40))
+        setSchnellId(current.item.id)
       } catch (err) {
         setHit(null)
         setError(err instanceof Error ? err.message : String(err))
@@ -281,7 +288,7 @@ export default function ScanHub() {
       <AppHeader title={t('nav.scannen')} subtitle={t('scannen.untertitel_alle')} />
       <Page>
         <div className="mb-4">
-          <Scanner onResult={onScanned} paused={paused || busy} />
+          <Scanner onResult={onScanned} paused={paused || busy || schnellId !== null} />
         </div>
 
         <Card className="mb-4 p-3.5">
@@ -573,6 +580,22 @@ export default function ScanHub() {
 
         <div className="h-6" />
       </Page>
+
+      <Schnellansicht
+        itemId={schnellId}
+        offen={schnellId !== null}
+        alterCode={hit?.isOldCode ? lastInput.toUpperCase() : undefined}
+        onClose={() => setSchnellId(null)}
+        onGeaendert={(neu) => {
+          /* Die Trefferkarte darunter zeigt dieselbe Kiste. Ohne das
+           * naechste Zeile stuende dort noch der alte Status, und man
+           * haette zwei Wahrheiten auf einem Bildschirm. */
+          setHit((h) => (h && h.item.id === neu.id ? { ...h, item: neu } : h))
+          setLog((rows) =>
+            rows.map((r) => (r.hit.item.id === neu.id ? { ...r, hit: { ...r.hit, item: neu } } : r)),
+          )
+        }}
+      />
     </>
   )
 }
